@@ -76,6 +76,11 @@ namespace ElCriollo.API.Interfaces
         /// <returns>True si se eliminó correctamente</returns>
         Task<bool> DeleteAsync(T entity);
 
+        /// <summary>
+        /// Agrega una nueva entidad (alias de CreateAsync para compatibilidad)
+        /// </summary>
+        Task<T> AddAsync(T entity);
+
         // ============================================================================
         // OPERACIONES DE CONSULTA
         // ============================================================================

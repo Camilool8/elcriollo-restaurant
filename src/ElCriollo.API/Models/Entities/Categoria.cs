@@ -93,6 +93,16 @@ public class Categoria
         .FirstOrDefault();
 
     // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para NombreCategoria (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string NombreCategoria => Nombre;
+
+    // ============================================================================
     // MÉTODOS DE UTILIDAD
     // ============================================================================
 
@@ -194,6 +204,23 @@ public class Categoria
             ProductosConStock = ObtenerProductosConStock().Count(),
             Estado = Estado ? "Activa" : "Inactiva"
         };
+    }
+
+    /// <summary>
+    /// Obtiene el rango de precios de la categoría formateado
+    /// </summary>
+    public string ObtenerRangoPrecios()
+    {
+        if (!TieneProductosDisponibles)
+            return "Sin productos disponibles";
+            
+        var min = ProductoMasBarato?.Precio ?? 0;
+        var max = ProductoMasCaro?.Precio ?? 0;
+        
+        if (min == max)
+            return $"RD$ {min:N2}";
+            
+        return $"RD$ {min:N2} - RD$ {max:N2}";
     }
 
     /// <summary>

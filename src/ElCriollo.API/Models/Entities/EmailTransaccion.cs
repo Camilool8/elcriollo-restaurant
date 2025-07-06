@@ -61,6 +61,17 @@ public class EmailTransaccion
     [StringLength(20)]
     public string Estado { get; set; } = "Pendiente";
 
+    /// <summary>
+    /// Mensaje de error si falló el envío
+    /// </summary>
+    [StringLength(500)]
+    public string? MensajeError { get; set; }
+
+    /// <summary>
+    /// Intentos de envío
+    /// </summary>
+    public int IntentosEnvio { get; set; } = 0;
+
     // ============================================================================
     // PROPIEDADES CALCULADAS
     // ============================================================================
@@ -144,6 +155,52 @@ public class EmailTransaccion
     public string ResumenEmail => LongitudMensaje > 100 
         ? $"{Mensaje?.Substring(0, 100)}..." 
         : Mensaje ?? "";
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para EstadoEnvio (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string EstadoEnvio 
+    { 
+        get => Estado;
+        set => Estado = value;
+    }
+
+    /// <summary>
+    /// Alias para EmailDestinatario (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string EmailDestinatario 
+    { 
+        get => DestinatarioEmail;
+        set => DestinatarioEmail = value;
+    }
+
+    /// <summary>
+    /// Alias para Cuerpo (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string? Cuerpo 
+    { 
+        get => Mensaje;
+        set => Mensaje = value;
+    }
+
+    /// <summary>
+    /// Indica si fue exitoso (alias para FueEnviado)
+    /// </summary>
+    [NotMapped]
+    public bool FueExitoso => FueEnviado;
+
+    /// <summary>
+    /// Indica si requiere reintento (más de 0 intentos y no enviado)
+    /// </summary>
+    [NotMapped]
+    public bool RequiereReintento => !FueEnviado && IntentosEnvio < 3 && TuvoError;
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD

@@ -67,6 +67,23 @@ public class Usuario
     [Required]
     public bool RequiereCambioContrasena { get; set; } = false;
 
+    /// <summary>
+    /// Token de refresco para JWT
+    /// </summary>
+    [StringLength(500)]
+    public string? RefreshToken { get; set; }
+
+    /// <summary>
+    /// Fecha de expiración del refresh token
+    /// </summary>
+    public DateTime? RefreshTokenExpiry { get; set; }
+
+    /// <summary>
+    /// ID del empleado asociado (para facilitar el acceso)
+    /// </summary>
+    [ForeignKey("Empleado")]
+    public int? EmpleadoID { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================
@@ -90,6 +107,52 @@ public class Usuario
     /// Facturas generadas por este usuario
     /// </summary>
     public virtual ICollection<Factura> Facturas { get; set; } = new List<Factura>();
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int Id => UsuarioID;
+
+    /// <summary>
+    /// Alias para Username (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string Username => UsuarioNombre;
+
+    /// <summary>
+    /// Alias para PasswordHash (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string PasswordHash 
+    { 
+        get => ContrasenaHash;
+        set => ContrasenaHash = value;
+    }
+
+    /// <summary>
+    /// Alias para EsActivo (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public bool EsActivo 
+    { 
+        get => Estado;
+        set => Estado = value;
+    }
+
+    /// <summary>
+    /// Alias para UltimoLogin (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public DateTime? UltimoLogin 
+    { 
+        get => UltimoAcceso;
+        set => UltimoAcceso = value;
+    }
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD

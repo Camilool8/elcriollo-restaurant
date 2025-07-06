@@ -161,6 +161,106 @@ public class Reservacion
                                        TiempoHastaReservacion.TotalHours <= 2;
 
     // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int Id => ReservacionID;
+
+    /// <summary>
+    /// Alias para ClienteId (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int ClienteId 
+    { 
+        get => ClienteID;
+        set => ClienteID = value;
+    }
+
+    /// <summary>
+    /// Alias para MesaId (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int MesaId 
+    { 
+        get => MesaID;
+        set => MesaID = value;
+    }
+
+    /// <summary>
+    /// Alias para FechaHora (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public DateTime FechaHora 
+    { 
+        get => FechaYHora;
+        set => FechaYHora = value;
+    }
+
+    /// <summary>
+    /// Alias para DuracionMinutos (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int DuracionMinutos 
+    { 
+        get => DuracionEstimada;
+        set => DuracionEstimada = value;
+    }
+
+    /// <summary>
+    /// Alias para NotasEspeciales (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string? NotasEspeciales 
+    { 
+        get => Observaciones;
+        set => Observaciones = value;
+    }
+
+    /// <summary>
+    /// Alias para ObservacionesEspeciales (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string? ObservacionesEspeciales 
+    { 
+        get => Observaciones;
+        set => Observaciones = value;
+    }
+
+    /// <summary>
+    /// Usuario que creó la reservación (para compatibilidad)
+    /// </summary>
+    public int? UsuarioCreacion { get; set; }
+
+    /// <summary>
+    /// Fecha de modificación (para compatibilidad)
+    /// </summary>
+    public DateTime? FechaModificacion { get; set; }
+
+    /// <summary>
+    /// Verifica si puede ser modificada (menos de 2 horas antes)
+    /// </summary>
+    [NotMapped]
+    public bool PuedeModificar => !EstaCancelada && !EstaCompletada && TiempoHastaReservacion.TotalHours > 2;
+
+    /// <summary>
+    /// Verifica si puede ser cancelada (más de 1 hora antes)
+    /// </summary>
+    [NotMapped]
+    public bool PuedeCancelar => !EstaCancelada && !EstaCompletada && TiempoHastaReservacion.TotalHours > 1;
+
+    /// <summary>
+    /// Tiempo para llegar en minutos
+    /// </summary>
+    [NotMapped]
+    public int? TiempoParaLlegar => TiempoHastaReservacion.TotalMinutes > 0 
+        ? (int)TiempoHastaReservacion.TotalMinutes 
+        : null;
+
+    // ============================================================================
     // MÉTODOS DE UTILIDAD
     // ============================================================================
 

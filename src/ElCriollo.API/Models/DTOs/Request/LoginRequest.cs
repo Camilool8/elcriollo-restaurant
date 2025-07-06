@@ -12,14 +12,14 @@ public class LoginRequest
     /// </summary>
     [Required(ErrorMessage = "El nombre de usuario es requerido")]
     [StringLength(50, ErrorMessage = "El nombre de usuario no puede exceder 50 caracteres")]
-    public string Usuario { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
 
     /// <summary>
     /// Contraseña del usuario
     /// </summary>
     [Required(ErrorMessage = "La contraseña es requerida")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "La contraseña debe tener entre 6 y 100 caracteres")]
-    public string Contrasena { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 
     /// <summary>
     /// Indica si el usuario quiere mantener la sesión activa

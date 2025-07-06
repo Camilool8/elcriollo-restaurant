@@ -45,6 +45,22 @@ public class Rol
     public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 
     // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int Id => RolID;
+
+    /// <summary>
+    /// Alias para Nombre (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string Nombre => NombreRol;
+
+    // ============================================================================
     // MÉTODOS DE UTILIDAD
     // ============================================================================
 

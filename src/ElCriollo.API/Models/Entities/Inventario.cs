@@ -124,6 +124,26 @@ public class Inventario
     [NotMapped]
     public int CantidadRecomendadaReorden => Math.Max(CantidadMinima * 3 - CantidadDisponible, 0);
 
+    /// <summary>
+    /// Indica si necesita reabastecimiento
+    /// </summary>
+    [NotMapped]
+    public bool NecesitaReabastecimiento => StockBajo || Agotado;
+
+    /// <summary>
+    /// Días estimados para reabastecer (simulado)
+    /// </summary>
+    [NotMapped]
+    public int DiasParaReabastecer => StockBajo ? 2 : (Agotado ? 1 : 7);
+
+    /// <summary>
+    /// Valor del inventario formateado
+    /// </summary>
+    [NotMapped]
+    public string ValorInventarioFormateado => Producto != null 
+        ? $"RD$ {(CantidadDisponible * Producto.Precio):N2}" 
+        : "RD$ 0.00";
+
     // ============================================================================
     // MÉTODOS DE UTILIDAD
     // ============================================================================
@@ -286,6 +306,31 @@ public class Inventario
         }
 
         return recomendaciones;
+    }
+
+    /// <summary>
+    /// Obtiene el estado del stock
+    /// </summary>
+    public string ObtenerEstadoStock() => NivelStock;
+
+    /// <summary>
+    /// Obtiene el color del indicador
+    /// </summary>
+    public string ObtenerColorIndicador() => ColorIndicador;
+
+    /// <summary>
+    /// Obtiene la recomendación de reorden
+    /// </summary>
+    public string ObtenerRecomendacionReorden()
+    {
+        if (Agotado)
+            return $"URGENTE: Reordenar {CantidadRecomendadaReorden} unidades inmediatamente";
+        else if (StockBajo)
+            return $"Reordenar {CantidadRecomendadaReorden} unidades pronto";
+        else if (PorcentajeStock < 150)
+            return $"Considerar reordenar {CantidadRecomendadaReorden} unidades";
+        else
+            return "Stock suficiente";
     }
 
     /// <summary>

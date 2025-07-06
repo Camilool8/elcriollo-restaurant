@@ -215,12 +215,34 @@ public class AutoMapperProfile : Profile
         // ============================================================================
 
         // Usuario
+        CreateMap<LoginRequest, Usuario>()
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username));
+                
         CreateMap<CreateUsuarioRequest, Usuario>()
-            .ForMember(dest => dest.UsuarioNombre, opt => opt.MapFrom(src => src.Usuario))
-            .ForMember(dest => dest.ContrasenaHash, opt => opt.Ignore()) // Se manejará en el servicio
-            .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => DateTime.UtcNow))
-            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true))
-            .ForMember(dest => dest.RequiereCambioContrasena, opt => opt.MapFrom(src => src.RequiereCambioContrasena));
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username))
+            .ForMember(dest => dest.RolID, opt => opt.MapFrom(src => src.RolId))
+            .ForMember(dest => dest.EmpleadoID, opt => opt.MapFrom(src => src.EmpleadoId));
+                
+        CreateMap<CreateOrdenRequest, Orden>()
+            .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
+            .ForMember(dest => dest.ClienteID, opt => opt.MapFrom(src => src.ClienteId));
+                
+        CreateMap<CreateReservacionRequest, Reservacion>()
+            .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
+            .ForMember(dest => dest.ClienteID, opt => opt.MapFrom(src => src.ClienteId))
+            .ForMember(dest => dest.FechaYHora, opt => opt.MapFrom(src => src.FechaHora))
+            .ForMember(dest => dest.DuracionEstimada, opt => opt.MapFrom(src => src.DuracionMinutos ?? 120))
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.NotasEspeciales));
+
+        // Actualizar Reservación - mapeo parcial para actualizaciones
+        CreateMap<ActualizarReservacionRequest, Reservacion>()
+            .ForMember(dest => dest.ReservacionID, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaYHora, opt => opt.Condition(src => src.FechaHora.HasValue))
+            .ForMember(dest => dest.CantidadPersonas, opt => opt.Condition(src => src.CantidadPersonas.HasValue))
+            .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
+            .ForMember(dest => dest.MesaID, opt => opt.Condition(src => src.MesaId.HasValue))
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.NotasEspeciales))
+            .ForMember(dest => dest.Observaciones, opt => opt.Condition(src => !string.IsNullOrWhiteSpace(src.NotasEspeciales)));
 
         // Producto
         CreateMap<CrearProductoRequest, Producto>()
@@ -235,24 +257,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Descripcion, opt => opt.Condition(src => src.Descripcion != null))
             .ForMember(dest => dest.Precio, opt => opt.Condition(src => src.Precio.HasValue))
             .ForMember(dest => dest.CategoriaID, opt => opt.Condition(src => src.CategoriaId.HasValue))
-            .ForMember(dest => dest.Estado, opt => opt.Condition(src => src.Disponible.HasValue))
-            .ForAllOtherMembers(opt => opt.Ignore());
-
-        // Reservación
-        CreateMap<CreateReservacionRequest, Reservacion>()
-            .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => DateTime.UtcNow))
-            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Pendiente"));
-
-        // Actualizar Reservación - mapeo parcial para actualizaciones
-        CreateMap<ActualizarReservacionRequest, Reservacion>()
-            .ForMember(dest => dest.ReservacionID, opt => opt.Ignore())
-            .ForMember(dest => dest.FechaYHora, opt => opt.Condition(src => src.FechaHora.HasValue))
-            .ForMember(dest => dest.CantidadPersonas, opt => opt.Condition(src => src.CantidadPersonas.HasValue))
-            .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
-            .ForMember(dest => dest.MesaID, opt => opt.Condition(src => src.MesaId.HasValue))
-            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.NotasEspeciales))
-            .ForMember(dest => dest.Observaciones, opt => opt.Condition(src => !string.IsNullOrWhiteSpace(src.NotasEspeciales)))
-            .ForAllOtherMembers(opt => opt.Ignore());
+            .ForMember(dest => dest.Estado, opt => opt.Condition(src => src.Disponible.HasValue));
 
         // Orden
         CreateMap<CreateOrdenRequest, Orden>()

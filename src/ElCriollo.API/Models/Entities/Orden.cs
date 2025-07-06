@@ -68,6 +68,29 @@ public class Orden
     [StringLength(500)]
     public string? Observaciones { get; set; }
 
+    /// <summary>
+    /// Fecha de última actualización
+    /// </summary>
+    public DateTime? FechaActualizacion { get; set; }
+
+    /// <summary>
+    /// Subtotal calculado (guardado para performance)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SubtotalCalculado { get; set; }
+
+    /// <summary>
+    /// Impuesto calculado
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal Impuesto { get; set; }
+
+    /// <summary>
+    /// Total calculado (guardado para performance)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalCalculado { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================
@@ -159,7 +182,11 @@ public class Orden
     /// Subtotal de la orden (sin descuentos ni impuestos)
     /// </summary>
     [NotMapped]
-    public decimal Subtotal => DetalleOrdenes?.Sum(d => d.Subtotal) ?? 0;
+    public decimal Subtotal 
+    { 
+        get => SubtotalCalculado > 0 ? SubtotalCalculado : DetalleOrdenes?.Sum(d => d.Subtotal) ?? 0;
+        set => SubtotalCalculado = value;
+    }
 
     /// <summary>
     /// Total de descuentos aplicados
@@ -171,7 +198,11 @@ public class Orden
     /// Total de la orden
     /// </summary>
     [NotMapped]
-    public decimal Total => Subtotal;
+    public decimal Total 
+    { 
+        get => TotalCalculado > 0 ? TotalCalculado : Subtotal + Impuesto;
+        set => TotalCalculado = value;
+    }
 
     /// <summary>
     /// Tiempo transcurrido desde la creación
@@ -219,6 +250,30 @@ public class Orden
     /// </summary>
     [NotMapped]
     public string TotalFormateado => $"RD$ {Total:N2}";
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para UsuarioID (mapea a EmpleadoID para compatibilidad)
+    /// </summary>
+    [NotMapped]
+    public int UsuarioID 
+    { 
+        get => EmpleadoID;
+        set => EmpleadoID = value;
+    }
+
+    /// <summary>
+    /// Alias para ObservacionesEspeciales (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string? ObservacionesEspeciales 
+    { 
+        get => Observaciones;
+        set => Observaciones = value;
+    }
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD

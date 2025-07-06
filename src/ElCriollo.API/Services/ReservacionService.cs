@@ -43,7 +43,7 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Crea una nueva reserva validando disponibilidad
         /// </summary>
-        public async Task<ReservacionResponse> CrearReservaAsync(CrearReservacionRequest crearReservaRequest, int usuarioId)
+        public async Task<ReservacionResponse> CrearReservaAsync(CreateReservacionRequest crearReservaRequest, int usuarioId)
         {
             try
             {
@@ -387,7 +387,7 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Valida una solicitud de reserva
         /// </summary>
-        public async Task<ValidacionReservaResult> ValidarSolicitudReservaAsync(CrearReservacionRequest request)
+        public async Task<ValidacionReservaResult> ValidarSolicitudReservaAsync(CreateReservacionRequest request)
         {
             try
             {

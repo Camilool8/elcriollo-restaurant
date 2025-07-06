@@ -80,6 +80,18 @@ public class Empleado
     [Required]
     public bool Estado { get; set; } = true;
 
+    /// <summary>
+    /// Salario del empleado (RD$)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? Salario { get; set; }
+
+    /// <summary>
+    /// Departamento o área del empleado
+    /// </summary>
+    [StringLength(50)]
+    public string? Departamento { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================
@@ -120,6 +132,52 @@ public class Empleado
     /// </summary>
     [NotMapped]
     public bool TieneAccesoSistema => UsuarioID.HasValue && Usuario?.Estado == true;
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int Id => EmpleadoID;
+
+    /// <summary>
+    /// Alias para FechaContratacion (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public DateTime FechaContratacion => FechaIngreso;
+
+    /// <summary>
+    /// Alias para EsActivo (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public bool EsActivo => Estado;
+
+    /// <summary>
+    /// RolId del usuario asociado (si existe)
+    /// </summary>
+    [NotMapped]
+    public int? RolId => Usuario?.RolID;
+
+    /// <summary>
+    /// Teléfono formateado dominicano
+    /// </summary>
+    [NotMapped]
+    public string TelefonoFormateado => FormatarTelefonoDominicano();
+
+    /// <summary>
+    /// Salario formateado en pesos dominicanos
+    /// </summary>
+    [NotMapped]
+    public string SalarioFormateado => Salario.HasValue ? $"RD$ {Salario:N2}" : "No definido";
+
+    /// <summary>
+    /// Tiempo en la empresa formateado
+    /// </summary>
+    [NotMapped]
+    public string TiempoEnEmpresa => ObtenerTiempoEnEmpresa();
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD
@@ -166,6 +224,36 @@ public class Empleado
     public string? ObtenerRol()
     {
         return Usuario?.Rol?.NombreRol;
+    }
+
+    /// <summary>
+    /// Formatea el teléfono al estilo dominicano
+    /// </summary>
+    private string FormatarTelefonoDominicano()
+    {
+        if (string.IsNullOrEmpty(Telefono))
+            return "No registrado";
+            
+        var telefonoLimpio = Telefono.Replace("-", "").Replace(" ", "").Replace("(", "").Replace(")", "");
+        
+        if (telefonoLimpio.Length == 10)
+            return $"({telefonoLimpio.Substring(0, 3)}) {telefonoLimpio.Substring(3, 3)}-{telefonoLimpio.Substring(6)}";
+            
+        return Telefono;
+    }
+
+    /// <summary>
+    /// Obtiene el tiempo en la empresa formateado
+    /// </summary>
+    private string ObtenerTiempoEnEmpresa()
+    {
+        var anos = AnosAntiguedad;
+        if (anos == 0)
+            return "Menos de 1 año";
+        else if (anos == 1)
+            return "1 año";
+        else
+            return $"{anos} años";
     }
 
     /// <summary>

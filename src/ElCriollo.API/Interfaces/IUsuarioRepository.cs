@@ -37,6 +37,31 @@ namespace ElCriollo.API.Interfaces
         Task<Usuario?> GetByEmailAsync(string email);
 
         /// <summary>
+        /// Obtiene un usuario por su refresh token
+        /// </summary>
+        Task<Usuario?> GetByRefreshTokenAsync(string refreshToken);
+
+        /// <summary>
+        /// Obtiene un rol por su nombre
+        /// </summary>
+        Task<Rol?> GetRolByNombreAsync(string nombreRol);
+
+        /// <summary>
+        /// Obtiene todos los roles del sistema
+        /// </summary>
+        Task<IEnumerable<Rol>> GetAllRolesAsync();
+
+        /// <summary>
+        /// Prueba la conexión a la base de datos
+        /// </summary>
+        Task<bool> TestConnectionAsync();
+
+        /// <summary>
+        /// Crea un nuevo usuario
+        /// </summary>
+        Task<Usuario> CreateAsync(Usuario usuario);
+
+        /// <summary>
         /// Registra el último acceso de un usuario
         /// </summary>
         /// <param name="usuarioId">ID del usuario</param>

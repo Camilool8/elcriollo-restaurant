@@ -45,7 +45,10 @@ namespace ElCriollo.API.Services
         // GESTIÓN DE ÓRDENES
         // ============================================================================
 
-        public async Task<OrdenResponse> CrearOrdenAsync(CrearOrdenRequest crearOrdenRequest, int usuarioId)
+        /// <summary>
+        /// Crea una nueva orden básica
+        /// </summary>
+        public async Task<OrdenResponse> CrearOrdenAsync(CreateOrdenRequest crearOrdenRequest, int usuarioId)
         {
             try
             {
@@ -392,7 +395,10 @@ namespace ElCriollo.API.Services
         // VALIDACIONES
         // ============================================================================
 
-        public async Task<ValidacionOrdenResult> ValidarOrdenAsync(CrearOrdenRequest crearOrdenRequest)
+        /// <summary>
+        /// Valida que una orden puede ser creada
+        /// </summary>
+        public async Task<ValidacionOrdenResult> ValidarOrdenAsync(CreateOrdenRequest crearOrdenRequest)
         {
             var resultado = new ValidacionOrdenResult { EsValida = true };
 

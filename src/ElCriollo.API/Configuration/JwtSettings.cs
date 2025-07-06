@@ -31,6 +31,16 @@ public class JwtSettings
     public int RefreshTokenExpiryInDays { get; set; } = 7;
 
     /// <summary>
+    /// Alias para Key (compatibilidad con servicios)
+    /// </summary>
+    public string Key => SecretKey;
+
+    /// <summary>
+    /// Alias para ExpiryMinutes (compatibilidad con servicios)
+    /// </summary>
+    public int ExpiryMinutes => ExpiryInMinutes;
+
+    /// <summary>
     /// Validar si la configuración JWT es válida
     /// </summary>
     public bool IsValid()

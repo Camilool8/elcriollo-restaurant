@@ -47,6 +47,11 @@ public class Mesa
     /// </summary>
     public DateTime? FechaUltimaLimpieza { get; set; }
 
+    /// <summary>
+    /// Fecha de última actualización
+    /// </summary>
+    public DateTime? FechaUltimaActualizacion { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================
@@ -120,6 +125,22 @@ public class Mesa
     /// </summary>
     [NotMapped]
     public bool NecesitaLimpieza => TiempoDesdeLimpieza?.TotalHours > 4;
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para EstaActiva (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public bool EstaActiva => Estado != "Mantenimiento";
+
+    /// <summary>
+    /// Alias para Numero (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public int Numero => NumeroMesa;
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD

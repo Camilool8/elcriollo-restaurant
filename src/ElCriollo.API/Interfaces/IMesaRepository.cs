@@ -234,5 +234,20 @@ namespace ElCriollo.API.Interfaces
         /// </summary>
         /// <returns>Resumen con conteo por estado</returns>
         Task<object> GetResumenEstadoMesasAsync();
+
+        /// <summary>
+        /// Obtiene todas las mesas con información adicional
+        /// </summary>
+        Task<IEnumerable<Mesa>> GetAllWithIncludesAsync();
+
+        /// <summary>
+        /// Obtiene una mesa por ID con información adicional
+        /// </summary>
+        Task<Mesa?> GetByIdWithIncludesAsync(int mesaId);
+
+        /// <summary>
+        /// Obtiene mesas activas
+        /// </summary>
+        Task<IEnumerable<Mesa>> GetMesasActivasAsync();
     }
 }

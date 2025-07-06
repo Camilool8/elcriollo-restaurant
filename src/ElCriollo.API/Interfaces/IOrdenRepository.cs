@@ -149,6 +149,41 @@ namespace ElCriollo.API.Interfaces
         /// <returns>True si ya existe</returns>
         Task<bool> NumeroOrdenExisteAsync(string numeroOrden);
 
+        /// <summary>
+        /// Obtiene una orden con todos sus includes
+        /// </summary>
+        Task<Orden?> GetByIdWithIncludesAsync(int ordenId);
+
+        /// <summary>
+        /// Obtiene órdenes activas
+        /// </summary>
+        Task<IEnumerable<Orden>> GetOrdenesActivasAsync();
+
+        /// <summary>
+        /// Obtiene órdenes por mesa actualmente activas
+        /// </summary>
+        Task<IEnumerable<Orden>> GetOrdenesPorMesaAsync(int mesaId);
+
+        /// <summary>
+        /// Obtiene órdenes por fecha
+        /// </summary>
+        Task<IEnumerable<Orden>> GetOrdenesPorFechaAsync(DateTime fecha);
+
+        /// <summary>
+        /// Obtiene órdenes por cliente
+        /// </summary>
+        Task<IEnumerable<Orden>> GetByClienteAsync(int clienteId);
+
+        /// <summary>
+        /// Agrega un detalle de orden
+        /// </summary>
+        Task<DetalleOrden> AddDetalleOrdenAsync(DetalleOrden detalle);
+
+        /// <summary>
+        /// Agrega una nueva orden
+        /// </summary>
+        Task<Orden> AddAsync(Orden orden);
+
         // ============================================================================
         // CONSULTAS POR FECHA Y TIEMPO
         // ============================================================================
@@ -158,13 +193,6 @@ namespace ElCriollo.API.Interfaces
         /// </summary>
         /// <returns>Lista de órdenes de hoy</returns>
         Task<IEnumerable<Orden>> GetOrdenesHoyAsync();
-
-        /// <summary>
-        /// Obtiene órdenes de una fecha específica
-        /// </summary>
-        /// <param name="fecha">Fecha a consultar</param>
-        /// <returns>Lista de órdenes de la fecha</returns>
-        Task<IEnumerable<Orden>> GetOrdenesPorFechaAsync(DateTime fecha);
 
         /// <summary>
         /// Obtiene órdenes en un rango de fechas

@@ -351,7 +351,7 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Crea un nuevo usuario en el sistema
         /// </summary>
-        public async Task<UsuarioResponse> CreateUserAsync(CrearUsuarioRequest crearUsuarioRequest, int createdByUserId)
+        public async Task<UsuarioResponse> CreateUserAsync(CreateUsuarioRequest crearUsuarioRequest, int createdByUserId)
         {
             try
             {

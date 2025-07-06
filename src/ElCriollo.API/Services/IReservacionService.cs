@@ -20,7 +20,7 @@ namespace ElCriollo.API.Services
         /// <param name="crearReservaRequest">Datos de la reserva</param>
         /// <param name="usuarioId">ID del usuario que crea</param>
         /// <returns>Reserva creada</returns>
-        Task<ReservacionResponse> CrearReservaAsync(CrearReservacionRequest crearReservaRequest, int usuarioId);
+        Task<ReservacionResponse> CrearReservaAsync(CreateReservacionRequest crearReservaRequest, int usuarioId);
 
         /// <summary>
         /// Obtiene una reserva por su ID
@@ -88,7 +88,7 @@ namespace ElCriollo.API.Services
         /// </summary>
         /// <param name="request">Solicitud a validar</param>
         /// <returns>Resultado de la validación</returns>
-        Task<ValidacionReservaResult> ValidarSolicitudReservaAsync(CrearReservacionRequest request);
+        Task<ValidacionReservaResult> ValidarSolicitudReservaAsync(CreateReservacionRequest request);
 
         // ============================================================================
         // GESTIÓN DE ESTADOS

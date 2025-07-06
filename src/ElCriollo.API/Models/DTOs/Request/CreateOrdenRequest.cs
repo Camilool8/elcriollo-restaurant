@@ -10,12 +10,12 @@ public class CreateOrdenRequest
     /// <summary>
     /// Mesa donde se toma la orden (opcional para órdenes para llevar)
     /// </summary>
-    public int? MesaID { get; set; }
+    public int? MesaId { get; set; }
 
     /// <summary>
     /// Cliente que hace la orden (opcional para clientes eventuales)
     /// </summary>
-    public int? ClienteID { get; set; }
+    public int? ClienteId { get; set; }
 
     /// <summary>
     /// Tipo de orden
@@ -31,11 +31,11 @@ public class CreateOrdenRequest
     public string? Observaciones { get; set; }
 
     /// <summary>
-    /// Detalles de la orden (productos y combos)
+    /// Items de la orden (productos y combos)
     /// </summary>
     [Required(ErrorMessage = "La orden debe tener al menos un item")]
     [MinLength(1, ErrorMessage = "La orden debe tener al menos un item")]
-    public List<CreateDetalleOrdenRequest> Detalles { get; set; } = new List<CreateDetalleOrdenRequest>();
+    public List<ItemOrdenRequest> Items { get; set; } = new List<ItemOrdenRequest>();
 
     /// <summary>
     /// Datos del cliente si es ocasional y no está registrado
@@ -44,19 +44,16 @@ public class CreateOrdenRequest
 }
 
 /// <summary>
-/// DTO para crear un detalle de orden
+/// DTO para item de orden
 /// </summary>
-public class CreateDetalleOrdenRequest
+public class ItemOrdenRequest
 {
     /// <summary>
-    /// ID del producto (opcional si es combo)
+    /// ID del producto
     /// </summary>
-    public int? ProductoID { get; set; }
-
-    /// <summary>
-    /// ID del combo (opcional si es producto)
-    /// </summary>
-    public int? ComboID { get; set; }
+    [Required(ErrorMessage = "El producto es requerido")]
+    [Range(1, int.MaxValue, ErrorMessage = "El ID del producto debe ser válido")]
+    public int ProductoId { get; set; }
 
     /// <summary>
     /// Cantidad solicitada
@@ -66,34 +63,10 @@ public class CreateDetalleOrdenRequest
     public int Cantidad { get; set; }
 
     /// <summary>
-    /// Observaciones específicas del item
+    /// Notas especiales del item
     /// </summary>
-    [StringLength(250, ErrorMessage = "Las observaciones no pueden exceder 250 caracteres")]
-    public string? Observaciones { get; set; }
-
-    /// <summary>
-    /// Valida que sea producto o combo, pero no ambos
-    /// </summary>
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        var errors = new List<ValidationResult>();
-
-        if (!ProductoID.HasValue && !ComboID.HasValue)
-        {
-            errors.Add(new ValidationResult(
-                "Debe especificar un producto o un combo",
-                new[] { nameof(ProductoID), nameof(ComboID) }));
-        }
-
-        if (ProductoID.HasValue && ComboID.HasValue)
-        {
-            errors.Add(new ValidationResult(
-                "No puede especificar producto y combo al mismo tiempo",
-                new[] { nameof(ProductoID), nameof(ComboID) }));
-        }
-
-        return errors;
-    }
+    [StringLength(250, ErrorMessage = "Las notas no pueden exceder 250 caracteres")]
+    public string? NotasEspeciales { get; set; }
 }
 
 /// <summary>

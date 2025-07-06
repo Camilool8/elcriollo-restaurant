@@ -305,5 +305,15 @@ namespace ElCriollo.API.Interfaces
         /// <param name="año">Año del reporte</param>
         /// <returns>Reporte fiscal estructurado</returns>
         Task<object> GenerarReporteFiscalAsync(int mes, int año);
+
+        /// <summary>
+        /// Obtiene una factura con todos sus detalles incluidos
+        /// </summary>
+        Task<Factura?> GetByIdWithIncludesAsync(int facturaId);
+
+        /// <summary>
+        /// Agrega una nueva factura (alias de CreateAsync)
+        /// </summary>
+        Task<Factura> AddAsync(Factura factura);
     }
 }

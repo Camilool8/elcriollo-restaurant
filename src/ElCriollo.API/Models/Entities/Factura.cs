@@ -107,6 +107,11 @@ public class Factura
     [StringLength(500)]
     public string? ObservacionesPago { get; set; }
 
+    /// <summary>
+    /// Fecha y hora del pago (cuando se completó el pago)
+    /// </summary>
+    public DateTime? FechaPago { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================

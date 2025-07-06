@@ -8,18 +8,16 @@ namespace ElCriollo.API.Models.DTOs.Request;
 public class CreateReservacionRequest
 {
     /// <summary>
-    /// Mesa que se desea reservar
+    /// Mesa que se desea reservar (opcional, se puede asignar automáticamente)
     /// </summary>
-    [Required(ErrorMessage = "La mesa es requerida")]
     [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar una mesa válida")]
-    public int MesaID { get; set; }
+    public int? MesaId { get; set; }
 
     /// <summary>
-    /// Cliente que hace la reservación
+    /// Cliente que hace la reservación (opcional para walk-ins)
     /// </summary>
-    [Required(ErrorMessage = "El cliente es requerido")]
     [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un cliente válido")]
-    public int ClienteID { get; set; }
+    public int? ClienteId { get; set; }
 
     /// <summary>
     /// Cantidad de personas para la reservación
@@ -32,19 +30,19 @@ public class CreateReservacionRequest
     /// Fecha y hora de la reservación
     /// </summary>
     [Required(ErrorMessage = "La fecha y hora son requeridas")]
-    public DateTime FechaYHora { get; set; }
+    public DateTime FechaHora { get; set; }
 
     /// <summary>
     /// Duración estimada en minutos
     /// </summary>
     [Range(30, 480, ErrorMessage = "La duración debe estar entre 30 minutos y 8 horas")]
-    public int DuracionEstimada { get; set; } = 120;
+    public int? DuracionMinutos { get; set; } = 120;
 
     /// <summary>
     /// Observaciones especiales de la reservación
     /// </summary>
     [StringLength(500, ErrorMessage = "Las observaciones no pueden exceder 500 caracteres")]
-    public string? Observaciones { get; set; }
+    public string? NotasEspeciales { get; set; }
 
     /// <summary>
     /// Valida que la fecha de reservación sea válida
@@ -54,28 +52,28 @@ public class CreateReservacionRequest
         var errors = new List<ValidationResult>();
 
         // Validar que la fecha sea futura
-        if (FechaYHora <= DateTime.Now.AddMinutes(30))
+        if (FechaHora <= DateTime.Now.AddMinutes(30))
         {
             errors.Add(new ValidationResult(
                 "La reservación debe ser con al menos 30 minutos de anticipación",
-                new[] { nameof(FechaYHora) }));
+                new[] { nameof(FechaHora) }));
         }
 
         // Validar que no sea muy lejana
-        if (FechaYHora > DateTime.Now.AddDays(30))
+        if (FechaHora > DateTime.Now.AddDays(30))
         {
             errors.Add(new ValidationResult(
                 "No se pueden hacer reservaciones con más de 30 días de anticipación",
-                new[] { nameof(FechaYHora) }));
+                new[] { nameof(FechaHora) }));
         }
 
         // Validar horario de operación (11:00 AM - 11:00 PM)
-        var hora = FechaYHora.TimeOfDay;
+        var hora = FechaHora.TimeOfDay;
         if (hora < TimeSpan.FromHours(11) || hora > TimeSpan.FromHours(23))
         {
             errors.Add(new ValidationResult(
                 "Las reservaciones solo se pueden hacer entre 11:00 AM y 11:00 PM",
-                new[] { nameof(FechaYHora) }));
+                new[] { nameof(FechaHora) }));
         }
 
         return errors;

@@ -20,7 +20,7 @@ namespace ElCriollo.API.Services
         /// <param name="crearOrdenRequest">Datos de la orden</param>
         /// <param name="usuarioId">ID del usuario que crea la orden</param>
         /// <returns>Orden creada</returns>
-        Task<OrdenResponse> CrearOrdenAsync(CrearOrdenRequest crearOrdenRequest, int usuarioId);
+        Task<OrdenResponse> CrearOrdenAsync(CreateOrdenRequest crearOrdenRequest, int usuarioId);
 
         /// <summary>
         /// Obtiene una orden por su ID
@@ -149,7 +149,7 @@ namespace ElCriollo.API.Services
         /// </summary>
         /// <param name="crearOrdenRequest">Datos de la orden</param>
         /// <returns>Resultado de validación</returns>
-        Task<ValidacionOrdenResult> ValidarOrdenAsync(CrearOrdenRequest crearOrdenRequest);
+        Task<ValidacionOrdenResult> ValidarOrdenAsync(CreateOrdenRequest crearOrdenRequest);
 
         /// <summary>
         /// Verifica disponibilidad de productos para una orden

@@ -3,6 +3,7 @@
 -- Sistema de Gestión para Restaurante Dominicano
 -- Versión: 1.0 - Base de Datos Pura
 -- =============================================
+
 -- Verificar si la base de datos existe, si no, crearla
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ElCriolloRestaurante')
 BEGIN
@@ -41,6 +42,9 @@ BEGIN
         ContrasenaHash VARCHAR(500) NOT NULL, -- El backend almacenará el hash completo
         RolID INT NOT NULL,
         Email VARCHAR(70),
+        EmpleadoID INT NULL,
+        RefreshToken VARCHAR(500),
+        RefreshTokenExpiry DATETIME,
         FechaCreacion DATETIME DEFAULT GETDATE(),
         UltimoAcceso DATETIME,
         Estado BIT DEFAULT 1,
@@ -62,6 +66,8 @@ BEGIN
         Direccion VARCHAR(100),
         Telefono VARCHAR(50),
         Email VARCHAR(70),
+        Salario DECIMAL(10,2),
+        Departamento VARCHAR(100),
         FechaIngreso DATE DEFAULT GETDATE(),
         UsuarioID INT NULL,
         Estado BIT DEFAULT 1,
@@ -95,7 +101,8 @@ BEGIN
         Capacidad INT NOT NULL,
         Ubicacion VARCHAR(50),
         Estado VARCHAR(20) DEFAULT 'Libre', -- Libre, Ocupada, Reservada, Mantenimiento
-        FechaUltimaLimpieza DATETIME
+        FechaUltimaLimpieza DATETIME,
+        FechaUltimaActualizacion DATETIME DEFAULT GETDATE()
     );
     PRINT 'Tabla Mesas creada.';
 END
@@ -112,9 +119,12 @@ BEGIN
         DuracionEstimada INT DEFAULT 120, -- en minutos
         Observaciones VARCHAR(500),
         Estado VARCHAR(20) DEFAULT 'Pendiente', -- Pendiente, Confirmada, Completada, Cancelada
+        UsuarioCreacion INT,
         FechaCreacion DATETIME DEFAULT GETDATE(),
+        FechaModificacion DATETIME,
         FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
-        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID)
+        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        FOREIGN KEY (UsuarioCreacion) REFERENCES Usuarios(UsuarioID)
     );
     PRINT 'Tabla Reservaciones creada.';
 END
@@ -201,8 +211,12 @@ BEGIN
         ClienteID INT,
         EmpleadoID INT NOT NULL,
         FechaCreacion DATETIME DEFAULT GETDATE(),
+        FechaActualizacion DATETIME,
         Estado VARCHAR(20) DEFAULT 'Pendiente', -- Pendiente, EnPreparacion, Lista, Entregada, Cancelada
         TipoOrden VARCHAR(20) DEFAULT 'Mesa', -- Mesa, Llevar, Delivery
+        SubtotalCalculado DECIMAL(10,2),
+        Impuesto DECIMAL(10,2),
+        TotalCalculado DECIMAL(10,2),
         Observaciones VARCHAR(500),
         FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
         FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
@@ -241,6 +255,7 @@ BEGIN
         ClienteID INT NOT NULL,
         EmpleadoID INT NOT NULL,
         FechaFactura DATETIME DEFAULT GETDATE(),
+        FechaPago DATETIME,
         Subtotal DECIMAL(10,2) NOT NULL,
         Impuesto DECIMAL(10,2) DEFAULT 0,
         Descuento DECIMAL(10,2) DEFAULT 0,
@@ -248,6 +263,7 @@ BEGIN
         Total DECIMAL(10,2) NOT NULL,
         MetodoPago VARCHAR(20) DEFAULT 'Efectivo', -- Efectivo, Tarjeta, Transferencia
         Estado VARCHAR(20) DEFAULT 'Pagada', -- Pendiente, Pagada, Anulada
+        ObservacionesPago VARCHAR(500),
         FOREIGN KEY (OrdenID) REFERENCES Ordenes(OrdenID),
         FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
         FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID)
@@ -266,7 +282,9 @@ BEGIN
         TipoEmail VARCHAR(50), -- Confirmacion, Reserva, Factura, Promocion, BienvenidaUsuario
         ReferenciaID INT, -- ID de la reserva, orden, factura o usuario
         FechaEnvio DATETIME DEFAULT GETDATE(),
-        Estado VARCHAR(20) DEFAULT 'Pendiente' -- Pendiente, Enviado, Error
+        Estado VARCHAR(20) DEFAULT 'Pendiente', -- Pendiente, Enviado, Error
+        MensajeError VARCHAR(500),
+        IntentosEnvio INT DEFAULT 0
     );
     PRINT 'Tabla EmailTransacciones creada.';
 END
@@ -287,6 +305,59 @@ BEGIN
 END
 
 -- NOTA: El usuario administrador será creado por el backend al inicializar
+
+-- Insertar Empleados de ejemplo con los nuevos campos
+IF NOT EXISTS (SELECT * FROM Empleados)
+BEGIN
+    INSERT INTO Empleados (Cedula, Nombre, Apellido, Sexo, Direccion, Telefono, Email, Salario, Departamento, FechaIngreso, Estado) VALUES 
+    ('001-1234567-8', 'Maria', 'Gonzalez', 'Femenino', 'Calle Principal 123', '809-555-2001', 'maria.gonzalez@elcriollo.com', 35000.00, 'Recepción', '2023-01-15', 1),
+    ('001-2345678-9', 'Carlos', 'Rodriguez', 'Masculino', 'Av. Central 456', '809-555-2002', 'carlos.rodriguez@elcriollo.com', 28000.00, 'Servicio', '2023-02-20', 1),
+    ('001-3456789-0', 'Ana', 'Martinez', 'Femenino', 'Calle Norte 789', '809-555-2003', 'ana.martinez@elcriollo.com', 28000.00, 'Servicio', '2023-03-10', 1),
+    ('001-4567890-1', 'Jose', 'Perez', 'Masculino', 'Av. Sur 321', '809-555-2004', 'jose.perez@elcriollo.com', 32000.00, 'Caja', '2023-01-20', 1),
+    ('001-5678901-2', 'Laura', 'Santos', 'Femenino', 'Calle Este 654', '809-555-2005', 'laura.santos@elcriollo.com', 45000.00, 'Administración', '2022-12-01', 1),
+    ('001-6789012-3', 'Miguel', 'Reyes', 'Masculino', 'Av. Oeste 987', '809-555-2006', 'miguel.reyes@elcriollo.com', 25000.00, 'Servicio', '2023-04-05', 1);
+    PRINT 'Empleados de ejemplo insertados.';
+END
+
+-- Insertar Usuarios de ejemplo (el backend procesará las contraseñas)
+-- NOTA: En producción, las contraseñas deben ser hasheadas por el backend
+IF NOT EXISTS (SELECT * FROM Usuarios WHERE Usuario != 'admin')
+BEGIN
+    -- Usuario para Maria Gonzalez (Recepción)
+    INSERT INTO Usuarios (Usuario, ContrasenaHash, RolID, Email, EmpleadoID, Estado) 
+    SELECT 'mgonzalez', 'temp_password_hash_1', 2, e.Email, e.EmpleadoID, 1
+    FROM Empleados e WHERE e.Cedula = '001-1234567-8';
+    
+    -- Usuario para Carlos Rodriguez (Mesero)
+    INSERT INTO Usuarios (Usuario, ContrasenaHash, RolID, Email, EmpleadoID, Estado) 
+    SELECT 'crodriguez', 'temp_password_hash_2', 3, e.Email, e.EmpleadoID, 1
+    FROM Empleados e WHERE e.Cedula = '001-2345678-9';
+    
+    -- Usuario para Ana Martinez (Mesera)
+    INSERT INTO Usuarios (Usuario, ContrasenaHash, RolID, Email, EmpleadoID, Estado) 
+    SELECT 'amartinez', 'temp_password_hash_3', 3, e.Email, e.EmpleadoID, 1
+    FROM Empleados e WHERE e.Cedula = '001-3456789-0';
+    
+    -- Usuario para Jose Perez (Cajero)
+    INSERT INTO Usuarios (Usuario, ContrasenaHash, RolID, Email, EmpleadoID, Estado) 
+    SELECT 'jperez', 'temp_password_hash_4', 4, e.Email, e.EmpleadoID, 1
+    FROM Empleados e WHERE e.Cedula = '001-4567890-1';
+    
+    -- Usuario para Laura Santos (Administradora)
+    INSERT INTO Usuarios (Usuario, ContrasenaHash, RolID, Email, EmpleadoID, Estado) 
+    SELECT 'lsantos', 'temp_password_hash_5', 1, e.Email, e.EmpleadoID, 1
+    FROM Empleados e WHERE e.Cedula = '001-5678901-2';
+    
+    PRINT 'Usuarios de ejemplo insertados.';
+    PRINT '⚠️  IMPORTANTE: Las contraseñas deben ser actualizadas por el backend con hashes reales.';
+END
+
+-- Actualizar la referencia UsuarioID en Empleados después de crear los usuarios
+UPDATE e
+SET e.UsuarioID = u.UsuarioID
+FROM Empleados e
+INNER JOIN Usuarios u ON u.EmpleadoID = e.EmpleadoID
+WHERE e.UsuarioID IS NULL;
 
 -- Insertar Clientes de ejemplo para demo
 IF NOT EXISTS (SELECT * FROM Clientes)
@@ -663,6 +734,8 @@ PRINT '✅ Triggers automáticos configurados';
 PRINT '';
 PRINT '📊 DATOS INICIALES INCLUIDOS:';
 PRINT '- 4 roles de usuario definidos';
+PRINT '- 6 empleados con salarios y departamentos';
+PRINT '- 5 usuarios de ejemplo (1 admin, 1 recepción, 2 meseros, 1 cajero)';
 PRINT '- 33 productos de comida dominicana';
 PRINT '- 8 categorías de productos';
 PRINT '- 12 mesas configuradas';
@@ -678,3 +751,150 @@ PRINT '- Índices optimizados para consultas';
 PRINT '- Procedimientos para reportes';
 PRINT '';
 PRINT '=============================================';
+
+-- =============================================
+-- ACTUALIZACIÓN DE TABLAS EXISTENTES
+-- Estas sentencias ALTER TABLE solo se ejecutarán si las columnas no existen
+-- =============================================
+
+PRINT '';
+PRINT '=============================================';
+PRINT '📋 ACTUALIZANDO ESTRUCTURA DE TABLAS EXISTENTES';
+PRINT '=============================================';
+
+-- Actualizar tabla Usuarios
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'EmpleadoID')
+BEGIN
+    ALTER TABLE Usuarios ADD EmpleadoID INT NULL;
+    PRINT '✅ Campo EmpleadoID agregado a tabla Usuarios';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'RefreshToken')
+BEGIN
+    ALTER TABLE Usuarios ADD RefreshToken VARCHAR(500);
+    PRINT '✅ Campo RefreshToken agregado a tabla Usuarios';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'RefreshTokenExpiry')
+BEGIN
+    ALTER TABLE Usuarios ADD RefreshTokenExpiry DATETIME;
+    PRINT '✅ Campo RefreshTokenExpiry agregado a tabla Usuarios';
+END
+
+-- Actualizar tabla Empleados
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Empleados') AND name = 'Salario')
+BEGIN
+    ALTER TABLE Empleados ADD Salario DECIMAL(10,2);
+    PRINT '✅ Campo Salario agregado a tabla Empleados';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Empleados') AND name = 'Departamento')
+BEGIN
+    ALTER TABLE Empleados ADD Departamento VARCHAR(100);
+    PRINT '✅ Campo Departamento agregado a tabla Empleados';
+END
+
+-- Actualizar tabla Mesas
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Mesas') AND name = 'FechaUltimaActualizacion')
+BEGIN
+    ALTER TABLE Mesas ADD FechaUltimaActualizacion DATETIME DEFAULT GETDATE();
+    PRINT '✅ Campo FechaUltimaActualizacion agregado a tabla Mesas';
+END
+
+-- Actualizar tabla Reservaciones
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Reservaciones') AND name = 'UsuarioCreacion')
+BEGIN
+    ALTER TABLE Reservaciones ADD UsuarioCreacion INT;
+    ALTER TABLE Reservaciones ADD CONSTRAINT FK_Reservaciones_UsuarioCreacion 
+        FOREIGN KEY (UsuarioCreacion) REFERENCES Usuarios(UsuarioID);
+    PRINT '✅ Campo UsuarioCreacion agregado a tabla Reservaciones';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Reservaciones') AND name = 'FechaModificacion')
+BEGIN
+    ALTER TABLE Reservaciones ADD FechaModificacion DATETIME;
+    PRINT '✅ Campo FechaModificacion agregado a tabla Reservaciones';
+END
+
+-- Actualizar tabla Ordenes
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ordenes') AND name = 'FechaActualizacion')
+BEGIN
+    ALTER TABLE Ordenes ADD FechaActualizacion DATETIME;
+    PRINT '✅ Campo FechaActualizacion agregado a tabla Ordenes';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ordenes') AND name = 'SubtotalCalculado')
+BEGIN
+    ALTER TABLE Ordenes ADD SubtotalCalculado DECIMAL(10,2);
+    PRINT '✅ Campo SubtotalCalculado agregado a tabla Ordenes';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ordenes') AND name = 'Impuesto')
+BEGIN
+    ALTER TABLE Ordenes ADD Impuesto DECIMAL(10,2);
+    PRINT '✅ Campo Impuesto agregado a tabla Ordenes';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ordenes') AND name = 'TotalCalculado')
+BEGIN
+    ALTER TABLE Ordenes ADD TotalCalculado DECIMAL(10,2);
+    PRINT '✅ Campo TotalCalculado agregado a tabla Ordenes';
+END
+
+-- Actualizar tabla Facturas
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Facturas') AND name = 'FechaPago')
+BEGIN
+    ALTER TABLE Facturas ADD FechaPago DATETIME;
+    PRINT '✅ Campo FechaPago agregado a tabla Facturas';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Facturas') AND name = 'ObservacionesPago')
+BEGIN
+    ALTER TABLE Facturas ADD ObservacionesPago VARCHAR(500);
+    PRINT '✅ Campo ObservacionesPago agregado a tabla Facturas';
+END
+
+-- Actualizar tabla EmailTransacciones
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('EmailTransacciones') AND name = 'MensajeError')
+BEGIN
+    ALTER TABLE EmailTransacciones ADD MensajeError VARCHAR(500);
+    PRINT '✅ Campo MensajeError agregado a tabla EmailTransacciones';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('EmailTransacciones') AND name = 'IntentosEnvio')
+BEGIN
+    ALTER TABLE EmailTransacciones ADD IntentosEnvio INT DEFAULT 0;
+    PRINT '✅ Campo IntentosEnvio agregado a tabla EmailTransacciones';
+END
+
+-- Agregar constraint para EmpleadoID en Usuarios si no existe
+IF NOT EXISTS (
+    SELECT * FROM sys.foreign_keys 
+    WHERE name = 'FK_Usuarios_EmpleadoID' 
+    AND parent_object_id = OBJECT_ID('Usuarios')
+)
+BEGIN
+    ALTER TABLE Usuarios ADD CONSTRAINT FK_Usuarios_EmpleadoID 
+        FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID);
+    PRINT '✅ Foreign key FK_Usuarios_EmpleadoID agregada';
+END
+
+PRINT '';
+PRINT '=============================================';
+PRINT '✨ ACTUALIZACIÓN DE ESTRUCTURA COMPLETADA';
+PRINT '=============================================';
+PRINT 'Los nuevos campos han sido agregados a las tablas existentes.';
+PRINT '';
+PRINT '📌 NUEVOS CAMPOS AGREGADOS:';
+PRINT '- Usuarios: EmpleadoID, RefreshToken, RefreshTokenExpiry';
+PRINT '- Empleados: Salario, Departamento';
+PRINT '- Mesas: FechaUltimaActualizacion';
+PRINT '- Reservaciones: UsuarioCreacion, FechaModificacion';
+PRINT '- Ordenes: FechaActualizacion, SubtotalCalculado, Impuesto, TotalCalculado';
+PRINT '- Facturas: FechaPago, ObservacionesPago';
+PRINT '- EmailTransacciones: MensajeError, IntentosEnvio';
+PRINT '';
+PRINT '=============================================';
+PRINT '🎉 SCRIPT COMPLETADO EXITOSAMENTE';
+PRINT '=============================================';
+-- FIN DEL SCRIPT

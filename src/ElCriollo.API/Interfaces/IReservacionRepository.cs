@@ -271,5 +271,60 @@ namespace ElCriollo.API.Interfaces
         /// <param name="minutosTolerancia">Minutos de tolerancia (por defecto 15)</param>
         /// <returns>Lista de reservaciones tardías</returns>
         Task<IEnumerable<Reservacion>> GetReservacionesTardiasAsync(int minutosTolerancia = 15);
+
+        /// <summary>
+        /// Obtiene una reservación por ID con detalles incluidos
+        /// </summary>
+        Task<Reservacion?> GetByIdWithDetallesAsync(int reservacionId);
+
+        /// <summary>
+        /// Obtiene reservaciones por fecha
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasPorFechaAsync(DateTime fecha);
+
+        /// <summary>
+        /// Obtiene reservaciones por estado
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasPorEstadoAsync(string estado);
+
+        /// <summary>
+        /// Obtiene reservaciones en rango de fechas
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasEnRangoAsync(int mesaId, DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reservaciones para recordatorio
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasParaRecordatorioAsync(DateTime horaLimite);
+
+        /// <summary>
+        /// Obtiene reservaciones vencidas
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasVencidasAsync(DateTime horaLimite);
+
+        /// <summary>
+        /// Obtiene reservaciones por rango de fecha
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasPorRangoFechaAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reservaciones por cliente
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservasPorClienteAsync(int clienteId);
+
+        /// <summary>
+        /// Obtiene reservaciones por mesa
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservacionesPorMesaAsync(int mesaId);
+
+        /// <summary>
+        /// Obtiene reservaciones por estado con orden
+        /// </summary>
+        Task<IEnumerable<Reservacion>> GetReservacionesPorEstadoAsync(string estado);
+
+        /// <summary>
+        /// Crea una nueva reservación
+        /// </summary>
+        Task<Reservacion> CreateAsync(Reservacion reservacion);
     }
 }

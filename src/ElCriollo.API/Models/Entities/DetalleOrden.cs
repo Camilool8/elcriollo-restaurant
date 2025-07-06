@@ -62,7 +62,7 @@ public class DetalleOrden
     /// </summary>
     [Column(TypeName = "decimal(10,2)")]
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-    public decimal Subtotal { get; private set; }
+    public decimal Subtotal { get; set; }
 
     /// <summary>
     /// Observaciones específicas para este item
@@ -189,6 +189,20 @@ public class DetalleOrden
     /// </summary>
     [NotMapped]
     public string TipoItem => EsProducto ? "Producto" : "Combo";
+
+    // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para NotasEspeciales (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public string? NotasEspeciales 
+    { 
+        get => Observaciones;
+        set => Observaciones = value;
+    }
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD

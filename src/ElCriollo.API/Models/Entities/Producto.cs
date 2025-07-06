@@ -157,6 +157,16 @@ public class Producto
     public int TotalOrdenado => DetalleOrdenes?.Sum(d => d.Cantidad) ?? 0;
 
     // ============================================================================
+    // PROPIEDADES ALIAS PARA COMPATIBILIDAD
+    // ============================================================================
+
+    /// <summary>
+    /// Alias para Disponible (compatibilidad con servicios)
+    /// </summary>
+    [NotMapped]
+    public bool Disponible => Estado;
+
+    // ============================================================================
     // MÉTODOS DE UTILIDAD
     // ============================================================================
 

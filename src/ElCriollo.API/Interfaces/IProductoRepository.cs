@@ -38,11 +38,9 @@ namespace ElCriollo.API.Interfaces
         // ============================================================================
 
         /// <summary>
-        /// Busca productos por nombre o descripción
+        /// Busca productos con criterios específicos
         /// </summary>
-        /// <param name="termino">Término de búsqueda</param>
-        /// <returns>Lista de productos que coinciden con la búsqueda</returns>
-        Task<IEnumerable<Producto>> BuscarProductosAsync(string termino);
+        Task<IEnumerable<Producto>> BuscarProductosAsync(string? searchTerm, int? categoriaId);
 
         /// <summary>
         /// Obtiene productos en un rango de precios
@@ -205,5 +203,10 @@ namespace ElCriollo.API.Interfaces
         /// </summary>
         /// <returns>Lista de productos con inventario crítico</returns>
         Task<IEnumerable<Producto>> GetProductosRestockUrgenteAsync();
+
+        /// <summary>
+        /// Agrega un nuevo producto (alias de CreateAsync)
+        /// </summary>
+        Task<Producto> AddAsync(Producto producto);
     }
 }
