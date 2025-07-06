@@ -998,5 +998,141 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene una orden con todos sus includes
+        /// </summary>
+        public async Task<Orden?> GetByIdWithIncludesAsync(int ordenId)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo orden con includes ID: {OrdenId}", ordenId);
+
+                var orden = await _dbSet
+                    .Include(o => o.Mesa)
+                    .Include(o => o.Cliente)
+                    .Include(o => o.Empleado)
+                    .Include(o => o.DetalleOrdenes)
+                        .ThenInclude(d => d.Producto)
+                            .ThenInclude(p => p!.Categoria)
+                    .Include(o => o.DetalleOrdenes)
+                        .ThenInclude(d => d.Combo)
+                    .Include(o => o.Facturas)
+                    .FirstOrDefaultAsync(o => o.OrdenID == ordenId);
+
+                if (orden == null)
+                {
+                    _logger.LogWarning("No se encontró orden con ID: {OrdenId}", ordenId);
+                }
+
+                return orden;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener orden con includes ID: {OrdenId}", ordenId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene órdenes activas
+        /// </summary>
+        public async Task<IEnumerable<Orden>> GetOrdenesActivasAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo órdenes activas");
+
+                var ordenes = await _dbSet
+                    .Include(o => o.Mesa)
+                    .Include(o => o.Cliente)
+                    .Include(o => o.Empleado)
+                    .Where(o => o.Estado != "Entregada" && o.Estado != "Cancelada")
+                    .OrderByDescending(o => o.FechaCreacion)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se encontraron {Count} órdenes activas", ordenes.Count);
+                return ordenes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener órdenes activas");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene órdenes por mesa actualmente activas
+        /// </summary>
+        public async Task<IEnumerable<Orden>> GetOrdenesPorMesaAsync(int mesaId)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo órdenes activas de mesa ID: {MesaId}", mesaId);
+
+                var ordenes = await _dbSet
+                    .Include(o => o.Mesa)
+                    .Include(o => o.Cliente)
+                    .Include(o => o.Empleado)
+                    .Include(o => o.DetalleOrdenes)
+                        .ThenInclude(d => d.Producto)
+                    .Where(o => o.MesaID == mesaId && o.Estado != "Entregada" && o.Estado != "Cancelada")
+                    .OrderByDescending(o => o.FechaCreacion)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se encontraron {Count} órdenes activas para mesa {MesaId}", ordenes.Count, mesaId);
+                return ordenes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener órdenes por mesa ID: {MesaId}", mesaId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Agrega un detalle de orden
+        /// </summary>
+        public async Task<DetalleOrden> AddDetalleOrdenAsync(DetalleOrden detalle)
+        {
+            try
+            {
+                _logger.LogDebug("Agregando detalle de orden para orden ID: {OrdenId}", detalle.OrdenID);
+
+                if (detalle == null)
+                    throw new ArgumentNullException(nameof(detalle));
+
+                // Validar que la orden existe
+                var orden = await _dbSet.FindAsync(detalle.OrdenID);
+                if (orden == null)
+                {
+                    throw new ArgumentException($"Orden con ID {detalle.OrdenID} no encontrada");
+                }
+
+                if (orden.Estado == "Entregada" || orden.Estado == "Cancelada")
+                {
+                    throw new InvalidOperationException($"No se puede agregar detalles a una orden en estado {orden.Estado}");
+                }
+
+                _context.DetalleOrdenes.Add(detalle);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Detalle de orden agregado exitosamente a orden ID: {OrdenId}", detalle.OrdenID);
+                return detalle;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al agregar detalle de orden");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Agrega una nueva orden (alias de CreateAsync)
+        /// </summary>
+        public new async Task<Orden> AddAsync(Orden orden)
+        {
+            return await CreateAsync(orden);
+        }
     }
 }

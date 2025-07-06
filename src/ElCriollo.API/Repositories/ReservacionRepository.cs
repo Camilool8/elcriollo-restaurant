@@ -996,5 +996,161 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene una reservación con todos sus detalles incluidos
+        /// </summary>
+        public async Task<Reservacion?> GetByIdWithDetallesAsync(int reservacionId)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo reservación con detalles ID: {ReservacionId}", reservacionId);
+
+                var reservacion = await _dbSet
+                    .Include(r => r.Mesa)
+                    .Include(r => r.Cliente)
+                    .FirstOrDefaultAsync(r => r.ReservacionID == reservacionId);
+
+                if (reservacion == null)
+                {
+                    _logger.LogWarning("No se encontró reservación con ID: {ReservacionId}", reservacionId);
+                }
+
+                return reservacion;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener reservación con detalles ID: {ReservacionId}", reservacionId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene reservas por fecha (alias de GetReservacionesPorFechaAsync)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasPorFechaAsync(DateTime fecha)
+        {
+            return await GetReservacionesPorFechaAsync(fecha);
+        }
+
+        /// <summary>
+        /// Obtiene reservas por estado (alias de GetByEstadoAsync)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasPorEstadoAsync(string estado)
+        {
+            return await GetByEstadoAsync(estado);
+        }
+
+        /// <summary>
+        /// Obtiene reservas en rango de tiempo para una mesa
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasEnRangoAsync(int mesaId, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo reservas de mesa {MesaId} en rango {FechaInicio} - {FechaFin}", 
+                    mesaId, fechaInicio, fechaFin);
+
+                var reservaciones = await _dbSet
+                    .Include(r => r.Mesa)
+                    .Include(r => r.Cliente)
+                    .Where(r => r.MesaID == mesaId &&
+                               r.FechaYHora >= fechaInicio &&
+                               r.FechaYHora <= fechaFin)
+                    .OrderBy(r => r.FechaYHora)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se encontraron {Count} reservas", reservaciones.Count);
+                return reservaciones;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener reservas en rango");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene reservas para recordatorio con fecha específica
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasParaRecordatorioAsync(DateTime fechaLimite)
+        {
+            try
+            {
+                var ahora = DateTime.UtcNow;
+
+                var reservaciones = await _dbSet
+                    .Include(r => r.Mesa)
+                    .Include(r => r.Cliente)
+                    .Where(r => r.Estado == "Confirmada" &&
+                               r.FechaYHora >= ahora &&
+                               r.FechaYHora <= fechaLimite)
+                    .OrderBy(r => r.FechaYHora)
+                    .ToListAsync();
+
+                return reservaciones;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener reservas para recordatorio");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene reservas vencidas con fecha específica
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasVencidasAsync(DateTime fechaLimite)
+        {
+            try
+            {
+                var reservaciones = await _dbSet
+                    .Include(r => r.Mesa)
+                    .Include(r => r.Cliente)
+                    .Where(r => r.Estado == "Confirmada" &&
+                               r.FechaYHora <= fechaLimite)
+                    .OrderBy(r => r.FechaYHora)
+                    .ToListAsync();
+
+                return reservaciones;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener reservas vencidas");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene reservas por rango de fecha (alias de GetReservacionesPorRangoFechasAsync)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasPorRangoFechaAsync(DateTime fechaInicio, DateTime fechaFin)
+        {
+            return await GetReservacionesPorRangoFechasAsync(fechaInicio, fechaFin);
+        }
+
+        /// <summary>
+        /// Obtiene reservas por cliente (alias de GetByClienteAsync)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservasPorClienteAsync(int clienteId)
+        {
+            return await GetByClienteAsync(clienteId);
+        }
+
+        /// <summary>
+        /// Obtiene reservaciones por mesa (simplificado)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservacionesPorMesaAsync(int mesaId)
+        {
+            return await GetByMesaAsync(mesaId, null, null);
+        }
+
+        /// <summary>
+        /// Obtiene reservaciones por estado (alias de GetByEstadoAsync)
+        /// </summary>
+        public async Task<IEnumerable<Reservacion>> GetReservacionesPorEstadoAsync(string estado)
+        {
+            return await GetByEstadoAsync(estado);
+        }
     }
 }

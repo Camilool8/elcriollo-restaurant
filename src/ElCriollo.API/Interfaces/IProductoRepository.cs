@@ -207,6 +207,6 @@ namespace ElCriollo.API.Interfaces
         /// <summary>
         /// Agrega un nuevo producto (alias de CreateAsync)
         /// </summary>
-        Task<Producto> AddAsync(Producto producto);
+        new Task<Producto> AddAsync(Producto producto);
     }
 }

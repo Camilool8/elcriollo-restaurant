@@ -28,7 +28,7 @@
 
     <!-- JWT Authentication -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
 
     <!-- Password Hashing -->
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
@@ -39,7 +39,7 @@
 
     <!-- Email Service -->
     <PackageReference Include="MailKit" Version="4.3.0" />
-    <PackageReference Include="MimeKit" Version="4.3.0" />
+    <PackageReference Include="MimeKit" Version="4.7.1" />
 
     <!-- Logging avanzado -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />

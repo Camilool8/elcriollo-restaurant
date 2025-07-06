@@ -74,4 +74,9 @@ public class ReservacionResponse
     /// Duración estimada en minutos
     /// </summary>
     public int DuracionMinutos { get; set; } = 120;
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    public int Id => ReservacionID;
 } 

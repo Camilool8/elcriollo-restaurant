@@ -239,13 +239,5 @@ namespace ElCriollo.API.Services
         public string? NotasEspeciales { get; set; }
     }
 
-    /// <summary>
-    /// Item básico para crear orden
-    /// </summary>
-    public class ItemOrdenRequest
-    {
-        public int ProductoId { get; set; }
-        public int Cantidad { get; set; }
-        public string? NotasEspeciales { get; set; }
-    }
+
 }

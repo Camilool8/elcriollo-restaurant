@@ -1187,5 +1187,51 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene una factura con todos sus detalles incluidos
+        /// </summary>
+        public async Task<Factura?> GetByIdWithIncludesAsync(int facturaId)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo factura con includes ID: {FacturaId}", facturaId);
+
+                var factura = await _dbSet
+                    .Include(f => f.Orden)
+                        .ThenInclude(o => o!.Mesa)
+                    .Include(f => f.Orden)
+                        .ThenInclude(o => o!.Cliente)
+                    .Include(f => f.Orden)
+                        .ThenInclude(o => o!.Empleado)
+                    .Include(f => f.Orden)
+                        .ThenInclude(o => o!.DetalleOrdenes)
+                            .ThenInclude(d => d.Producto)
+                    .Include(f => f.Orden)
+                        .ThenInclude(o => o!.DetalleOrdenes)
+                            .ThenInclude(d => d.Combo)
+                    .FirstOrDefaultAsync(f => f.FacturaID == facturaId);
+
+                if (factura == null)
+                {
+                    _logger.LogWarning("No se encontró factura con ID: {FacturaId}", facturaId);
+                }
+
+                return factura;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener factura con includes ID: {FacturaId}", facturaId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Agrega una nueva factura (alias de CreateAsync)
+        /// </summary>
+        public new async Task<Factura> AddAsync(Factura factura)
+        {
+            return await CreateAsync(factura);
+        }
     }
 }

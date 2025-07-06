@@ -314,6 +314,6 @@ namespace ElCriollo.API.Interfaces
         /// <summary>
         /// Agrega una nueva factura (alias de CreateAsync)
         /// </summary>
-        Task<Factura> AddAsync(Factura factura);
+        new Task<Factura> AddAsync(Factura factura);
     }
 }

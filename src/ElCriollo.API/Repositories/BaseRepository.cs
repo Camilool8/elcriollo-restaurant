@@ -261,6 +261,14 @@ namespace ElCriollo.API.Repositories
             }
         }
 
+        /// <summary>
+        /// Agrega una nueva entidad (alias de CreateAsync para compatibilidad)
+        /// </summary>
+        public virtual async Task<T> AddAsync(T entity)
+        {
+            return await CreateAsync(entity);
+        }
+
         // ============================================================================
         // OPERACIONES DE CONSULTA
         // ============================================================================

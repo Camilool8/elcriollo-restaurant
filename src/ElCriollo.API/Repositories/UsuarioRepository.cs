@@ -570,5 +570,109 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene un usuario por su refresh token
+        /// </summary>
+        public async Task<Usuario?> GetByRefreshTokenAsync(string refreshToken)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo usuario por refresh token");
+
+                // Nota: Esta implementación asume que el refresh token se almacena en una propiedad adicional
+                // En una implementación real, podrías tener una tabla separada para tokens
+                var usuario = await _dbSet
+                    .Include(u => u.Rol)
+                    .Include(u => u.Empleado)
+                    .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken && u.Estado);
+
+                if (usuario == null)
+                {
+                    _logger.LogWarning("Usuario no encontrado con refresh token especificado");
+                }
+
+                return usuario;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener usuario por refresh token");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene un rol por su nombre
+        /// </summary>
+        public async Task<Rol?> GetRolByNombreAsync(string nombreRol)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo rol por nombre: {NombreRol}", nombreRol);
+
+                var rol = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.NombreRol == nombreRol);
+
+                if (rol == null)
+                {
+                    _logger.LogWarning("Rol no encontrado: {NombreRol}", nombreRol);
+                }
+
+                return rol;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener rol por nombre: {NombreRol}", nombreRol);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todos los roles del sistema
+        /// </summary>
+        public async Task<IEnumerable<Rol>> GetAllRolesAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo todos los roles");
+
+                var roles = await _context.Roles
+                    .OrderBy(r => r.NombreRol)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se obtuvieron {Count} roles", roles.Count);
+                return roles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todos los roles");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Verifica la conexión a la base de datos
+        /// </summary>
+        public async Task<bool> TestConnectionAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Probando conexión a la base de datos");
+
+                // Intenta hacer una consulta simple
+                _ = await _context.Database.CanConnectAsync();
+                
+                // Intenta contar usuarios (operación simple)
+                _ = await _dbSet.CountAsync();
+
+                _logger.LogDebug("Conexión a la base de datos exitosa");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al probar conexión a la base de datos");
+                return false;
+            }
+        }
     }
 }

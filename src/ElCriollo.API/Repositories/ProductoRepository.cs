@@ -821,5 +821,54 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Busca productos por término y categoría opcional
+        /// </summary>
+        public async Task<IEnumerable<Producto>> BuscarProductosAsync(string? termino, int? categoriaId)
+        {
+            try
+            {
+                _logger.LogDebug("Buscando productos con término: {Termino} y categoría: {CategoriaId}", termino, categoriaId);
+
+                var query = _dbSet
+                    .Include(p => p.Categoria)
+                    .Include(p => p.Inventario)
+                    .Where(p => p.Estado);
+
+                if (!string.IsNullOrWhiteSpace(termino))
+                {
+                    termino = termino.ToLower();
+                    query = query.Where(p => 
+                        p.Nombre.ToLower().Contains(termino) || 
+                        (p.Descripcion != null && p.Descripcion.ToLower().Contains(termino)));
+                }
+
+                if (categoriaId.HasValue)
+                {
+                    query = query.Where(p => p.CategoriaID == categoriaId.Value);
+                }
+
+                var productos = await query
+                    .OrderBy(p => p.Nombre)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se encontraron {Count} productos", productos.Count);
+                return productos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar productos");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Agrega un nuevo producto (alias de CreateAsync)
+        /// </summary>
+        public new async Task<Producto> AddAsync(Producto producto)
+        {
+            return await CreateAsync(producto);
+        }
     }
 }

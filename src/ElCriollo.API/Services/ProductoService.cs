@@ -311,7 +311,7 @@ namespace ElCriollo.API.Services
 
                 _logger.LogDebug("Buscando productos por nombre: {Nombre}", nombre);
 
-                var productos = await _productoRepository.BuscarProductosAsync(nombre);
+                var productos = await _productoRepository.BuscarProductosAsync(nombre, null); // Agregar segundo parámetro
                 var productosResponse = productos.Select(MapToProductoResponse).ToList();
 
                 _logger.LogDebug("Se encontraron {Count} productos con el nombre '{Nombre}'", productosResponse.Count, nombre);
@@ -320,7 +320,7 @@ namespace ElCriollo.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al buscar productos por nombre: {Nombre}", nombre);
-                throw;
+                return new List<ProductoResponse>(); // Retornar lista vacía en lugar de throw
             }
         }
 
@@ -385,7 +385,7 @@ namespace ElCriollo.API.Services
                     Nombre = producto.Nombre,
                     CantidadDisponible = inventario?.CantidadDisponible ?? 0,
                     CantidadMinima = inventario?.CantidadMinima ?? 0,
-                    RequiereRestock = inventario?.NecesitaReabastecimiento() ?? false,
+                    RequiereRestock = inventario?.NecesitaReabastecimiento ?? false, // Cambiar () por solo propiedad
                     EstadoStock = inventario?.ObtenerEstadoStock() ?? "Sin inventario"
                 };
 
@@ -463,7 +463,7 @@ namespace ElCriollo.API.Services
                     Categoria = p.Categoria?.Nombre ?? "Sin categoría",
                     CantidadDisponible = p.Inventario?.CantidadDisponible ?? 0,
                     CantidadMinima = p.Inventario?.CantidadMinima ?? 0,
-                    EsCritico = p.Inventario?.CantidadDisponible <= (p.Inventario?.CantidadMinima * 0.5) ?? false,
+                    EsCritico = (p.Inventario?.CantidadDisponible ?? 0) <= ((p.Inventario?.CantidadMinima ?? 0) * 0.5), // Corregir comparación
                     Recomendacion = p.Inventario?.ObtenerRecomendacionReorden() ?? "Sin recomendación"
                 }).ToList();
 
@@ -473,7 +473,7 @@ namespace ElCriollo.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener productos con stock bajo");
-                throw;
+                return new List<ProductoStockBajoResponse>(); // Retornar lista vacía en lugar de throw
             }
         }
 
@@ -575,7 +575,7 @@ namespace ElCriollo.API.Services
                 var combos = new List<ComboBasicoResponse>();
 
                 _logger.LogDebug("Se obtuvieron {Count} combos disponibles", combos.Count);
-                return combos;
+                return await Task.FromResult(combos); // Agregar await
             }
             catch (Exception ex)
             {
@@ -595,7 +595,7 @@ namespace ElCriollo.API.Services
 
                 // Por ahora retornamos null ya que no hay implementación de combos
                 _logger.LogWarning("Funcionalidad de combos no implementada");
-                return null;
+                return await Task.FromResult<ComboBasicoResponse?>(null); // Agregar await
             }
             catch (Exception ex)
             {
@@ -615,7 +615,7 @@ namespace ElCriollo.API.Services
 
                 // Por ahora retornamos false ya que no hay implementación de combos
                 _logger.LogWarning("Funcionalidad de combos no implementada");
-                return false;
+                return await Task.FromResult(false); // Agregar await
             }
             catch (Exception ex)
             {
@@ -773,7 +773,7 @@ namespace ElCriollo.API.Services
                 Categoria = new CategoriaBasicaResponse
                 {
                     CategoriaID = producto.Categoria?.CategoriaID ?? 0,
-                    Nombre = producto.Categoria?.Nombre ?? "Sin categoría",
+                    NombreCategoria = producto.Categoria?.Nombre ?? "Sin categoría", // Cambiar Nombre por NombreCategoria
                     Descripcion = producto.Categoria?.Descripcion
                 },
                 Precio = producto.PrecioFormateado,

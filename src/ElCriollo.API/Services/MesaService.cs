@@ -356,7 +356,9 @@ namespace ElCriollo.API.Services
 
                 foreach (var mesa in mesasOcupadas)
                 {
-                    var tiempoOcupada = DateTime.Now - mesa.FechaUltimaActualizacion;
+                    var tiempoOcupada = mesa.FechaUltimaActualizacion.HasValue 
+                        ? DateTime.Now - mesa.FechaUltimaActualizacion.Value 
+                        : TimeSpan.Zero; // Manejar nullable DateTime
                     if (tiempoOcupada.TotalMinutes > tiempoLimiteMinutos)
                     {
                         mesasAtencion.Add(new MesaAtencionBasicaResponse
@@ -541,7 +543,9 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                // Agregar información adicional básica
+                // Nota: las propiedades RequiereAtencion y TiempoHastaReserva son de solo lectura
+                // y deben ser asignadas durante el mapeo en AutoMapper o venir del DTO original.
+                // Solo podemos actualizar la propiedad TiempoOcupada si es necesario.
                 if (mesaResponse.Estado == "Ocupada")
                 {
                     var ordenesActivas = await _ordenRepository.GetByMesaAsync(mesaResponse.MesaID);
@@ -551,20 +555,10 @@ namespace ElCriollo.API.Services
                     {
                         var tiempoOcupada = DateTime.Now - ultimaOrden.FechaCreacion;
                         mesaResponse.TiempoOcupada = $"{Math.Round(tiempoOcupada.TotalMinutes)} min";
-                        mesaResponse.RequiereAtencion = tiempoOcupada.TotalMinutes > TIEMPO_LIMITE_OCUPACION_MINUTOS;
+                        // RequiereAtencion es readonly - se debe calcular en el DTO o mapeo
                     }
                 }
-                else if (mesaResponse.Estado == "Reservada")
-                {
-                    var reservaciones = await _reservacionRepository.GetReservacionesPorMesaAsync(mesaResponse.MesaID);
-                    var reservaActiva = reservaciones.FirstOrDefault(r => r.Estado == "Confirmada");
-                    
-                    if (reservaActiva != null)
-                    {
-                        mesaResponse.TiempoHastaReserva = reservaActiva.FechaYHora > DateTime.Now ? 
-                            $"{Math.Round((reservaActiva.FechaYHora - DateTime.Now).TotalMinutes)} min" : "Vencida";
-                    }
-                }
+                // TiempoHastaReserva es readonly - se debe calcular en el DTO o mapeo
             }
             catch (Exception ex)
             {

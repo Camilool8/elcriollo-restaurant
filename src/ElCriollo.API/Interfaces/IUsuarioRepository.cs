@@ -59,7 +59,7 @@ namespace ElCriollo.API.Interfaces
         /// <summary>
         /// Crea un nuevo usuario
         /// </summary>
-        Task<Usuario> CreateAsync(Usuario usuario);
+        new Task<Usuario> CreateAsync(Usuario usuario);
 
         /// <summary>
         /// Registra el último acceso de un usuario

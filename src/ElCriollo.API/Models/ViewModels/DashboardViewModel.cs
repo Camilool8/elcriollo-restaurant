@@ -134,6 +134,11 @@ public class EstadoMesasViewModel
 public class OrdenesActivasViewModel
 {
     /// <summary>
+    /// Total de órdenes activas
+    /// </summary>
+    public int TotalOrdenes { get; set; }
+
+    /// <summary>
     /// Órdenes pendientes
     /// </summary>
     public int OrdenesPendientes { get; set; }

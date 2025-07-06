@@ -244,17 +244,7 @@ namespace ElCriollo.API.Services
         public int Cantidad { get; set; }
     }
 
-    /// <summary>
-    /// Categoría básica (para compatibilidad con el servicio existente)
-    /// </summary>
-    public class CategoriaBasicaResponse
-    {
-        public int CategoriaID { get; set; }
-        public string NombreCategoria { get; set; } = string.Empty;
-        public string? Descripcion { get; set; }
-        public int CantidadProductos { get; set; }
-        public int ProductosDisponibles { get; set; }
-    }
+
 
     /// <summary>
     /// Resultado de validación de producto

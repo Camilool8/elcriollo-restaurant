@@ -170,19 +170,14 @@ namespace ElCriollo.API.Interfaces
         Task<IEnumerable<Orden>> GetOrdenesPorFechaAsync(DateTime fecha);
 
         /// <summary>
-        /// Obtiene órdenes por cliente
-        /// </summary>
-        Task<IEnumerable<Orden>> GetByClienteAsync(int clienteId);
-
-        /// <summary>
         /// Agrega un detalle de orden
         /// </summary>
         Task<DetalleOrden> AddDetalleOrdenAsync(DetalleOrden detalle);
 
         /// <summary>
-        /// Agrega una nueva orden
+        /// Agrega una nueva orden (alias de CreateAsync)
         /// </summary>
-        Task<Orden> AddAsync(Orden orden);
+        new Task<Orden> AddAsync(Orden orden);
 
         // ============================================================================
         // CONSULTAS POR FECHA Y TIEMPO

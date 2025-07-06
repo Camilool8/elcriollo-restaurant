@@ -742,5 +742,90 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene todas las mesas con sus relaciones incluidas
+        /// </summary>
+        public async Task<IEnumerable<Mesa>> GetAllWithIncludesAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo todas las mesas con includes");
+
+                var mesas = await _dbSet
+                    .Include(m => m.Ordenes)
+                        .ThenInclude(o => o.Empleado)
+                    .Include(m => m.Ordenes)
+                        .ThenInclude(o => o.Cliente)
+                    .Include(m => m.Reservaciones)
+                        .ThenInclude(r => r.Cliente)
+                    .OrderBy(m => m.NumeroMesa)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se obtuvieron {Count} mesas con includes", mesas.Count);
+                return mesas;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todas las mesas con includes");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene una mesa con todas sus relaciones incluidas
+        /// </summary>
+        public async Task<Mesa?> GetByIdWithIncludesAsync(int mesaId)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo mesa con includes ID: {MesaId}", mesaId);
+
+                var mesa = await _dbSet
+                    .Include(m => m.Ordenes)
+                        .ThenInclude(o => o.Empleado)
+                    .Include(m => m.Ordenes)
+                        .ThenInclude(o => o.Cliente)
+                    .Include(m => m.Reservaciones)
+                        .ThenInclude(r => r.Cliente)
+                    .FirstOrDefaultAsync(m => m.MesaID == mesaId);
+
+                if (mesa == null)
+                {
+                    _logger.LogWarning("No se encontró mesa con ID: {MesaId}", mesaId);
+                }
+
+                return mesa;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener mesa con includes ID: {MesaId}", mesaId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene mesas activas (Ocupadas y Reservadas)
+        /// </summary>
+        public async Task<IEnumerable<Mesa>> GetMesasActivasAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo mesas activas");
+
+                var mesas = await _dbSet
+                    .Where(m => m.Estado == "Ocupada" || m.Estado == "Reservada")
+                    .OrderBy(m => m.NumeroMesa)
+                    .ToListAsync();
+
+                _logger.LogDebug("Se encontraron {Count} mesas activas", mesas.Count);
+                return mesas;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener mesas activas");
+                throw;
+            }
+        }
     }
 }

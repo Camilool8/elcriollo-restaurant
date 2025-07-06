@@ -33,8 +33,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
             .ForMember(dest => dest.TelefonoFormateado, opt => opt.MapFrom(src => src.TelefonoFormateado))
             .ForMember(dest => dest.SalarioFormateado, opt => opt.MapFrom(src => src.SalarioFormateado))
-            .ForMember(dest => dest.TiempoEnEmpresa, opt => opt.MapFrom(src => 
-                $"{src.TiempoEnEmpresa.Days / 365} años, {(src.TiempoEnEmpresa.Days % 365) / 30} meses"))
+            .ForMember(dest => dest.TiempoEnEmpresa, opt => opt.MapFrom(src => src.TiempoEnEmpresa)) // TiempoEnEmpresa ya es string
             .ForMember(dest => dest.EsEmpleadoActivo, opt => opt.MapFrom(src => src.EsActivo));
 
         // Cliente
@@ -51,7 +50,9 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PromedioConsumo, opt => opt.MapFrom(src => 
                 src.Ordenes.Any() ? $"RD$ {src.Ordenes.Average(o => o.Total):N2}" : "RD$ 0.00"))
             .ForMember(dest => dest.UltimaVisita, opt => opt.MapFrom(src => 
-                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault()?.FechaCreacion));
+                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault() != null ?
+                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault().FechaCreacion :
+                (DateTime?)null));
 
         // Producto
         CreateMap<Producto, ProductoResponse>()
@@ -118,8 +119,7 @@ public class AutoMapperProfile : Profile
                 $"{src.TiempoHastaReservacion.Hours}h {src.TiempoHastaReservacion.Minutes}m" : null))
             .ForMember(dest => dest.PuedeModificar, opt => opt.MapFrom(src => src.PuedeModificar))
             .ForMember(dest => dest.PuedeCancelar, opt => opt.MapFrom(src => src.PuedeCancelar))
-            .ForMember(dest => dest.TiempoParaLlegar, opt => opt.MapFrom(src => 
-                src.TiempoParaLlegar.TotalMinutes > 0 ? (int)src.TiempoParaLlegar.TotalMinutes : (int?)null));
+            .ForMember(dest => dest.TiempoParaLlegar, opt => opt.MapFrom(src => src.TiempoParaLlegar)); // Ya es int?
 
         // Orden
         CreateMap<Orden, OrdenResponse>()
@@ -216,10 +216,10 @@ public class AutoMapperProfile : Profile
 
         // Usuario
         CreateMap<LoginRequest, Usuario>()
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username));
+            .ForMember(dest => dest.UsuarioNombre, opt => opt.MapFrom(src => src.Username));
                 
         CreateMap<CreateUsuarioRequest, Usuario>()
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username))
+            .ForMember(dest => dest.UsuarioNombre, opt => opt.MapFrom(src => src.Username))
             .ForMember(dest => dest.RolID, opt => opt.MapFrom(src => src.RolId))
             .ForMember(dest => dest.EmpleadoID, opt => opt.MapFrom(src => src.EmpleadoId));
                 
@@ -264,10 +264,10 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Pendiente"))
             .ForMember(dest => dest.NumeroOrden, opt => opt.Ignore()) // Se generará automáticamente
-            .ForMember(dest => dest.DetalleOrdenes, opt => opt.MapFrom(src => src.Detalles));
+            .ForMember(dest => dest.DetalleOrdenes, opt => opt.MapFrom(src => src.Items)); // Cambiar Detalles por Items
 
         // DetalleOrden
-        CreateMap<CreateDetalleOrdenRequest, DetalleOrden>()
+        CreateMap<ItemOrdenRequest, DetalleOrden>() // Cambiar CreateDetalleOrdenRequest por ItemOrdenRequest
             .ForMember(dest => dest.PrecioUnitario, opt => opt.Ignore()) // Se calculará en el servicio
             .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => 0));
 
@@ -296,7 +296,13 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PorcentajeImpuesto, opt => opt.MapFrom(src => src.PorcentajeImpuesto))
             .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
             .ForMember(dest => dest.PorcentajePropina, opt => opt.MapFrom(src => src.PorcentajePropina))
-            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago));
+            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago))
+            // Mapear propiedades numéricas
+            .ForMember(dest => dest.TotalNumerico, opt => opt.MapFrom(src => src.Total))
+            .ForMember(dest => dest.ImpuestoNumerico, opt => opt.MapFrom(src => src.Impuesto))
+            .ForMember(dest => dest.PropinaNumerico, opt => opt.MapFrom(src => src.Propina))
+            .ForMember(dest => dest.DescuentoNumerico, opt => opt.MapFrom(src => src.Descuento))
+            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.Subtotal));
 
         // ============================================================================
         // MAPEO PARA VIEWMODELS ESPECÍFICOS

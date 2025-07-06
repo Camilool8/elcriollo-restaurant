@@ -75,10 +75,16 @@ namespace ElCriollo.API.Services
                     mesaId = mejorMesa.Id;
                 }
 
+                // Validar que se proporcione un cliente
+                if (!crearReservaRequest.ClienteId.HasValue)
+                {
+                    throw new InvalidOperationException("Se debe especificar un cliente para la reservación");
+                }
+
                 // Crear la reserva
                 var nuevaReserva = new Reservacion
                 {
-                    ClienteId = crearReservaRequest.ClienteId,
+                    ClienteId = crearReservaRequest.ClienteId.Value,
                     MesaId = mesaId,
                     FechaHora = crearReservaRequest.FechaHora,
                     CantidadPersonas = crearReservaRequest.CantidadPersonas,
@@ -658,8 +664,9 @@ namespace ElCriollo.API.Services
             {
                 _logger.LogDebug("Obteniendo reservas de cliente {ClienteId} (limit: {Limit})", clienteId, limit);
 
-                var reservas = await _reservacionRepository.GetReservasPorClienteAsync(clienteId, limit);
-                var reservasResponse = _mapper.Map<List<ReservacionResponse>>(reservas);
+                var reservas = await _reservacionRepository.GetReservasPorClienteAsync(clienteId); // Quitar el parámetro limit
+                var reservasOrdenadas = reservas.OrderByDescending(r => r.FechaHora).Take(limit);
+                var reservasResponse = _mapper.Map<List<ReservacionResponse>>(reservasOrdenadas);
 
                 _logger.LogDebug("Encontradas {Count} reservas para cliente {ClienteId}", reservasResponse.Count, clienteId);
 

@@ -310,15 +310,15 @@ namespace ElCriollo.API.Services
                 var desglosePorCategoria = new Dictionary<string, decimal>();
 
                 // Calcular subtotal de todos los detalles
-                if (orden.DetallesOrden != null)
+                if (orden.DetalleOrdenes != null) // Cambiar DetallesOrden por DetalleOrdenes
                 {
-                    foreach (var detalle in orden.DetallesOrden)
+                    foreach (var detalle in orden.DetalleOrdenes) // Cambiar DetallesOrden por DetalleOrdenes
                     {
                         var totalDetalle = detalle.Cantidad * detalle.PrecioUnitario;
                         subtotal += totalDetalle;
 
                         // Desglose por categoría
-                        var categoria = detalle.Producto?.Categoria?.NombreCategoria ?? "Sin categoría";
+                        var categoria = detalle.Producto?.Categoria?.Nombre ?? "Sin categoría"; // Cambiar NombreCategoria por Nombre
                         if (!desglosePorCategoria.ContainsKey(categoria))
                             desglosePorCategoria[categoria] = 0;
                         desglosePorCategoria[categoria] += totalDetalle;
@@ -552,10 +552,10 @@ namespace ElCriollo.API.Services
                     TotalFacturas = facturasHoy.Count(),
                     FacturasPagadas = facturasPagadas.Count(),
                     FacturasPendientes = facturasHoy.Count(f => f.Estado == "Pendiente"),
-                    TotalVentas = facturasPagadas.Sum(f => f.Total),
-                    TotalITBIS = facturasPagadas.Sum(f => f.Impuesto),
-                    TotalPropinas = facturasPagadas.Sum(f => f.Propina),
-                    PromedioVentaPorFactura = facturasPagadas.Any() ? facturasPagadas.Average(f => f.Total) : 0
+                    TotalVentas = facturasPagadas.Sum(f => f.TotalNumerico),
+                    TotalITBIS = facturasPagadas.Sum(f => f.ImpuestoNumerico),
+                    TotalPropinas = facturasPagadas.Sum(f => f.PropinaNumerico),
+                    PromedioVentaPorFactura = facturasPagadas.Any() ? facturasPagadas.Average(f => f.TotalNumerico) : 0
                 };
             }
             catch (Exception ex)
@@ -577,11 +577,11 @@ namespace ElCriollo.API.Services
                     FechaInicio = fechaInicio,
                     FechaFin = fechaFin,
                     TotalFacturas = facturas.Count(),
-                    TotalVentas = facturasPagadas.Sum(f => f.Total),
-                    TotalITBIS = facturasPagadas.Sum(f => f.Impuesto),
-                    VentaPromedioDiaria = facturasPagadas.Any() ? facturasPagadas.Average(f => f.Total) : 0,
-                    FacturaConMayorMonto = facturasPagadas.OrderByDescending(f => f.Total).FirstOrDefault()?.Total ?? 0,
-                    FacturaConMenorMonto = facturasPagadas.OrderBy(f => f.Total).FirstOrDefault()?.Total ?? 0
+                    TotalVentas = facturasPagadas.Sum(f => f.TotalNumerico),
+                    TotalITBIS = facturasPagadas.Sum(f => f.ImpuestoNumerico),
+                    VentaPromedioDiaria = facturasPagadas.Any() ? facturasPagadas.Average(f => f.TotalNumerico) : 0,
+                    FacturaConMayorMonto = facturasPagadas.OrderByDescending(f => f.TotalNumerico).FirstOrDefault()?.TotalNumerico ?? 0,
+                    FacturaConMenorMonto = facturasPagadas.OrderBy(f => f.TotalNumerico).FirstOrDefault()?.TotalNumerico ?? 0
                 };
             }
             catch (Exception ex)

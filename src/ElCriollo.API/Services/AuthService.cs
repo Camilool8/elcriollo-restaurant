@@ -315,10 +315,9 @@ namespace ElCriollo.API.Services
                     Email = ADMIN_EMAIL,
                     Telefono = "809-555-0001",
                     Cedula = "00100000001",
-                    FechaContratacion = DateTime.UtcNow,
+                    FechaIngreso = DateTime.UtcNow,
                     Salario = 100000, // Salario simbólico
-                    EsActivo = true,
-                    RolId = adminRole.Id
+                    Estado = true
                 };
 
                 var empleadoCreado = await _empleadoRepository.CreateAsync(empleadoAdmin);
@@ -326,13 +325,13 @@ namespace ElCriollo.API.Services
                 // Crear usuario administrador
                 var usuarioAdmin = new Usuario
                 {
-                    Username = ADMIN_USERNAME,
+                    UsuarioNombre = ADMIN_USERNAME,
                     Email = ADMIN_EMAIL,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(ADMIN_PASSWORD),
-                    EsActivo = true,
+                    ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(ADMIN_PASSWORD),
+                    Estado = true,
                     FechaCreacion = DateTime.UtcNow,
-                    RolId = adminRole.Id,
-                    EmpleadoId = empleadoCreado.Id
+                    RolID = adminRole.Id,
+                    EmpleadoID = empleadoCreado.Id
                 };
 
                 var usuarioCreado = await _usuarioRepository.CreateAsync(usuarioAdmin);
@@ -375,13 +374,13 @@ namespace ElCriollo.API.Services
                 // Crear usuario
                 var nuevoUsuario = new Usuario
                 {
-                    Username = crearUsuarioRequest.Username,
+                    UsuarioNombre = crearUsuarioRequest.Username,
                     Email = crearUsuarioRequest.Email,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(crearUsuarioRequest.Password),
-                    EsActivo = true,
+                    ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(crearUsuarioRequest.Password),
+                    Estado = true,
                     FechaCreacion = DateTime.UtcNow,
-                    RolId = crearUsuarioRequest.RolId,
-                    EmpleadoId = crearUsuarioRequest.EmpleadoId
+                    RolID = crearUsuarioRequest.RolId,
+                    EmpleadoID = crearUsuarioRequest.EmpleadoId
                 };
 
                 var usuarioCreado = await _usuarioRepository.CreateAsync(nuevoUsuario);
@@ -415,7 +414,7 @@ namespace ElCriollo.API.Services
             // Agregar rol
             if (usuario.Rol != null)
             {
-                claims.Add(new Claim(ClaimTypes.Role, usuario.Rol.Nombre));
+                claims.Add(new Claim(ClaimTypes.Role, usuario.Rol.Nombre ?? "SinRol"));
                 claims.Add(new Claim("rol_id", usuario.Rol.Id.ToString()));
             }
 

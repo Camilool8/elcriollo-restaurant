@@ -325,6 +325,6 @@ namespace ElCriollo.API.Interfaces
         /// <summary>
         /// Crea una nueva reservación
         /// </summary>
-        Task<Reservacion> CreateAsync(Reservacion reservacion);
+        new Task<Reservacion> CreateAsync(Reservacion reservacion);
     }
 }

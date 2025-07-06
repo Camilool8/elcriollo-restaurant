@@ -64,6 +64,21 @@ public class MesaResponse
     /// Última limpieza
     /// </summary>
     public DateTime? FechaUltimaLimpieza { get; set; }
+
+    /// <summary>
+    /// Alias para Id (compatibilidad con servicios)
+    /// </summary>
+    public int Id => MesaID;
+    
+    /// <summary>
+    /// Indica si la mesa requiere atención especial
+    /// </summary>
+    public bool RequiereAtencion { get; set; }
+    
+    /// <summary>
+    /// Tiempo hasta la próxima reserva
+    /// </summary>
+    public string? TiempoHastaReserva { get; set; }
 }
 
 /// <summary>
