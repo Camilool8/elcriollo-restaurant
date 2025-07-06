@@ -245,31 +245,7 @@ namespace ElCriollo.API.Services
     }
 
     /// <summary>
-    /// Combo
-    /// </summary>
-    public class ComboBasicoResponse
-    {
-        public int ComboID { get; set; }
-        public string NombreCombo { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-        public decimal Precio { get; set; }
-        public string PrecioFormateado => $"RD$ {Precio:N2}";
-        public bool Disponible { get; set; }
-        public List<ProductoComboBasico> Productos { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Producto en combo
-    /// </summary>
-    public class ProductoComboBasico
-    {
-        public int ProductoID { get; set; }
-        public string Nombre { get; set; } = string.Empty;
-        public int Cantidad { get; set; }
-    }
-
-    /// <summary>
-    /// Categoría
+    /// Categoría básica (para compatibilidad con el servicio existente)
     /// </summary>
     public class CategoriaBasicaResponse
     {
@@ -299,17 +275,5 @@ namespace ElCriollo.API.Services
         public List<string> ProductosInvalidos { get; set; } = new();
         public List<string> ProductosNoDisponibles { get; set; } = new();
         public List<string> Advertencias { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Request para actualizar producto
-    /// </summary>
-    public class ActualizarProductoRequest
-    {
-        public string? Nombre { get; set; }
-        public string? Descripcion { get; set; }
-        public decimal? Precio { get; set; }
-        public int? CategoriaId { get; set; }
-        public bool? Disponible { get; set; }
     }
 }

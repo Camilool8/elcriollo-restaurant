@@ -212,16 +212,4 @@ namespace ElCriollo.API.Services
         public TimeSpan TiempoPromedioReserva { get; set; }
         public Dictionary<string, int> ReservasPorHora { get; set; } = new();
     }
-
-    /// <summary>
-    /// DTO para actualizar reserva
-    /// </summary>
-    public class ActualizarReservacionRequest
-    {
-        public DateTime? FechaHora { get; set; }
-        public int? CantidadPersonas { get; set; }
-        public int? MesaId { get; set; }
-        public string? NotasEspeciales { get; set; }
-        public int? DuracionMinutos { get; set; }
-    }
 }

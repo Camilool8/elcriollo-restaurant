@@ -29,10 +29,29 @@ public class AutoMapperProfile : Profile
         CreateMap<Empleado, EmpleadoBasicoResponse>()
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto));
 
+        CreateMap<Empleado, EmpleadoResponse>()
+            .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
+            .ForMember(dest => dest.TelefonoFormateado, opt => opt.MapFrom(src => src.TelefonoFormateado))
+            .ForMember(dest => dest.SalarioFormateado, opt => opt.MapFrom(src => src.SalarioFormateado))
+            .ForMember(dest => dest.TiempoEnEmpresa, opt => opt.MapFrom(src => 
+                $"{src.TiempoEnEmpresa.Days / 365} años, {(src.TiempoEnEmpresa.Days % 365) / 30} meses"))
+            .ForMember(dest => dest.EsEmpleadoActivo, opt => opt.MapFrom(src => src.EsActivo));
+
         // Cliente
         CreateMap<Cliente, ClienteBasicoResponse>()
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
             .ForMember(dest => dest.CategoriaCliente, opt => opt.MapFrom(src => src.ObtenerCategoriaCliente()));
+
+        CreateMap<Cliente, ClienteResponse>()
+            .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
+            .ForMember(dest => dest.CategoriaCliente, opt => opt.MapFrom(src => src.ObtenerCategoriaCliente()))
+            .ForMember(dest => dest.TotalOrdenes, opt => opt.MapFrom(src => src.Ordenes.Count))
+            .ForMember(dest => dest.TotalReservaciones, opt => opt.MapFrom(src => src.Reservaciones.Count))
+            .ForMember(dest => dest.TotalFacturas, opt => opt.MapFrom(src => src.Facturas.Count))
+            .ForMember(dest => dest.PromedioConsumo, opt => opt.MapFrom(src => 
+                src.Ordenes.Any() ? $"RD$ {src.Ordenes.Average(o => o.Total):N2}" : "RD$ 0.00"))
+            .ForMember(dest => dest.UltimaVisita, opt => opt.MapFrom(src => 
+                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault()?.FechaCreacion));
 
         // Producto
         CreateMap<Producto, ProductoResponse>()
@@ -44,13 +63,30 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.InformacionNutricional, opt => opt.MapFrom(src => src.ObtenerInformacionNutricional()));
 
         // Categoría
-        CreateMap<Categoria, CategoriaBasicaResponse>();
+        CreateMap<Categoria, CategoriaBasicaResponse>()
+            .ForMember(dest => dest.NombreCategoria, opt => opt.MapFrom(src => src.Nombre))
+            .ForMember(dest => dest.CantidadProductos, opt => opt.MapFrom(src => src.Productos.Count))
+            .ForMember(dest => dest.ProductosDisponibles, opt => opt.MapFrom(src => src.Productos.Count(p => p.Estado)));
+
+        CreateMap<Categoria, CategoriaResponse>()
+            .ForMember(dest => dest.TotalProductos, opt => opt.MapFrom(src => src.Productos.Count))
+            .ForMember(dest => dest.ProductosActivos, opt => opt.MapFrom(src => src.Productos.Count(p => p.Estado)))
+            .ForMember(dest => dest.RangoPrecios, opt => opt.MapFrom(src => src.ObtenerRangoPrecios()));
 
         // Inventario
         CreateMap<Inventario, InventarioBasicoResponse>()
             .ForMember(dest => dest.NivelStock, opt => opt.MapFrom(src => src.NivelStock))
             .ForMember(dest => dest.ColorIndicador, opt => opt.MapFrom(src => src.ColorIndicador))
             .ForMember(dest => dest.StockBajo, opt => opt.MapFrom(src => src.StockBajo));
+
+        CreateMap<Inventario, InventarioResponse>()
+            .ForMember(dest => dest.NivelStock, opt => opt.MapFrom(src => src.NivelStock))
+            .ForMember(dest => dest.ColorIndicador, opt => opt.MapFrom(src => src.ColorIndicador))
+            .ForMember(dest => dest.StockBajo, opt => opt.MapFrom(src => src.StockBajo))
+            .ForMember(dest => dest.DiasParaReabastecer, opt => opt.MapFrom(src => src.DiasParaReabastecer))
+            .ForMember(dest => dest.ValorInventario, opt => opt.MapFrom(src => src.ValorInventarioFormateado))
+            .ForMember(dest => dest.PorcentajeStock, opt => opt.MapFrom(src => src.PorcentajeStock))
+            .ForMember(dest => dest.NecesitaReabastecimiento, opt => opt.MapFrom(src => src.NecesitaReabastecimiento));
 
         // Mesa
         CreateMap<Mesa, MesaResponse>()
@@ -72,6 +108,18 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.TiempoHastaReservacion, opt => opt.MapFrom(src => 
                 src.TiempoHastaReservacion.TotalMinutes > 0 ? 
                 $"{src.TiempoHastaReservacion.Hours}h {src.TiempoHastaReservacion.Minutes}m" : null));
+
+        CreateMap<Reservacion, ReservacionResponse>()
+            .ForMember(dest => dest.Cliente, opt => opt.MapFrom(src => src.Cliente))
+            .ForMember(dest => dest.Mesa, opt => opt.MapFrom(src => src.Mesa))
+            .ForMember(dest => dest.Horario, opt => opt.MapFrom(src => src.ObtenerHorarioFormateado()))
+            .ForMember(dest => dest.TiempoHastaReservacion, opt => opt.MapFrom(src => 
+                src.TiempoHastaReservacion.TotalMinutes > 0 ? 
+                $"{src.TiempoHastaReservacion.Hours}h {src.TiempoHastaReservacion.Minutes}m" : null))
+            .ForMember(dest => dest.PuedeModificar, opt => opt.MapFrom(src => src.PuedeModificar))
+            .ForMember(dest => dest.PuedeCancelar, opt => opt.MapFrom(src => src.PuedeCancelar))
+            .ForMember(dest => dest.TiempoParaLlegar, opt => opt.MapFrom(src => 
+                src.TiempoParaLlegar.TotalMinutes > 0 ? (int)src.TiempoParaLlegar.TotalMinutes : (int?)null));
 
         // Orden
         CreateMap<Orden, OrdenResponse>()
@@ -102,6 +150,66 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.TiempoPreparacion, opt => opt.MapFrom(src => $"{src.TiempoPreparacion} min"))
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto));
 
+        // Combo
+        CreateMap<Combo, ComboResponse>()
+            .ForMember(dest => dest.Precio, opt => opt.MapFrom(src => src.PrecioFormateado))
+            .ForMember(dest => dest.PrecioNumerico, opt => opt.MapFrom(src => src.Precio))
+            .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => src.DescuentoFormateado))
+            .ForMember(dest => dest.Ahorro, opt => opt.MapFrom(src => $"RD$ {src.Ahorro:N2}"))
+            .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
+            .ForMember(dest => dest.CantidadProductos, opt => opt.MapFrom(src => src.CantidadProductos))
+            .ForMember(dest => dest.TotalItems, opt => opt.MapFrom(src => src.TotalItems))
+            .ForMember(dest => dest.EstaDisponible, opt => opt.MapFrom(src => src.EstaDisponible))
+            .ForMember(dest => dest.TiempoPreparacion, opt => opt.MapFrom(src => $"{src.TiempoPreparacionTotal} min"))
+            .ForMember(dest => dest.EsComboDominicano, opt => opt.MapFrom(src => src.EsComboDominicano()))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ForMember(dest => dest.Productos, opt => opt.MapFrom(src => src.ComboProductos));
+
+        CreateMap<Combo, ComboBasicoResponse>()
+            .ForMember(dest => dest.NombreCombo, opt => opt.MapFrom(src => src.Nombre))
+            .ForMember(dest => dest.Descripcion, opt => opt.MapFrom(src => src.Descripcion))
+            .ForMember(dest => dest.Precio, opt => opt.MapFrom(src => src.Precio))
+            .ForMember(dest => dest.Disponible, opt => opt.MapFrom(src => src.EstaDisponible))
+            .ForMember(dest => dest.Productos, opt => opt.MapFrom(src => 
+                src.ComboProductos.Select(cp => new ProductoComboBasico
+                {
+                    ProductoID = cp.ProductoID,
+                    Nombre = cp.Producto.Nombre,
+                    Cantidad = cp.Cantidad
+                })));
+
+        // ComboProducto
+        CreateMap<ComboProducto, ComboProductoResponse>()
+            .ForMember(dest => dest.Producto, opt => opt.MapFrom(src => src.Producto))
+            .ForMember(dest => dest.PrecioTotal, opt => opt.MapFrom(src => src.PrecioTotalFormateado))
+            .ForMember(dest => dest.EstaDisponible, opt => opt.MapFrom(src => src.EstaDisponible));
+
+        // Factura
+        CreateMap<Factura, FacturaResponse>()
+            .ForMember(dest => dest.Cliente, opt => opt.MapFrom(src => src.Cliente))
+            .ForMember(dest => dest.Empleado, opt => opt.MapFrom(src => src.Empleado))
+            .ForMember(dest => dest.Mesa, opt => opt.MapFrom(src => src.Orden.Mesa))
+            .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.SubtotalFormateado))
+            .ForMember(dest => dest.Impuesto, opt => opt.MapFrom(src => src.ImpuestoFormateado))
+            .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => src.DescuentoFormateado))
+            .ForMember(dest => dest.Propina, opt => opt.MapFrom(src => src.PropinaFormateado))
+            .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
+            .ForMember(dest => dest.PorcentajeImpuesto, opt => opt.MapFrom(src => src.PorcentajeImpuesto))
+            .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
+            .ForMember(dest => dest.PorcentajePropina, opt => opt.MapFrom(src => src.PorcentajePropina))
+            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago));
+
+        CreateMap<Factura, FacturaBasicaResponse>()
+            .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
+            .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.NombreCompleto))
+            .ForMember(dest => dest.FechaFormateada, opt => opt.MapFrom(src => src.FechaFactura.ToString("dd/MM/yyyy HH:mm")));
+
+        // EmailTransaccion
+        CreateMap<EmailTransaccion, EmailTransaccionResponse>()
+            .ForMember(dest => dest.TiempoTranscurrido, opt => opt.MapFrom(src => src.TiempoTranscurrido))
+            .ForMember(dest => dest.FueExitoso, opt => opt.MapFrom(src => src.FueExitoso))
+            .ForMember(dest => dest.RequiereReintento, opt => opt.MapFrom(src => src.RequiereReintento));
+
         // ============================================================================
         // MAPEO DE REQUEST DTOS A ENTIDADES
         // ============================================================================
@@ -114,10 +222,37 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.RequiereCambioContrasena, opt => opt.MapFrom(src => src.RequiereCambioContrasena));
 
+        // Producto
+        CreateMap<CrearProductoRequest, Producto>()
+            .ForMember(dest => dest.CategoriaID, opt => opt.MapFrom(src => src.CategoriaId))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true))
+            .ForMember(dest => dest.TiempoPreparacion, opt => opt.MapFrom(src => src.TiempoPreparacion ?? 15)); // Default 15 min
+
+        // Actualizar Producto - mapeo parcial para actualizaciones
+        CreateMap<ActualizarProductoRequest, Producto>()
+            .ForMember(dest => dest.ProductoID, opt => opt.Ignore())
+            .ForMember(dest => dest.Nombre, opt => opt.Condition(src => !string.IsNullOrEmpty(src.Nombre)))
+            .ForMember(dest => dest.Descripcion, opt => opt.Condition(src => src.Descripcion != null))
+            .ForMember(dest => dest.Precio, opt => opt.Condition(src => src.Precio.HasValue))
+            .ForMember(dest => dest.CategoriaID, opt => opt.Condition(src => src.CategoriaId.HasValue))
+            .ForMember(dest => dest.Estado, opt => opt.Condition(src => src.Disponible.HasValue))
+            .ForAllOtherMembers(opt => opt.Ignore());
+
         // Reservación
         CreateMap<CreateReservacionRequest, Reservacion>()
             .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Pendiente"));
+
+        // Actualizar Reservación - mapeo parcial para actualizaciones
+        CreateMap<ActualizarReservacionRequest, Reservacion>()
+            .ForMember(dest => dest.ReservacionID, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaYHora, opt => opt.Condition(src => src.FechaHora.HasValue))
+            .ForMember(dest => dest.CantidadPersonas, opt => opt.Condition(src => src.CantidadPersonas.HasValue))
+            .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
+            .ForMember(dest => dest.MesaID, opt => opt.Condition(src => src.MesaId.HasValue))
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.NotasEspeciales))
+            .ForMember(dest => dest.Observaciones, opt => opt.Condition(src => !string.IsNullOrWhiteSpace(src.NotasEspeciales)))
+            .ForAllOtherMembers(opt => opt.Ignore());
 
         // Orden
         CreateMap<CreateOrdenRequest, Orden>()
@@ -135,6 +270,28 @@ public class AutoMapperProfile : Profile
         CreateMap<CreateClienteOcasionalRequest, Cliente>()
             .ForMember(dest => dest.FechaRegistro, opt => opt.MapFrom(src => DateTime.Now.Date))
             .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true));
+
+        // Factura Request - No se mapea directamente a entidad porque requiere lógica de negocio
+        // CreateFacturaRequest se usa para parámetros, no para crear directamente la entidad
+
+        // ============================================================================
+        // MAPEO DE ENTIDADES A DTOs (para servicios que usan FacturaDto)
+        // ============================================================================
+
+        // Factura a FacturaDto (igual que FacturaResponse, se usa como sinónimo)
+        CreateMap<Factura, FacturaDto>()
+            .ForMember(dest => dest.Cliente, opt => opt.MapFrom(src => src.Cliente))
+            .ForMember(dest => dest.Empleado, opt => opt.MapFrom(src => src.Empleado))
+            .ForMember(dest => dest.Mesa, opt => opt.MapFrom(src => src.Orden.Mesa))
+            .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.SubtotalFormateado))
+            .ForMember(dest => dest.Impuesto, opt => opt.MapFrom(src => src.ImpuestoFormateado))
+            .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => src.DescuentoFormateado))
+            .ForMember(dest => dest.Propina, opt => opt.MapFrom(src => src.PropinaFormateado))
+            .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
+            .ForMember(dest => dest.PorcentajeImpuesto, opt => opt.MapFrom(src => src.PorcentajeImpuesto))
+            .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
+            .ForMember(dest => dest.PorcentajePropina, opt => opt.MapFrom(src => src.PorcentajePropina))
+            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago));
 
         // ============================================================================
         // MAPEO PARA VIEWMODELS ESPECÍFICOS
@@ -171,105 +328,14 @@ public class AutoMapperProfile : Profile
         // CONFIGURACIONES ADICIONALES
         // ============================================================================
 
-        // Ignorar propiedades calculadas en mapeos inversos
-        CreateMap<UsuarioResponse, Usuario>()
-            .ForMember(dest => dest.Rol, opt => opt.Ignore())
-            .ForMember(dest => dest.Empleado, opt => opt.Ignore())
-            .ForMember(dest => dest.Ordenes, opt => opt.Ignore())
-            .ForMember(dest => dest.Facturas, opt => opt.Ignore());
-
         // Configuración para manejar valores nulos
         AllowNullCollections = true;
         AllowNullDestinationValues = true;
-
-        // Configuración para fechas
-        CreateMap<DateTime, string>().ConvertUsing(src => src.ToString("dd/MM/yyyy HH:mm"));
-        CreateMap<DateTime?, string>().ConvertUsing(src => src.HasValue ? src.Value.ToString("dd/MM/yyyy HH:mm") : "");
     }
 
     // ============================================================================
     // MÉTODOS DE UTILIDAD PARA MAPEO COMPLEJO
     // ============================================================================
-
-    /// <summary>
-    /// Mapea una orden completa con sus relaciones
-    /// </summary>
-    public static OrdenResponse MapearOrdenCompleta(Orden orden, IMapper mapper)
-    {
-        var ordenResponse = mapper.Map<OrdenResponse>(orden);
-        
-        // Mapear detalles con información adicional
-        ordenResponse.Detalles = orden.DetalleOrdenes.Select(detalle => 
-        {
-            var detalleResponse = mapper.Map<DetalleOrdenResponse>(detalle);
-            // Agregar información adicional si es necesario
-            return detalleResponse;
-        }).ToList();
-
-        return ordenResponse;
-    }
-
-    /// <summary>
-    /// Mapea el dashboard con información agregada
-    /// </summary>
-    public static DashboardViewModel MapearDashboard(
-        List<Orden> ordenesHoy,
-        List<Mesa> mesas,
-        List<Reservacion> reservacionesProximas,
-        List<Usuario> usuariosActivos,
-        IMapper mapper)
-    {
-        var dashboard = new DashboardViewModel();
-
-        // Resumen diario
-        var ventasHoy = ordenesHoy.Where(o => o.EstaFacturada).Sum(o => o.Total);
-        dashboard.ResumenDiario = new ResumenDiarioViewModel
-        {
-            Fecha = DateTime.Today,
-            VentasDelDia = $"RD$ {ventasHoy:N2}",
-            OrdenesCompletadas = ordenesHoy.Count(o => o.Estado == "Entregada"),
-            ClientesAtendidos = ordenesHoy.Select(o => o.ClienteID).Distinct().Count(),
-            PromedioOrden = ordenesHoy.Any() ? $"RD$ {ordenesHoy.Average(o => o.Total):N2}" : "RD$ 0.00"
-        };
-
-        // Estado de mesas
-        dashboard.EstadoMesas = new EstadoMesasViewModel
-        {
-            TotalMesas = mesas.Count,
-            MesasLibres = mesas.Count(m => m.Estado == "Libre"),
-            MesasOcupadas = mesas.Count(m => m.Estado == "Ocupada"),
-            MesasReservadas = mesas.Count(m => m.Estado == "Reservada"),
-            MesasMantenimiento = mesas.Count(m => m.Estado == "Mantenimiento")
-        };
-
-        // Órdenes activas
-        var ordenesActivas = ordenesHoy.Where(o => o.Estado != "Entregada" && o.Estado != "Cancelada");
-        dashboard.OrdenesActivas = new OrdenesActivasViewModel
-        {
-            OrdenesPendientes = ordenesActivas.Count(o => o.Estado == "Pendiente"),
-            OrdenesEnPreparacion = ordenesActivas.Count(o => o.Estado == "EnPreparacion"),
-            OrdenesListas = ordenesActivas.Count(o => o.Estado == "Lista"),
-            OrdenesRetrasadas = ordenesActivas.Count(o => o.EstaRetrasada)
-        };
-
-        // Mapear reservaciones próximas
-        dashboard.ReservacionesProximas = reservacionesProximas
-            .Where(r => r.FechaYHora.Date == DateTime.Today && r.FechaYHora > DateTime.Now)
-            .OrderBy(r => r.FechaYHora)
-            .Take(5)
-            .Select(r => mapper.Map<ReservacionProximaViewModel>(r))
-            .ToList();
-
-        // Mapear empleados activos
-        dashboard.EmpleadosActivos = usuariosActivos
-            .Where(u => u.Estado && u.Empleado != null)
-            .OrderByDescending(u => u.UltimoAcceso)
-            .Take(10)
-            .Select(u => mapper.Map<EmpleadoActivoViewModel>(u))
-            .ToList();
-
-        return dashboard;
-    }
 
     /// <summary>
     /// Formatea el tiempo ocupada de una mesa

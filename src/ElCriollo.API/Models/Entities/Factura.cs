@@ -101,6 +101,12 @@ public class Factura
     [StringLength(20)]
     public string Estado { get; set; } = "Pagada";
 
+    /// <summary>
+    /// Observaciones adicionales de pago o de la factura
+    /// </summary>
+    [StringLength(500)]
+    public string? ObservacionesPago { get; set; }
+
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
     // ============================================================================

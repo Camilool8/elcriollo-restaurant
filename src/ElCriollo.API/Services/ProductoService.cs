@@ -1,4 +1,5 @@
 using ElCriollo.API.Interfaces;
+using ElCriollo.API.Models.DTOs.Request;
 using ElCriollo.API.Models.DTOs.Response;
 using ElCriollo.API.Models.Entities;
 using ElCriollo.API.Models.ViewModels;
