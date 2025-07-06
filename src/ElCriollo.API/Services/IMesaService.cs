@@ -1,343 +1,191 @@
 using ElCriollo.API.Models.DTOs.Response;
 using ElCriollo.API.Models.ViewModels;
+using ElCriollo.API.Models.Entities;
 
 namespace ElCriollo.API.Services
 {
     /// <summary>
-    /// Interfaz para el servicio de gestión de mesas de El Criollo
-    /// Maneja estados dinámicos, asignación inteligente y optimización de ocupación
+    /// Interfaz simplificada para el servicio de gestión de mesas de El Criollo
     /// </summary>
     public interface IMesaService
     {
         // ============================================================================
-        // GESTIÓN DE ESTADOS DE MESAS
+        // GESTIÓN DE MESAS
         // ============================================================================
 
         /// <summary>
-        /// Obtiene el estado actual de todas las mesas del restaurante
+        /// Obtiene el estado actual de todas las mesas
         /// </summary>
-        /// <returns>Vista completa del estado de mesas</returns>
-        Task<EstadoMesasViewModel> GetEstadoTodasLasMesasAsync();
+        /// <returns>Lista completa de mesas con su estado</returns>
+        Task<IEnumerable<MesaResponse>> GetEstadoTodasLasMesasAsync();
 
         /// <summary>
-        /// Obtiene información detallada de una mesa específica
+        /// Obtiene una mesa específica por ID
         /// </summary>
         /// <param name="mesaId">ID de la mesa</param>
-        /// <returns>Información completa de la mesa</returns>
-        Task<MesaResponse> GetMesaDetalleAsync(int mesaId);
+        /// <returns>Datos de la mesa</returns>
+        Task<MesaResponse?> GetMesaByIdAsync(int mesaId);
 
         /// <summary>
-        /// Obtiene todas las mesas filtradas por estado
+        /// Obtiene mesas por estado específico
         /// </summary>
-        /// <param name="estado">Estado de las mesas (Libre, Ocupada, Reservada, Mantenimiento)</param>
-        /// <returns>Lista de mesas con el estado especificado</returns>
-        Task<IEnumerable<MesaResponse>> GetMesasPorEstadoAsync(EstadoMesa estado);
+        /// <param name="estado">Estado a filtrar (Libre, Ocupada, Reservada, Mantenimiento)</param>
+        /// <returns>Lista de mesas en el estado especificado</returns>
+        Task<IEnumerable<MesaResponse>> GetMesasPorEstadoAsync(string estado);
 
         /// <summary>
-        /// Cambia el estado de una mesa específica
+        /// Cambia el estado de una mesa manualmente
         /// </summary>
         /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="nuevoEstado">Nuevo estado a asignar</param>
+        /// <param name="nuevoEstado">Nuevo estado</param>
         /// <param name="usuarioId">ID del usuario que hace el cambio</param>
         /// <param name="motivo">Motivo del cambio (opcional)</param>
-        /// <returns>Resultado del cambio de estado</returns>
-        Task<CambioEstadoResult> CambiarEstadoMesaAsync(int mesaId, EstadoMesa nuevoEstado, int usuarioId, string? motivo = null);
+        /// <returns>True si se cambió exitosamente</returns>
+        Task<bool> CambiarEstadoMesaAsync(int mesaId, string nuevoEstado, int usuarioId, string? motivo = null);
 
         /// <summary>
-        /// Libera una mesa automáticamente cuando se completa el servicio
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="usuarioId">ID del usuario que libera</param>
-        /// <returns>Éxito de la operación</returns>
-        Task<bool> LiberarMesaAsync(int mesaId, int usuarioId);
-
-        // ============================================================================
-        // ASIGNACIÓN INTELIGENTE DE MESAS
-        // ============================================================================
-
-        /// <summary>
-        /// Busca y asigna automáticamente la mejor mesa disponible
-        /// </summary>
-        /// <param name="cantidadPersonas">Número de personas</param>
-        /// <param name="preferenciaUbicacion">Preferencia de ubicación (opcional)</param>
-        /// <param name="usuarioId">ID del usuario que asigna</param>
-        /// <returns>Mesa asignada o recomendaciones</returns>
-        Task<AsignacionMesaResult> AsignarMesaAutomaticaAsync(int cantidadPersonas, string? preferenciaUbicacion = null, int usuarioId = 0);
-
-        /// <summary>
-        /// Busca mesas disponibles que cumplan criterios específicos
-        /// </summary>
-        /// <param name="cantidadPersonas">Número de personas</param>
-        /// <param name="fechaHora">Fecha y hora deseada (para reservas)</param>
-        /// <param name="duracionMinutos">Duración estimada en minutos</param>
-        /// <returns>Lista de mesas disponibles ordenadas por idoneidad</returns>
-        Task<IEnumerable<MesaDisponibleResult>> BuscarMesasDisponiblesAsync(int cantidadPersonas, DateTime? fechaHora = null, int duracionMinutos = 120);
-
-        /// <summary>
-        /// Reserva una mesa específica para una fecha/hora
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="fechaHora">Fecha y hora de la reserva</param>
-        /// <param name="duracionMinutos">Duración estimada</param>
-        /// <param name="clienteId">ID del cliente (opcional)</param>
-        /// <param name="usuarioId">ID del usuario que reserva</param>
-        /// <returns>Resultado de la reserva</returns>
-        Task<ReservaMesaResult> ReservarMesaAsync(int mesaId, DateTime fechaHora, int duracionMinutos, int? clienteId, int usuarioId);
-
-        /// <summary>
-        /// Optimiza la asignación de mesas para maximizar ocupación
-        /// </summary>
-        /// <param name="solicitudesPendientes">Lista de solicitudes pendientes</param>
-        /// <returns>Recomendaciones de asignación optimizada</returns>
-        Task<OptimizacionResult> OptimizarAsignacionMesasAsync(List<SolicitudMesa> solicitudesPendientes);
-
-        // ============================================================================
-        // CONTROL DE OCUPACIÓN Y ROTACIÓN
-        // ============================================================================
-
-        /// <summary>
-        /// Obtiene estadísticas de ocupación en tiempo real
-        /// </summary>
-        /// <returns>Métricas de ocupación actual</returns>
-        Task<EstadisticasOcupacionResult> GetEstadisticasOcupacionAsync();
-
-        /// <summary>
-        /// Obtiene el historial de ocupación por período
-        /// </summary>
-        /// <param name="fechaInicio">Fecha de inicio del período</param>
-        /// <param name="fechaFin">Fecha de fin del período</param>
-        /// <returns>Datos históricos de ocupación</returns>
-        Task<HistorialOcupacionResult> GetHistorialOcupacionAsync(DateTime fechaInicio, DateTime fechaFin);
-
-        /// <summary>
-        /// Calcula el tiempo promedio de ocupación por mesa
-        /// </summary>
-        /// <param name="mesaId">ID de mesa específica (opcional)</param>
-        /// <param name="dias">Número de días hacia atrás para calcular</param>
-        /// <returns>Tiempo promedio de ocupación</returns>
-        Task<TiempoPromedioResult> CalcularTiempoPromedioOcupacionAsync(int? mesaId = null, int dias = 30);
-
-        /// <summary>
-        /// Identifica mesas que requieren rotación por tiempo excesivo
-        /// </summary>
-        /// <param name="tiempoLimiteMinutos">Tiempo límite en minutos (opcional)</param>
-        /// <returns>Mesas que requieren atención</returns>
-        Task<IEnumerable<MesaAtencionResult>> GetMesasRequierenRotacionAsync(int? tiempoLimiteMinutos = null);
-
-        /// <summary>
-        /// Notifica sobre mesas que necesitan limpieza o mantenimiento
-        /// </summary>
-        /// <returns>Lista de mesas que requieren servicio</returns>
-        Task<IEnumerable<MesaMantenimientoResult>> GetMesasRequierenMantenimientoAsync();
-
-        // ============================================================================
-        // GESTIÓN DE SERVICIOS POR MESA
-        // ============================================================================
-
-        /// <summary>
-        /// Obtiene las órdenes activas de una mesa específica
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <returns>Órdenes activas en la mesa</returns>
-        Task<IEnumerable<OrdenResponse>> GetOrdenesActivasPorMesaAsync(int mesaId);
-
-        /// <summary>
-        /// Asigna una orden a una mesa específica
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="ordenId">ID de la orden</param>
-        /// <param name="usuarioId">ID del usuario que asigna</param>
-        /// <returns>Resultado de la asignación</returns>
-        Task<bool> AsignarOrdenAMesaAsync(int mesaId, int ordenId, int usuarioId);
-
-        /// <summary>
-        /// Calcula el total acumulado de consumo en una mesa
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <returns>Total acumulado y desglose</returns>
-        Task<ConsumoMesaResult> CalcularConsumoMesaAsync(int mesaId);
-
-        /// <summary>
-        /// Prepara una mesa para facturación (pre-cierre)
+        /// Libera una mesa automáticamente (post-facturación)
         /// </summary>
         /// <param name="mesaId">ID de la mesa</param>
         /// <param name="usuarioId">ID del usuario</param>
-        /// <returns>Información pre-facturación</returns>
-        Task<PreFacturacionResult> PrepararMesaParaFacturacionAsync(int mesaId, int usuarioId);
+        /// <returns>True si se liberó exitosamente</returns>
+        Task<bool> LiberarMesaAsync(int mesaId, int usuarioId);
 
         // ============================================================================
-        // NOTIFICACIONES Y ALERTAS
-        // ============================================================================
-
-        /// <summary>
-        /// Obtiene notificaciones activas relacionadas con mesas
-        /// </summary>
-        /// <param name="usuarioId">ID del usuario (para filtrar por rol)</param>
-        /// <returns>Lista de notificaciones activas</returns>
-        Task<IEnumerable<NotificacionMesa>> GetNotificacionesActivasAsync(int usuarioId);
-
-        /// <summary>
-        /// Marca una mesa como "requiere atención" (mesero/limpieza)
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="tipoAtencion">Tipo de atención requerida</param>
-        /// <param name="usuarioId">ID del usuario que reporta</param>
-        /// <param name="notas">Notas adicionales</param>
-        /// <returns>Éxito de la operación</returns>
-        Task<bool> MarcarMesaRequiereAtencionAsync(int mesaId, TipoAtencionMesa tipoAtencion, int usuarioId, string? notas = null);
-
-        /// <summary>
-        /// Confirma que se atendió una mesa marcada
-        /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="usuarioId">ID del usuario que atendió</param>
-        /// <returns>Éxito de la operación</returns>
-        Task<bool> ConfirmarAtencionMesaAsync(int mesaId, int usuarioId);
-
-        // ============================================================================
-        // CONFIGURACIÓN Y ADMINISTRACIÓN
+        // BÚSQUEDA Y DISPONIBILIDAD
         // ============================================================================
 
         /// <summary>
-        /// Actualiza la configuración de una mesa (capacidad, ubicación, etc.)
+        /// Busca mesas disponibles (libres) básico
         /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="configuracion">Nueva configuración</param>
-        /// <param name="usuarioId">ID del administrador</param>
-        /// <returns>Mesa actualizada</returns>
-        Task<MesaResponse?> ActualizarConfiguracionMesaAsync(int mesaId, ConfiguracionMesa configuracion, int usuarioId);
+        /// <param name="cantidadPersonas">Número de personas (opcional para filtrar por capacidad)</param>
+        /// <returns>Lista de mesas disponibles</returns>
+        Task<IEnumerable<MesaResponse>> BuscarMesasDisponiblesAsync(int? cantidadPersonas = null);
 
         /// <summary>
-        /// Bloquea/desbloquea una mesa temporalmente
+        /// Obtiene la primera mesa disponible para un número de personas
         /// </summary>
-        /// <param name="mesaId">ID de la mesa</param>
-        /// <param name="bloquear">True para bloquear, false para desbloquear</param>
-        /// <param name="motivo">Motivo del bloqueo/desbloqueo</param>
-        /// <param name="usuarioId">ID del administrador</param>
-        /// <returns>Éxito de la operación</returns>
-        Task<bool> BloquearDesbloquearMesaAsync(int mesaId, bool bloquear, string motivo, int usuarioId);
+        /// <param name="cantidadPersonas">Número de personas</param>
+        /// <returns>Primera mesa disponible o null</returns>
+        Task<MesaResponse?> GetPrimeraMesaDisponibleAsync(int cantidadPersonas);
 
         /// <summary>
-        /// Reinicia el estado de todas las mesas (para inicio de día)
+        /// Verifica si una mesa específica está disponible
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <returns>True si está disponible</returns>
+        Task<bool> VerificarDisponibilidadMesaAsync(int mesaId);
+
+        // ============================================================================
+        // RESERVAS Y OCUPACIÓN
+        // ============================================================================
+
+        /// <summary>
+        /// Ocupa una mesa (para orden inmediata)
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="usuarioId">ID del usuario</param>
+        /// <returns>True si se ocupó exitosamente</returns>
+        Task<bool> OcuparMesaAsync(int mesaId, int usuarioId);
+
+        /// <summary>
+        /// Reserva una mesa para una reservación
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="reservacionId">ID de la reservación</param>
+        /// <param name="usuarioId">ID del usuario</param>
+        /// <returns>True si se reservó exitosamente</returns>
+        Task<bool> ReservarMesaAsync(int mesaId, int reservacionId, int usuarioId);
+
+        /// <summary>
+        /// Libera una reserva (cuando llega el cliente o se cancela)
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="activarOcupacion">True si el cliente llegó (ocupar), false si se cancela (liberar)</param>
+        /// <param name="usuarioId">ID del usuario</param>
+        /// <returns>True si se procesó exitosamente</returns>
+        Task<bool> LiberarReservaMesaAsync(int mesaId, bool activarOcupacion, int usuarioId);
+
+        // ============================================================================
+        // ESTADÍSTICAS
+        // ============================================================================
+
+        /// <summary>
+        /// Obtiene estadísticas básicas de ocupación
+        /// </summary>
+        /// <returns>Estadísticas simples de mesas</returns>
+        Task<EstadisticasMesasBasicasViewModel> GetEstadisticasBasicasAsync();
+
+        /// <summary>
+        /// Obtiene el resumen de ocupación del día
+        /// </summary>
+        /// <param name="fecha">Fecha a consultar (por defecto hoy)</param>
+        /// <returns>Resumen básico del día</returns>
+        Task<ResumenOcupacionDiaViewModel> GetResumenOcupacionDiaAsync(DateTime? fecha = null);
+
+        /// <summary>
+        /// Obtiene las mesas con más tiempo ocupadas (para rotación)
+        /// </summary>
+        /// <param name="tiempoLimiteMinutos">Tiempo límite en minutos (por defecto 180 min)</param>
+        /// <returns>Lista de mesas que requieren atención</returns>
+        Task<IEnumerable<MesaAtencionBasicaResponse>> GetMesasRequierenAtencionAsync(int tiempoLimiteMinutos = 180);
+
+        // ============================================================================
+        // VALIDACIONES
+        // ============================================================================
+
+        /// <summary>
+        /// Valida que una mesa puede cambiar a un estado específico
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="nuevoEstado">Nuevo estado deseado</param>
+        /// <returns>Resultado de validación</returns>
+        Task<ValidacionMesaResult> ValidarCambioEstadoAsync(int mesaId, string nuevoEstado);
+
+        /// <summary>
+        /// Valida que una mesa puede ser liberada
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <returns>True si puede ser liberada</returns>
+        Task<bool> PuedeLiberarseMesaAsync(int mesaId);
+
+        // ============================================================================
+        // UTILIDADES
+        // ============================================================================
+
+        /// <summary>
+        /// Reinicia el estado de todas las mesas a "Libre" (para inicio de día)
         /// </summary>
         /// <param name="usuarioId">ID del administrador</param>
         /// <returns>Resultado del reinicio</returns>
-        Task<ReinicioMesasResult> ReiniciarEstadoTodasMesasAsync(int usuarioId);
+        Task<bool> ReiniciarTodasLasMesasAsync(int usuarioId);
+
+        /// <summary>
+        /// Marca una mesa para mantenimiento
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="motivo">Motivo del mantenimiento</param>
+        /// <param name="usuarioId">ID del usuario</param>
+        /// <returns>True si se marcó exitosamente</returns>
+        Task<bool> MarcarMesaMantenimientoAsync(int mesaId, string motivo, int usuarioId);
+
+        /// <summary>
+        /// Completa el mantenimiento y libera la mesa
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="usuarioId">ID del usuario</param>
+        /// <returns>True si se completó exitosamente</returns>
+        Task<bool> CompletarMantenimientoMesaAsync(int mesaId, int usuarioId);
     }
 
     // ============================================================================
-    // MODELOS DE RESPUESTA ESPECÍFICOS DEL SERVICIO
+    // MODELOS BÁSICOS PARA RESULTADOS
     // ============================================================================
 
     /// <summary>
-    /// Estados posibles de una mesa
+    /// Estadísticas básicas de mesas
     /// </summary>
-    public enum EstadoMesa
-    {
-        Libre = 1,
-        Ocupada = 2,
-        Reservada = 3,
-        Mantenimiento = 4,
-        Bloqueada = 5
-    }
-
-    /// <summary>
-    /// Tipos de atención que puede requerir una mesa
-    /// </summary>
-    public enum TipoAtencionMesa
-    {
-        Limpieza = 1,
-        ServicioMesero = 2,
-        Mantenimiento = 3,
-        CheckCliente = 4
-    }
-
-    /// <summary>
-    /// Resultado de cambio de estado de mesa
-    /// </summary>
-    public class CambioEstadoResult
-    {
-        public bool Exitoso { get; set; }
-        public string? Mensaje { get; set; }
-        public EstadoMesa EstadoAnterior { get; set; }
-        public EstadoMesa EstadoNuevo { get; set; }
-        public DateTime FechaCambio { get; set; }
-        public string? Usuario { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado de asignación automática de mesa
-    /// </summary>
-    public class AsignacionMesaResult
-    {
-        public bool Exitoso { get; set; }
-        public MesaResponse? MesaAsignada { get; set; }
-        public string? Mensaje { get; set; }
-        public List<MesaResponse> MesasAlternativas { get; set; } = new();
-        public string? RazonAsignacion { get; set; }
-    }
-
-    /// <summary>
-    /// Mesa disponible con puntuación de idoneidad
-    /// </summary>
-    public class MesaDisponibleResult
-    {
-        public MesaResponse? Mesa { get; set; }
-        public int PuntuacionIdoneidad { get; set; }
-        public string? RazonIdoneidad { get; set; }
-        public bool RequiereEspera { get; set; }
-        public int TiempoEsperaMinutos { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado de reserva de mesa
-    /// </summary>
-    public class ReservaMesaResult
-    {
-        public bool Exitoso { get; set; }
-        public string? Mensaje { get; set; }
-        public int? ReservacionId { get; set; }
-        public DateTime? FechaHoraReserva { get; set; }
-        public int DuracionMinutos { get; set; }
-    }
-
-    /// <summary>
-    /// Solicitud de mesa para optimización
-    /// </summary>
-    public class SolicitudMesa
-    {
-        public int CantidadPersonas { get; set; }
-        public DateTime FechaHoraSolicitud { get; set; }
-        public string? PreferenciaUbicacion { get; set; }
-        public int Prioridad { get; set; } = 1;
-        public int? ClienteId { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado de optimización de asignación
-    /// </summary>
-    public class OptimizacionResult
-    {
-        public List<AsignacionOptima> AsignacionesRecomendadas { get; set; } = new();
-        public decimal PorcentajeOptimizacion { get; set; }
-        public string? Observaciones { get; set; }
-    }
-
-    /// <summary>
-    /// Asignación óptima recomendada
-    /// </summary>
-    public class AsignacionOptima
-    {
-        public SolicitudMesa? Solicitud { get; set; }
-        public MesaResponse? MesaRecomendada { get; set; }
-        public int TiempoEsperaMinutos { get; set; }
-        public string? Justificacion { get; set; }
-    }
-
-    /// <summary>
-    /// Estadísticas de ocupación en tiempo real
-    /// </summary>
-    public class EstadisticasOcupacionResult
+    public class EstadisticasMesasBasicasViewModel
     {
         public int TotalMesas { get; set; }
         public int MesasLibres { get; set; }
@@ -345,134 +193,46 @@ namespace ElCriollo.API.Services
         public int MesasReservadas { get; set; }
         public int MesasMantenimiento { get; set; }
         public decimal PorcentajeOcupacion { get; set; }
-        public decimal CapacidadMaxima { get; set; }
-        public decimal CapacidadActual { get; set; }
-        public TimeSpan TiempoPromedioOcupacion { get; set; }
+        public string HorarioPico { get; set; } = "12:00 - 14:00";
     }
 
     /// <summary>
-    /// Historial de ocupación por período
+    /// Resumen de ocupación del día
     /// </summary>
-    public class HistorialOcupacionResult
+    public class ResumenOcupacionDiaViewModel
     {
-        public DateTime FechaInicio { get; set; }
-        public DateTime FechaFin { get; set; }
-        public decimal OcupacionPromedio { get; set; }
-        public int TotalRotaciones { get; set; }
-        public decimal IngresosTotales { get; set; }
-        public List<OcupacionDiaria> OcupacionPorDia { get; set; } = new();
+        public DateTime Fecha { get; set; } = DateTime.Today;
+        public int MesasOcupadasMaximo { get; set; }
+        public decimal PorcentajeOcupacionPromedio { get; set; }
+        public int TotalClientesAtendidos { get; set; }
+        public string TiempoPromedioOcupacion { get; set; } = "0 min";
+        public int VecesRotacionPromedio { get; set; }
     }
 
     /// <summary>
-    /// Ocupación diaria
+    /// Mesa que requiere atención básica
     /// </summary>
-    public class OcupacionDiaria
+    public class MesaAtencionBasicaResponse
     {
-        public DateTime Fecha { get; set; }
-        public decimal PorcentajeOcupacion { get; set; }
-        public int RotacionesTotales { get; set; }
-        public decimal IngresosDia { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado de tiempo promedio de ocupación
-    /// </summary>
-    public class TiempoPromedioResult
-    {
-        public TimeSpan TiempoPromedio { get; set; }
-        public TimeSpan TiempoMinimo { get; set; }
-        public TimeSpan TiempoMaximo { get; set; }
-        public int TotalOcupaciones { get; set; }
-        public string? MesaEspecifica { get; set; }
-    }
-
-    /// <summary>
-    /// Mesa que requiere atención por rotación
-    /// </summary>
-    public class MesaAtencionResult
-    {
-        public MesaResponse? Mesa { get; set; }
-        public TimeSpan TiempoOcupada { get; set; }
-        public string? Urgencia { get; set; }
-        public string? Recomendacion { get; set; }
-        public decimal ConsumoActual { get; set; }
-    }
-
-    /// <summary>
-    /// Mesa que requiere mantenimiento
-    /// </summary>
-    public class MesaMantenimientoResult
-    {
-        public MesaResponse? Mesa { get; set; }
-        public TipoAtencionMesa TipoAtencionRequerida { get; set; }
-        public string? Descripcion { get; set; }
-        public DateTime FechaReporte { get; set; }
-        public string? UsuarioReporte { get; set; }
-        public string? Prioridad { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado del consumo de una mesa
-    /// </summary>
-    public class ConsumoMesaResult
-    {
-        public decimal TotalConsumo { get; set; }
-        public int TotalOrdenes { get; set; }
-        public List<OrdenResponse> OrdenesActivas { get; set; } = new();
-        public DateTime? InicioServicio { get; set; }
-        public TimeSpan? TiempoTranscurrido { get; set; }
-        public decimal PromedioConsumo { get; set; }
-    }
-
-    /// <summary>
-    /// Información para pre-facturación
-    /// </summary>
-    public class PreFacturacionResult
-    {
-        public bool ListaParaFacturar { get; set; }
-        public decimal TotalConsumo { get; set; }
-        public decimal ITBIS { get; set; }
-        public decimal TotalConITBIS { get; set; }
-        public List<OrdenResponse> OrdenesParaFacturar { get; set; } = new();
+        public int MesaID { get; set; }
+        public int NumeroMesa { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public string TiempoOcupada { get; set; } = string.Empty;
+        public int MinutosOcupada { get; set; }
+        public bool RequiereRotacion { get; set; }
+        public string? UltimaOrden { get; set; }
         public string? Observaciones { get; set; }
-        public bool RequiereAtencionMesero { get; set; }
     }
 
     /// <summary>
-    /// Notificación relacionada con mesa
+    /// Resultado de validación de mesa
     /// </summary>
-    public class NotificacionMesa
+    public class ValidacionMesaResult
     {
-        public int Id { get; set; }
-        public int MesaId { get; set; }
-        public string? NumeroMesa { get; set; }
-        public string? Tipo { get; set; }
-        public string? Mensaje { get; set; }
-        public string? Urgencia { get; set; }
-        public DateTime FechaCreacion { get; set; }
-        public bool Leida { get; set; }
-    }
-
-    /// <summary>
-    /// Configuración de mesa
-    /// </summary>
-    public class ConfiguracionMesa
-    {
-        public int? Capacidad { get; set; }
-        public string? Ubicacion { get; set; }
-        public string? Descripcion { get; set; }
-        public bool? EstaActiva { get; set; }
-    }
-
-    /// <summary>
-    /// Resultado de reinicio de mesas
-    /// </summary>
-    public class ReinicioMesasResult
-    {
-        public bool Exitoso { get; set; }
-        public int MesasReiniciadas { get; set; }
-        public int MesasConProblemas { get; set; }
-        public List<string> Observaciones { get; set; } = new();
-        public DateTime FechaReinicio { get; set; }
+        public bool EsValida { get; set; }
+        public List<string> Errores { get; set; } = new();
+        public List<string> Advertencias { get; set; } = new();
+        public string EstadoActual { get; set; } = string.Empty;
+        public string EstadoDeseado { get; set; } = string.Empty;
     }
 }
