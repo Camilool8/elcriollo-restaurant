@@ -2,6 +2,7 @@ using AutoMapper;
 using ElCriollo.API.Models.Entities;
 using ElCriollo.API.Models.DTOs.Request;
 using ElCriollo.API.Models.DTOs.Response;
+using ElCriollo.API.Models.DTOs.Common;
 using ElCriollo.API.Models.ViewModels;
 
 namespace ElCriollo.API.Helpers;
@@ -19,7 +20,9 @@ public class AutoMapperProfile : Profile
 
         // Usuario
         CreateMap<Usuario, UsuarioResponse>()
+            .ForMember(dest => dest.UsuarioId, opt => opt.MapFrom(src => src.UsuarioID))
             .ForMember(dest => dest.Usuario, opt => opt.MapFrom(src => src.UsuarioNombre))
+            .ForMember(dest => dest.Rol, opt => opt.MapFrom(src => src.Rol != null ? src.Rol.NombreRol : string.Empty))
             .ForMember(dest => dest.Empleado, opt => opt.MapFrom(src => src.Empleado));
 
         // Rol
@@ -27,7 +30,9 @@ public class AutoMapperProfile : Profile
 
         // Empleado
         CreateMap<Empleado, EmpleadoBasicoResponse>()
-            .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto));
+            .ForMember(dest => dest.EmpleadoId, opt => opt.MapFrom(src => src.EmpleadoID))
+            .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
+            .ForMember(dest => dest.Departamento, opt => opt.MapFrom(src => src.Departamento));
 
         CreateMap<Empleado, EmpleadoResponse>()
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
@@ -50,8 +55,8 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PromedioConsumo, opt => opt.MapFrom(src => 
                 src.Ordenes.Any() ? $"RD$ {src.Ordenes.Average(o => o.Total):N2}" : "RD$ 0.00"))
             .ForMember(dest => dest.UltimaVisita, opt => opt.MapFrom(src => 
-                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault() != null ?
-                src.Ordenes.OrderByDescending(o => o.FechaCreacion).FirstOrDefault().FechaCreacion :
+                src.Ordenes.Any() ? 
+                src.Ordenes.OrderByDescending(o => o.FechaCreacion).First().FechaCreacion : 
                 (DateTime?)null));
 
         // Producto
@@ -104,7 +109,7 @@ public class AutoMapperProfile : Profile
 
         // Reservación
         CreateMap<Reservacion, ReservacionBasicaResponse>()
-            .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.NombreCompleto))
+            .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.NombreCompleto : "Cliente no especificado"))
             .ForMember(dest => dest.Horario, opt => opt.MapFrom(src => src.ObtenerHorarioFormateado()))
             .ForMember(dest => dest.TiempoHastaReservacion, opt => opt.MapFrom(src => 
                 src.TiempoHastaReservacion.TotalMinutes > 0 ? 
@@ -201,7 +206,7 @@ public class AutoMapperProfile : Profile
 
         CreateMap<Factura, FacturaBasicaResponse>()
             .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
-            .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.NombreCompleto))
+            .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.NombreCompleto : "Cliente no especificado"))
             .ForMember(dest => dest.FechaFormateada, opt => opt.MapFrom(src => src.FechaFactura.ToString("dd/MM/yyyy HH:mm")));
 
         // EmailTransaccion
@@ -221,7 +226,23 @@ public class AutoMapperProfile : Profile
         CreateMap<CreateUsuarioRequest, Usuario>()
             .ForMember(dest => dest.UsuarioNombre, opt => opt.MapFrom(src => src.Username))
             .ForMember(dest => dest.RolID, opt => opt.MapFrom(src => src.RolId))
-            .ForMember(dest => dest.EmpleadoID, opt => opt.MapFrom(src => src.EmpleadoId));
+            .ForMember(dest => dest.RequiereCambioContrasena, opt => opt.MapFrom(src => src.RequiereCambioContrasena))
+            .ForMember(dest => dest.EmpleadoID, opt => opt.Ignore()); // Se asignará automáticamente en el servicio
+
+        // Mapeo para crear empleado desde CreateUsuarioRequest
+        CreateMap<CreateUsuarioRequest, Empleado>()
+            .ForMember(dest => dest.Cedula, opt => opt.MapFrom(src => src.Cedula))
+            .ForMember(dest => dest.Nombre, opt => opt.MapFrom(src => src.Nombre))
+            .ForMember(dest => dest.Apellido, opt => opt.MapFrom(src => src.Apellido))
+            .ForMember(dest => dest.Sexo, opt => opt.MapFrom(src => src.Sexo))
+            .ForMember(dest => dest.Direccion, opt => opt.MapFrom(src => src.Direccion))
+            .ForMember(dest => dest.Telefono, opt => opt.MapFrom(src => src.Telefono))
+            .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
+            .ForMember(dest => dest.Salario, opt => opt.MapFrom(src => src.Salario))
+            .ForMember(dest => dest.Departamento, opt => opt.MapFrom(src => src.Departamento))
+            .ForMember(dest => dest.FechaIngreso, opt => opt.MapFrom(src => src.FechaIngresoEfectiva))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true))
+            .ForMember(dest => dest.UsuarioID, opt => opt.Ignore()); // Se asignará después de crear el usuario
                 
         CreateMap<CreateOrdenRequest, Orden>()
             .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))

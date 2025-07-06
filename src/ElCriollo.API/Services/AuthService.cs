@@ -8,6 +8,7 @@ using ElCriollo.API.Configuration;
 using ElCriollo.API.Interfaces;
 using ElCriollo.API.Models.DTOs.Request;
 using ElCriollo.API.Models.DTOs.Response;
+using ElCriollo.API.Models.DTOs.Common;
 using ElCriollo.API.Models.Entities;
 
 namespace ElCriollo.API.Services
@@ -20,6 +21,7 @@ namespace ElCriollo.API.Services
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IEmpleadoRepository _empleadoRepository;
+        private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly JwtSettings _jwtSettings;
         private readonly ILogger<AuthService> _logger;
@@ -34,12 +36,14 @@ namespace ElCriollo.API.Services
         public AuthService(
             IUsuarioRepository usuarioRepository,
             IEmpleadoRepository empleadoRepository,
+            IEmailService emailService,
             IMapper mapper,
             JwtSettings jwtSettings,
             ILogger<AuthService> logger)
         {
             _usuarioRepository = usuarioRepository;
             _empleadoRepository = empleadoRepository;
+            _emailService = emailService;
             _mapper = mapper;
             _jwtSettings = jwtSettings;
             _logger = logger;
@@ -52,7 +56,7 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Autentica un usuario con sus credenciales y genera tokens JWT
         /// </summary>
-        public async Task<AuthResponse> LoginAsync(LoginRequest loginRequest)
+        public async Task<AuthResponse?> LoginAsync(LoginRequest loginRequest)
         {
             try
             {
@@ -63,11 +67,7 @@ namespace ElCriollo.API.Services
                 {
                     _logger.LogWarning("Intento de login con credenciales vacías");
                     await LogLoginAttemptAsync(loginRequest.Username ?? "N/A", false, null, null);
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Usuario y contraseña son requeridos"
-                    };
+                    return null;
                 }
 
                 // Buscar usuario por nombre de usuario o email
@@ -78,11 +78,7 @@ namespace ElCriollo.API.Services
                 {
                     _logger.LogWarning("Usuario no encontrado: {Username}", loginRequest.Username);
                     await LogLoginAttemptAsync(loginRequest.Username, false, null, null);
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Credenciales inválidas"
-                    };
+                    return null;
                 }
 
                 // Verificar si el usuario está activo
@@ -90,11 +86,7 @@ namespace ElCriollo.API.Services
                 {
                     _logger.LogWarning("Intento de login con usuario inactivo: {Username}", loginRequest.Username);
                     await LogLoginAttemptAsync(loginRequest.Username, false, null, null);
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Usuario inactivo. Contacte al administrador."
-                    };
+                    return null;
                 }
 
                 // Validar contraseña con BCrypt
@@ -102,11 +94,7 @@ namespace ElCriollo.API.Services
                 {
                     _logger.LogWarning("Contraseña incorrecta para usuario: {Username}", loginRequest.Username);
                     await LogLoginAttemptAsync(loginRequest.Username, false, null, null);
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Credenciales inválidas"
-                    };
+                    return null;
                 }
 
                 // Actualizar último login
@@ -126,30 +114,24 @@ namespace ElCriollo.API.Services
 
                 return new AuthResponse
                 {
-                    Success = true,
-                    Message = $"¡Bienvenido a El Criollo, {usuario.Empleado?.Nombre ?? usuario.Username}!",
                     Token = token,
                     RefreshToken = refreshToken,
                     ExpiresAt = expiresAt,
-                    User = usuarioResponse
+                    Usuario = usuarioResponse
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error durante el proceso de login para usuario: {Username}", loginRequest.Username);
                 await LogLoginAttemptAsync(loginRequest.Username ?? "N/A", false, null, null);
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Error interno del servidor. Intente nuevamente."
-                };
+                return null;
             }
         }
 
         /// <summary>
         /// Renueva un token JWT usando el refresh token
         /// </summary>
-        public async Task<AuthResponse> RefreshTokenAsync(string refreshToken)
+        public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
         {
             try
             {
@@ -157,11 +139,7 @@ namespace ElCriollo.API.Services
 
                 if (string.IsNullOrWhiteSpace(refreshToken))
                 {
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Refresh token requerido"
-                    };
+                    return null;
                 }
 
                 // Buscar usuario por refresh token
@@ -169,22 +147,14 @@ namespace ElCriollo.API.Services
                 if (usuario == null)
                 {
                     _logger.LogWarning("Refresh token no válido o expirado");
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Token de renovación inválido"
-                    };
+                    return null;
                 }
 
                 // Verificar que el usuario esté activo
                 if (!usuario.EsActivo)
                 {
                     _logger.LogWarning("Intento de renovación con usuario inactivo: {Username}", usuario.Username);
-                    return new AuthResponse
-                    {
-                        Success = false,
-                        Message = "Usuario inactivo"
-                    };
+                    return null;
                 }
 
                 // Generar nuevos tokens
@@ -196,22 +166,16 @@ namespace ElCriollo.API.Services
 
                 return new AuthResponse
                 {
-                    Success = true,
-                    Message = "Token renovado exitosamente",
                     Token = newToken,
                     RefreshToken = newRefreshToken,
                     ExpiresAt = expiresAt,
-                    User = usuarioResponse
+                    Usuario = usuarioResponse
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error durante la renovación de token");
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Error al renovar token"
-                };
+                return null;
             }
         }
 
@@ -354,8 +318,12 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                _logger.LogInformation("Creando nuevo usuario: {Username} por usuario ID: {CreatedBy}", 
-                    crearUsuarioRequest.Username, createdByUserId);
+                _logger.LogInformation("Creando nuevo usuario y empleado: {Username} - {NombreCompleto} por usuario ID: {CreatedBy}", 
+                    crearUsuarioRequest.Username, crearUsuarioRequest.NombreCompleto, createdByUserId);
+
+                // ============================================================================
+                // VALIDACIONES INICIALES
+                // ============================================================================
 
                 // Verificar que el usuario no exista
                 var existingUser = await _usuarioRepository.GetByUsernameAsync(crearUsuarioRequest.Username);
@@ -371,28 +339,85 @@ namespace ElCriollo.API.Services
                     throw new InvalidOperationException($"Ya existe un usuario con el email: {crearUsuarioRequest.Email}");
                 }
 
-                // Crear usuario
-                var nuevoUsuario = new Usuario
+                // Verificar cédula única
+                var existingCedula = await _empleadoRepository.GetByCedulaAsync(crearUsuarioRequest.Cedula);
+                if (existingCedula != null)
                 {
-                    UsuarioNombre = crearUsuarioRequest.Username,
-                    Email = crearUsuarioRequest.Email,
-                    ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(crearUsuarioRequest.Password),
-                    Estado = true,
-                    FechaCreacion = DateTime.UtcNow,
-                    RolID = crearUsuarioRequest.RolId,
-                    EmpleadoID = crearUsuarioRequest.EmpleadoId
-                };
+                    throw new InvalidOperationException($"Ya existe un empleado con la cédula: {crearUsuarioRequest.Cedula}");
+                }
+
+                // ============================================================================
+                // CREAR EMPLEADO PRIMERO
+                // ============================================================================
+
+                var nuevoEmpleado = _mapper.Map<Empleado>(crearUsuarioRequest);
+                var empleadoCreado = await _empleadoRepository.CreateAsync(nuevoEmpleado);
+                
+                _logger.LogInformation("Empleado creado exitosamente: {EmpleadoId} - {NombreCompleto}", 
+                    empleadoCreado.Id, empleadoCreado.NombreCompleto);
+
+                // ============================================================================
+                // CREAR USUARIO ASOCIADO
+                // ============================================================================
+
+                var nuevoUsuario = _mapper.Map<Usuario>(crearUsuarioRequest);
+                nuevoUsuario.ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(crearUsuarioRequest.Password);
+                nuevoUsuario.Estado = true;
+                nuevoUsuario.FechaCreacion = DateTime.UtcNow;
+                nuevoUsuario.EmpleadoID = empleadoCreado.Id;
 
                 var usuarioCreado = await _usuarioRepository.CreateAsync(nuevoUsuario);
 
-                _logger.LogInformation("Usuario creado exitosamente: {Username} - ID: {UserId}", 
-                    usuarioCreado.Username, usuarioCreado.Id);
+                // ============================================================================
+                // ACTUALIZAR EMPLEADO CON REFERENCIA AL USUARIO
+                // ============================================================================
 
-                return _mapper.Map<UsuarioResponse>(usuarioCreado);
+                empleadoCreado.UsuarioID = usuarioCreado.Id;
+                await _empleadoRepository.UpdateAsync(empleadoCreado);
+
+                _logger.LogInformation("Usuario creado y vinculado exitosamente: {Username} - ID: {UserId} - Empleado: {EmpleadoId}", 
+                    usuarioCreado.Username, usuarioCreado.Id, empleadoCreado.Id);
+
+                // ============================================================================
+                // OBTENER USUARIO CON RELACIONES COMPLETAS
+                // ============================================================================
+
+                var usuarioConRelaciones = await _usuarioRepository.GetByIdAsync(usuarioCreado.Id);
+
+                // ============================================================================
+                // ENVIAR EMAIL DE BIENVENIDA
+                // ============================================================================
+
+                try
+                {
+                    if (usuarioConRelaciones != null)
+                    {
+                        var emailEnviado = await _emailService.EnviarBienvenidaUsuarioAsync(usuarioConRelaciones);
+                        if (emailEnviado)
+                        {
+                            _logger.LogInformation("✅ Email de bienvenida enviado a: {Email}", usuarioConRelaciones.Email);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ No se pudo enviar email de bienvenida a: {Email}", usuarioConRelaciones.Email);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ No se pudo cargar usuario con relaciones para enviar email");
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "❌ Error al enviar email de bienvenida para usuario: {Username}", usuarioCreado.Username);
+                    // No fallar todo el proceso si solo falla el email
+                }
+
+                return _mapper.Map<UsuarioResponse>(usuarioConRelaciones);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al crear usuario: {Username}", crearUsuarioRequest.Username);
+                _logger.LogError(ex, "Error al crear usuario y empleado: {Username}", crearUsuarioRequest.Username);
                 throw;
             }
         }
@@ -400,13 +425,13 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Obtiene los claims específicos de un usuario para JWT
         /// </summary>
-        public async Task<IEnumerable<Claim>> GetUserClaimsAsync(Usuario usuario)
+        public Task<IEnumerable<Claim>> GetUserClaimsAsync(Usuario usuario)
         {
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new(ClaimTypes.Name, usuario.Username),
-                new(ClaimTypes.Email, usuario.Email),
+                new(ClaimTypes.Name, usuario.Username ?? string.Empty),
+                new(ClaimTypes.Email, usuario.Email ?? string.Empty),
                 new("jti", Guid.NewGuid().ToString()),
                 new("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
@@ -414,7 +439,7 @@ namespace ElCriollo.API.Services
             // Agregar rol
             if (usuario.Rol != null)
             {
-                claims.Add(new Claim(ClaimTypes.Role, usuario.Rol.Nombre ?? "SinRol"));
+                claims.Add(new Claim(ClaimTypes.Role, usuario.Rol.NombreRol ?? "SinRol"));
                 claims.Add(new Claim("rol_id", usuario.Rol.Id.ToString()));
             }
 
@@ -433,7 +458,7 @@ namespace ElCriollo.API.Services
             _logger.LogDebug("Claims generados para usuario: {Username} - Cantidad: {ClaimsCount}", 
                 usuario.Username, claims.Count);
 
-            return claims;
+            return Task.FromResult<IEnumerable<Claim>>(claims);
         }
 
         /// <summary>
@@ -448,11 +473,11 @@ namespace ElCriollo.API.Services
                     return false;
 
                 // Administrador tiene todos los permisos
-                if (usuario.Rol.Nombre == "Administrador")
+                if (usuario.Rol.NombreRol == "Administrador")
                     return true;
 
                 // Validar permisos específicos por rol
-                return usuario.Rol.Nombre switch
+                return usuario.Rol.NombreRol switch
                 {
                     "Recepcion" => permiso.Contains("reserva") || permiso.Contains("mesa") || permiso.Contains("cliente"),
                     "Mesero" => permiso.Contains("orden") || permiso.Contains("mesa") || permiso.Contains("producto"),
@@ -513,7 +538,7 @@ namespace ElCriollo.API.Services
             {
                 // Validar que quien hace el reset sea administrador
                 var admin = await _usuarioRepository.GetByIdAsync(adminUserId);
-                if (admin?.Rol?.Nombre != "Administrador")
+                if (admin?.Rol?.NombreRol != "Administrador")
                 {
                     _logger.LogWarning("Intento de reset de contraseña por usuario no administrador ID: {AdminId}", adminUserId);
                     return false;
@@ -547,7 +572,7 @@ namespace ElCriollo.API.Services
             {
                 // Validar que quien hace el cambio sea administrador
                 var admin = await _usuarioRepository.GetByIdAsync(adminUserId);
-                if (admin?.Rol?.Nombre != "Administrador")
+                if (admin?.Rol?.NombreRol != "Administrador")
                     return false;
 
                 var usuario = await _usuarioRepository.GetByIdAsync(userId);
@@ -575,28 +600,30 @@ namespace ElCriollo.API.Services
         /// <summary>
         /// Registra un intento de login para auditoría
         /// </summary>
-        public async Task LogLoginAttemptAsync(string username, bool success, string? ipAddress = null, string? userAgent = null)
+        public Task LogLoginAttemptAsync(string username, bool success, string? ipAddress = null, string? userAgent = null)
         {
             try
             {
                 // Por ahora solo logging, posteriormente se puede crear tabla de auditoría
                 _logger.LogInformation("Login attempt - Usuario: {Username}, Exitoso: {Success}, IP: {IP}, UserAgent: {UserAgent}", 
                     username, success, ipAddress ?? "N/A", userAgent ?? "N/A");
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error registrando intento de login");
+                return Task.CompletedTask;
             }
         }
 
         /// <summary>
         /// Obtiene el historial de logins de un usuario
         /// </summary>
-        public async Task<IEnumerable<LoginAttempt>> GetLoginHistoryAsync(int userId, int days = 30)
+        public Task<IEnumerable<LoginAttempt>> GetLoginHistoryAsync(int userId, int days = 30)
         {
             // Implementación futura con tabla de auditoría
             // Por ahora retornamos lista vacía
-            return new List<LoginAttempt>();
+            return Task.FromResult<IEnumerable<LoginAttempt>>(new List<LoginAttempt>());
         }
 
         /// <summary>

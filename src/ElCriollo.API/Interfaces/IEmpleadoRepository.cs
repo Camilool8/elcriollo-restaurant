@@ -8,6 +8,11 @@ namespace ElCriollo.API.Interfaces
     public interface IEmpleadoRepository : IBaseRepository<Empleado>
     {
         /// <summary>
+        /// Obtiene un empleado por su cédula
+        /// </summary>
+        Task<Empleado?> GetByCedulaAsync(string cedula);
+
+        /// <summary>
         /// Obtiene un empleado por su usuario ID
         /// </summary>
         Task<Empleado?> GetByUsuarioIdAsync(int usuarioId);

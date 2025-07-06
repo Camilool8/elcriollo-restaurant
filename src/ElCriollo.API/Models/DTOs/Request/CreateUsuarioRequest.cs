@@ -3,10 +3,14 @@ using System.ComponentModel.DataAnnotations;
 namespace ElCriollo.API.Models.DTOs.Request;
 
 /// <summary>
-/// DTO para crear un nuevo usuario
+/// DTO para crear un nuevo usuario con su empleado asociado
 /// </summary>
 public class CreateUsuarioRequest
 {
+    // ============================================================================
+    // DATOS DEL USUARIO
+    // ============================================================================
+
     /// <summary>
     /// Nombre de usuario único
     /// </summary>
@@ -20,7 +24,7 @@ public class CreateUsuarioRequest
     /// </summary>
     [Required(ErrorMessage = "La contraseña es requerida")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener entre 8 y 100 caracteres")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]", 
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#-])[A-Za-z\d@$!%*?&._#-]+$", 
         ErrorMessage = "La contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 carácter especial")]
     public string Password { get; set; } = string.Empty;
 
@@ -47,12 +51,83 @@ public class CreateUsuarioRequest
     public int RolId { get; set; }
 
     /// <summary>
-    /// ID del empleado asociado (opcional)
-    /// </summary>
-    public int? EmpleadoId { get; set; }
-
-    /// <summary>
     /// Indica si el usuario debe cambiar la contraseña en el primer login
     /// </summary>
     public bool RequiereCambioContrasena { get; set; } = true;
+
+    // ============================================================================
+    // DATOS DEL EMPLEADO
+    // ============================================================================
+
+    /// <summary>
+    /// Cédula de identidad del empleado (documento dominicano)
+    /// </summary>
+    [Required(ErrorMessage = "La cédula es requerida")]
+    [StringLength(16, ErrorMessage = "La cédula no puede exceder 16 caracteres")]
+    [RegularExpression(@"^\d{3}-\d{7}-\d{1}$", ErrorMessage = "La cédula debe tener el formato XXX-XXXXXXX-X")]
+    public string Cedula { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Nombre del empleado
+    /// </summary>
+    [Required(ErrorMessage = "El nombre es requerido")]
+    [StringLength(50, ErrorMessage = "El nombre no puede exceder 50 caracteres")]
+    public string Nombre { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Apellido del empleado
+    /// </summary>
+    [Required(ErrorMessage = "El apellido es requerido")]
+    [StringLength(50, ErrorMessage = "El apellido no puede exceder 50 caracteres")]
+    public string Apellido { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sexo del empleado
+    /// </summary>
+    [StringLength(15, ErrorMessage = "El sexo no puede exceder 15 caracteres")]
+    public string? Sexo { get; set; }
+
+    /// <summary>
+    /// Dirección de residencia del empleado
+    /// </summary>
+    [StringLength(100, ErrorMessage = "La dirección no puede exceder 100 caracteres")]
+    public string? Direccion { get; set; }
+
+    /// <summary>
+    /// Teléfono de contacto del empleado
+    /// </summary>
+    [StringLength(50, ErrorMessage = "El teléfono no puede exceder 50 caracteres")]
+    [RegularExpression(@"^\d{3}-\d{3}-\d{4}$", ErrorMessage = "El teléfono debe tener el formato XXX-XXX-XXXX")]
+    public string? Telefono { get; set; }
+
+    /// <summary>
+    /// Salario del empleado en pesos dominicanos
+    /// </summary>
+    [Range(0, 999999.99, ErrorMessage = "El salario debe ser un valor positivo")]
+    public decimal? Salario { get; set; }
+
+    /// <summary>
+    /// Departamento o área del empleado
+    /// </summary>
+    [StringLength(50, ErrorMessage = "El departamento no puede exceder 50 caracteres")]
+    public string? Departamento { get; set; }
+
+    /// <summary>
+    /// Fecha de ingreso del empleado (opcional, por defecto hoy)
+    /// </summary>
+    public DateTime? FechaIngreso { get; set; }
+
+    // ============================================================================
+    // PROPIEDADES CALCULADAS
+    // ============================================================================
+
+    /// <summary>
+    /// Nombre completo del empleado
+    /// </summary>
+    public string NombreCompleto => $"{Nombre} {Apellido}";
+
+    /// <summary>
+    /// Fecha de ingreso efectiva (usa la fecha proporcionada o la fecha actual)
+    /// </summary>
+    public DateTime FechaIngresoEfectiva => FechaIngreso ?? DateTime.Now.Date;
 }

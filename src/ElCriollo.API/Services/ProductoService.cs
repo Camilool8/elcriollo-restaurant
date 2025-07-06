@@ -324,6 +324,71 @@ namespace ElCriollo.API.Services
             }
         }
 
+        /// <summary>
+        /// Busca productos por término en nombre o descripción
+        /// </summary>
+        public async Task<IEnumerable<ProductoResponse>> BuscarProductosAsync(string termino)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(termino))
+                {
+                    _logger.LogWarning("Término de búsqueda vacío");
+                    return Enumerable.Empty<ProductoResponse>();
+                }
+
+                _logger.LogDebug("Buscando productos por término: {Termino}", termino);
+
+                // Buscar en nombre y descripción
+                var productos = await _productoRepository.BuscarProductosAsync(termino, null);
+                var productosResponse = productos.Select(MapToProductoResponse).ToList();
+
+                _logger.LogInformation("Se encontraron {Count} productos con el término '{Termino}'", productosResponse.Count, termino);
+                return productosResponse;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar productos por término: {Termino}", termino);
+                return new List<ProductoResponse>();
+            }
+        }
+
+        /// <summary>
+        /// Elimina (desactiva) un producto
+        /// </summary>
+        public async Task<bool> EliminarProductoAsync(int productoId, int usuarioId)
+        {
+            try
+            {
+                _logger.LogDebug("Eliminando producto {ProductoId}. Usuario: {UsuarioId}", productoId, usuarioId);
+
+                var producto = await _productoRepository.GetByIdAsync(productoId);
+                if (producto == null)
+                {
+                    _logger.LogWarning("Producto no encontrado para eliminar: {ProductoId}", productoId);
+                    return false;
+                }
+
+                // Verificar si el producto tiene órdenes activas
+                if (producto.DetalleOrdenes.Any(d => d.Orden.Estado != "Facturada" && d.Orden.Estado != "Cancelada"))
+                {
+                    throw new InvalidOperationException("No se puede eliminar un producto con órdenes activas");
+                }
+
+                // Desactivar el producto
+                producto.Desactivar();
+                await _productoRepository.SaveChangesAsync();
+
+                _logger.LogInformation("Producto {ProductoId} eliminado (desactivado) exitosamente", productoId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar producto {ProductoId}", productoId);
+                throw;
+            }
+        }
+
         // ============================================================================
         // GESTIÓN DE INVENTARIO
         // ============================================================================
@@ -359,6 +424,64 @@ namespace ElCriollo.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al verificar disponibilidad del producto {ProductoId}", productoId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Verifica disponibilidad de una lista de productos
+        /// </summary>
+        public async Task<DisponibilidadResult> VerificarDisponibilidadAsync(List<ItemOrdenRequest> items)
+        {
+            try
+            {
+                _logger.LogDebug("Verificando disponibilidad de {Count} items", items.Count);
+
+                var resultado = new DisponibilidadResult
+                {
+                    TodoDisponible = true,
+                    ProductosNoDisponibles = new List<string>(),
+                    ProductosStockBajo = new List<string>()
+                };
+
+                foreach (var item in items)
+                {
+                    var producto = await _productoRepository.GetByIdAsync(item.ProductoId);
+                    if (producto == null)
+                    {
+                        resultado.TodoDisponible = false;
+                        resultado.ProductosNoDisponibles.Add($"Producto ID {item.ProductoId} no encontrado");
+                        continue;
+                    }
+
+                    if (!producto.EstaDisponible)
+                    {
+                        resultado.TodoDisponible = false;
+                        resultado.ProductosNoDisponibles.Add($"{producto.Nombre} no está disponible");
+                        continue;
+                    }
+
+                    // Verificar stock si existe inventario
+                    if (producto.Inventario != null)
+                    {
+                        if (!producto.Inventario.PuedeSatisfacerOrden(item.Cantidad))
+                        {
+                            resultado.TodoDisponible = false;
+                            resultado.ProductosNoDisponibles.Add($"{producto.Nombre} - Stock insuficiente (disponible: {producto.Inventario.CantidadDisponible}, requerido: {item.Cantidad})");
+                        }
+                        else if (producto.Inventario.StockBajo)
+                        {
+                            resultado.ProductosStockBajo.Add($"{producto.Nombre} - Stock bajo ({producto.Inventario.CantidadDisponible} unidades)");
+                        }
+                    }
+                }
+
+                _logger.LogDebug("Verificación de disponibilidad completada. Todo disponible: {TodoDisponible}", resultado.TodoDisponible);
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar disponibilidad de items");
                 throw;
             }
         }

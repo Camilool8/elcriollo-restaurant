@@ -42,6 +42,11 @@ try
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
     var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
     
+    // Registrar configuraciones como servicios singleton
+    builder.Services.AddSingleton(jwtSettings ?? throw new InvalidOperationException("JwtSettings no configurado"));
+    builder.Services.AddSingleton(emailSettings ?? throw new InvalidOperationException("EmailSettings no configurado"));
+    
+    // También registrar como IOptions para servicios que lo necesiten
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
@@ -176,6 +181,9 @@ try
         {
             c.IncludeXmlComments(xmlPath);
         }
+
+        // Habilitar anotaciones de Swagger
+        c.EnableAnnotations();
     });
 
     // FluentValidation
@@ -205,12 +213,31 @@ try
     }
 
     // ============================================================================
-    // REGISTRO DE SERVICIOS PERSONALIZADOS (Se agregarán en pasos siguientes)
+    // REGISTRO DE SERVICIOS Y REPOSITORIOS PERSONALIZADOS
     // ============================================================================
-    // TODO: Agregar repositorios y servicios en los próximos pasos
-    // builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-    // builder.Services.AddScoped<IAuthService, AuthService>();
-    // etc...
+    
+    // Repositorios
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IUsuarioRepository, ElCriollo.API.Repositories.UsuarioRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IProductoRepository, ElCriollo.API.Repositories.ProductoRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IOrdenRepository, ElCriollo.API.Repositories.OrdenRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IFacturaRepository, ElCriollo.API.Repositories.FacturaRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IMesaRepository, ElCriollo.API.Repositories.MesaRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IReservacionRepository, ElCriollo.API.Repositories.ReservacionRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IReporteRepository, ElCriollo.API.Repositories.ReporteRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IEmpleadoRepository, ElCriollo.API.Repositories.EmpleadoRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IInventarioRepository, ElCriollo.API.Repositories.InventarioRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IClienteRepository, ElCriollo.API.Repositories.ClienteRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.IBaseRepository<ElCriollo.API.Models.Entities.EmailTransaccion>, ElCriollo.API.Repositories.BaseRepository<ElCriollo.API.Models.Entities.EmailTransaccion>>();
+    
+    // Servicios
+    builder.Services.AddScoped<ElCriollo.API.Services.IAuthService, ElCriollo.API.Services.AuthService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IProductoService, ElCriollo.API.Services.ProductoService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IOrdenService, ElCriollo.API.Services.OrdenService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IFacturaService, ElCriollo.API.Services.FacturaService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IMesaService, ElCriollo.API.Services.MesaService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IReservacionService, ElCriollo.API.Services.ReservacionService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IEmailService, ElCriollo.API.Services.EmailService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.IReporteService, ElCriollo.API.Services.ReporteService>();
 
     var app = builder.Build();
 
@@ -308,7 +335,22 @@ try
             if (configuration.GetValue<bool>("DeveloperSettings:EnableSeedData"))
             {
                 Log.Information("🌱 Verificando datos iniciales...");
-                // TODO: Implementar seeding en próximos pasos
+                
+                                 // Crear usuario administrador inicial si no existe
+                 var authService = scope.ServiceProvider.GetRequiredService<ElCriollo.API.Services.IAuthService>();
+                 try
+                 {
+                     var adminUser = await authService.CreateAdminUserAsync();
+                     Log.Information("✅ Usuario administrador verificado/creado: {Usuario}", adminUser.Usuario);
+                 }
+                 catch (InvalidOperationException ex)
+                 {
+                     Log.Information("ℹ️ Usuario administrador ya existe: {Message}", ex.Message);
+                 }
+                 catch (Exception ex)
+                 {
+                     Log.Error(ex, "❌ Error al crear usuario administrador inicial");
+                 }
             }
         }
         catch (Exception ex)

@@ -12,6 +12,12 @@ namespace ElCriollo.API.Services
     /// <summary>
     /// Servicio de email para el restaurante El Criollo
     /// Enfoque básico y funcional para proyecto universitario
+    /// 
+    /// CONFIGURACIÓN DE ENVÍO:
+    /// - EnableEmailSending = true + SaveEmailsToFile = false → Solo envía por SMTP
+    /// - EnableEmailSending = false + SaveEmailsToFile = true → Solo guarda en archivo  
+    /// - EnableEmailSending = true + SaveEmailsToFile = true → Envía Y guarda en archivo
+    /// - EnableEmailSending = false + SaveEmailsToFile = false → No hace nada
     /// </summary>
     public class EmailService : IEmailService
     {
@@ -394,7 +400,8 @@ namespace ElCriollo.API.Services
                 }
 
                 using var client = new SmtpClient();
-                await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort, _emailSettings.EnableSsl);
+                var secureSocketOptions = DeterminarSecureSocketOptions();
+                await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort, secureSocketOptions);
                 
                 if (!string.IsNullOrEmpty(_emailSettings.Username))
                 {
@@ -463,19 +470,61 @@ namespace ElCriollo.API.Services
 
             try
             {
-                // Si el envío está deshabilitado o está en modo desarrollo, guardar en archivo
-                if (!_emailSettings.EnableEmailSending || _emailSettings.SaveEmailsToFile)
+                // Lógica mejorada para manejo de emails
+                bool emailEnviado = false;
+                bool emailGuardado = false;
+                string? errorEnvio = null;
+
+                // Guardar en archivo si está habilitado
+                if (_emailSettings.SaveEmailsToFile)
                 {
-                    await GuardarEmailEnArchivoAsync(destinatario, asunto, contenidoHtml);
+                    try
+                    {
+                        await GuardarEmailEnArchivoAsync(destinatario, asunto, contenidoHtml);
+                        emailGuardado = true;
+                        _logger.LogInformation("📁 Email guardado en archivo: {Destinatario} - {Asunto}", destinatario, asunto);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ Error al guardar email en archivo: {Destinatario}", destinatario);
+                        errorEnvio = ex.Message;
+                    }
+                }
+
+                // Enviar por SMTP si está habilitado
+                if (_emailSettings.EnableEmailSending)
+                {
+                    try
+                    {
+                        await EnviarEmailRealAsync(destinatario, asunto, contenidoHtml);
+                        emailEnviado = true;
+                        _logger.LogInformation("✅ Email enviado por SMTP: {Destinatario} - {Asunto}", destinatario, asunto);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ Error al enviar email por SMTP: {Destinatario}", destinatario);
+                        errorEnvio = ex.Message;
+                    }
+                }
+
+                // Determinar estado final
+                if (emailEnviado && emailGuardado)
+                    transaccion.EstadoEnvio = "Enviado y guardado";
+                else if (emailEnviado)
+                    transaccion.EstadoEnvio = "Enviado";
+                else if (emailGuardado)
                     transaccion.EstadoEnvio = "Guardado en archivo";
-                    _logger.LogInformation("📧 Email guardado en archivo: {Destinatario} - {Asunto}", destinatario, asunto);
+                else if (!string.IsNullOrEmpty(errorEnvio))
+                {
+                    transaccion.EstadoEnvio = "Error";
+                    transaccion.MensajeError = errorEnvio;
+                    _logger.LogError("❌ Error en procesamiento de email: {Destinatario} - {Error}", destinatario, errorEnvio);
+                    throw new Exception(errorEnvio); // Re-lanzar para que el catch externo lo maneje
                 }
                 else
                 {
-                    // Envío real por SMTP
-                    await EnviarEmailRealAsync(destinatario, asunto, contenidoHtml);
-                    transaccion.EstadoEnvio = "Enviado";
-                    _logger.LogInformation("✅ Email enviado exitosamente: {Destinatario} - {Asunto}", destinatario, asunto);
+                    transaccion.EstadoEnvio = "Sin procesar";
+                    _logger.LogWarning("⚠️ Email no fue ni enviado ni guardado: {Destinatario} - {Asunto}", destinatario, asunto);
                 }
 
                 // Guardar transacción en base de datos
@@ -507,7 +556,10 @@ namespace ElCriollo.API.Services
             mensaje.Body = builder.ToMessageBody();
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort, _emailSettings.EnableSsl);
+            
+            // Configuración correcta para Gmail y otros proveedores
+            var secureSocketOptions = DeterminarSecureSocketOptions();
+            await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort, secureSocketOptions);
             
             if (!string.IsNullOrEmpty(_emailSettings.Username))
             {
@@ -516,6 +568,34 @@ namespace ElCriollo.API.Services
 
             await client.SendAsync(mensaje);
             await client.DisconnectAsync(true);
+        }
+
+        private MailKit.Security.SecureSocketOptions DeterminarSecureSocketOptions()
+        {
+            // Gmail y configuraciones comunes
+            if (_emailSettings.SmtpServer.Contains("gmail.com"))
+            {
+                return _emailSettings.SmtpPort == 465 ? 
+                    MailKit.Security.SecureSocketOptions.SslOnConnect : 
+                    MailKit.Security.SecureSocketOptions.StartTls;
+            }
+            
+            // Outlook/Hotmail
+            if (_emailSettings.SmtpServer.Contains("outlook.com") || _emailSettings.SmtpServer.Contains("hotmail.com"))
+            {
+                return MailKit.Security.SecureSocketOptions.StartTls;
+            }
+            
+            // Configuración por puerto estándar
+            return _emailSettings.SmtpPort switch
+            {
+                587 => MailKit.Security.SecureSocketOptions.StartTls,  // Puerto STARTTLS estándar
+                465 => MailKit.Security.SecureSocketOptions.SslOnConnect, // Puerto SSL estándar
+                25 => MailKit.Security.SecureSocketOptions.None,      // Puerto sin encriptación
+                _ => _emailSettings.EnableSsl ? 
+                    MailKit.Security.SecureSocketOptions.StartTls : 
+                    MailKit.Security.SecureSocketOptions.None
+            };
         }
 
         private async Task GuardarEmailEnArchivoAsync(string destinatario, string asunto, string contenidoHtml)

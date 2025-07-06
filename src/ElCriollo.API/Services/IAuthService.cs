@@ -1,5 +1,6 @@
 using ElCriollo.API.Models.DTOs.Request;
 using ElCriollo.API.Models.DTOs.Response;
+using ElCriollo.API.Models.DTOs.Common;
 using ElCriollo.API.Models.Entities;
 using System.Threading.Tasks;
 
@@ -20,14 +21,14 @@ namespace ElCriollo.API.Services
         /// </summary>
         /// <param name="loginRequest">Credenciales del usuario</param>
         /// <returns>Response con token JWT y datos del usuario</returns>
-        Task<AuthResponse> LoginAsync(LoginRequest loginRequest);
+        Task<AuthResponse?> LoginAsync(LoginRequest loginRequest);
 
         /// <summary>
         /// Renueva un token JWT usando el refresh token
         /// </summary>
         /// <param name="refreshToken">Token de renovación</param>
         /// <returns>Nuevos tokens JWT</returns>
-        Task<AuthResponse> RefreshTokenAsync(string refreshToken);
+        Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
 
         /// <summary>
         /// Invalida los tokens de un usuario (logout)
@@ -142,19 +143,6 @@ namespace ElCriollo.API.Services
     // ============================================================================
     // MODELOS DE RESPUESTA ESPECÍFICOS DE AUTENTICACIÓN
     // ============================================================================
-
-    /// <summary>
-    /// Respuesta de autenticación con tokens JWT
-    /// </summary>
-    public class AuthResponse
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public string? Token { get; set; }
-        public string? RefreshToken { get; set; }
-        public DateTime? ExpiresAt { get; set; }
-        public UsuarioResponse? User { get; set; }
-    }
 
     /// <summary>
     /// Registro de intento de login para auditoría

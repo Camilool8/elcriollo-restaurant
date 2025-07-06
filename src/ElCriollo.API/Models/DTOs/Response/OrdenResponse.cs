@@ -1,3 +1,5 @@
+using ElCriollo.API.Models.DTOs.Common;
+
 namespace ElCriollo.API.Models.DTOs.Response;
 
 /// <summary>

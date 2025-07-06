@@ -249,11 +249,15 @@ namespace ElCriollo.API.Services
                 var productosVendidos = ordenes
                     .SelectMany(o => o.DetalleOrdenes)
                     .Where(d => d.Producto != null)
-                    .GroupBy(d => new { d.ProductoID, d.Producto.Nombre, d.Producto.Categoria.NombreCategoria })
+                    .GroupBy(d => new { 
+                        d.ProductoID, 
+                        Nombre = d.Producto!.Nombre, 
+                        Categoria = d.Producto.Categoria?.NombreCategoria ?? "Sin categoría" 
+                    })
                     .Select(g => new ProductoPopularViewModel
                     {
                         Nombre = g.Key.Nombre,
-                        Categoria = g.Key.NombreCategoria,
+                        Categoria = g.Key.Categoria,
                         CantidadVendida = g.Sum(d => d.Cantidad),
                         Ingresos = $"RD$ {g.Sum(d => d.Subtotal):N2}"
                     })
@@ -313,18 +317,18 @@ namespace ElCriollo.API.Services
                 var detallesVendidos = ordenes.SelectMany(o => o.DetalleOrdenes).Where(d => d.Producto != null);
                 
                 var platoMasVendido = detallesVendidos
-                    .GroupBy(d => d.Producto.Nombre)
+                    .GroupBy(d => d.Producto!.Nombre)
                     .OrderByDescending(g => g.Sum(d => d.Cantidad))
                     .FirstOrDefault()?.Key ?? "No hay datos";
 
                 var categoriaPreferida = detallesVendidos
-                    .GroupBy(d => d.Producto.Categoria.NombreCategoria)
+                    .GroupBy(d => d.Producto!.Categoria?.NombreCategoria ?? "Sin categoría")
                     .OrderByDescending(g => g.Sum(d => d.Cantidad))
                     .FirstOrDefault()?.Key ?? "No hay datos";
 
                 var totalProductos = detallesVendidos.Sum(d => d.Cantidad);
                 var productosTradiccionalesVendidos = detallesVendidos
-                    .Where(d => productosTradicionales.Any(pt => d.Producto.Nombre.Contains(pt)))
+                    .Where(d => productosTradicionales.Any(pt => d.Producto!.Nombre.Contains(pt)))
                     .Sum(d => d.Cantidad);
 
                 var porcentajeComidaTipica = totalProductos > 0 ? 

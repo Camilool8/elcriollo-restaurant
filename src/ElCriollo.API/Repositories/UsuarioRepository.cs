@@ -17,6 +17,38 @@ namespace ElCriollo.API.Repositories
         }
 
         // ============================================================================
+        // OVERRIDE DE MÉTODOS BASE PARA INCLUIR RELACIONES
+        // ============================================================================
+
+        /// <summary>
+        /// Override para incluir relaciones con Rol y Empleado
+        /// </summary>
+        public override async Task<Usuario?> GetByIdAsync(int id)
+        {
+            try
+            {
+                _logger.LogDebug("Obteniendo usuario por ID con relaciones: {UsuarioId}", id);
+
+                var usuario = await _dbSet
+                    .Include(u => u.Rol)
+                    .Include(u => u.Empleado)
+                    .FirstOrDefaultAsync(u => u.UsuarioID == id);
+
+                if (usuario == null)
+                {
+                    _logger.LogWarning("Usuario no encontrado: {UsuarioId}", id);
+                }
+
+                return usuario;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener usuario por ID: {UsuarioId}", id);
+                throw;
+            }
+        }
+
+        // ============================================================================
         // OPERACIONES DE AUTENTICACIÓN
         // ============================================================================
 

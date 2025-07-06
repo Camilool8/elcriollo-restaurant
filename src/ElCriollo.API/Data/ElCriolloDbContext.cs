@@ -118,7 +118,7 @@ public class ElCriolloDbContext : DbContext
         {
             entity.HasKey(e => e.UsuarioID);
             entity.HasIndex(e => e.UsuarioNombre).IsUnique();
-            entity.Property(e => e.UsuarioNombre).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.UsuarioNombre).IsRequired().HasMaxLength(50).HasColumnName("Usuario");
             entity.Property(e => e.ContrasenaHash).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Email).HasMaxLength(70);
             entity.Property(e => e.FechaCreacion).HasDefaultValueSql("GETUTCDATE()");

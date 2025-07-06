@@ -84,6 +84,21 @@ namespace ElCriollo.API.Services
         /// <returns>Lista de productos que coinciden</returns>
         Task<IEnumerable<ProductoResponse>> BuscarProductosPorNombreAsync(string nombre);
 
+        /// <summary>
+        /// Busca productos por término en nombre o descripción
+        /// </summary>
+        /// <param name="termino">Término de búsqueda</param>
+        /// <returns>Lista de productos que coinciden</returns>
+        Task<IEnumerable<ProductoResponse>> BuscarProductosAsync(string termino);
+
+        /// <summary>
+        /// Elimina (desactiva) un producto
+        /// </summary>
+        /// <param name="productoId">ID del producto</param>
+        /// <param name="usuarioId">ID del usuario que elimina</param>
+        /// <returns>True si se eliminó exitosamente</returns>
+        Task<bool> EliminarProductoAsync(int productoId, int usuarioId);
+
         // ============================================================================
         // GESTIÓN DE INVENTARIO
         // ============================================================================
@@ -95,6 +110,13 @@ namespace ElCriollo.API.Services
         /// <param name="cantidad">Cantidad requerida</param>
         /// <returns>True si está disponible en la cantidad solicitada</returns>
         Task<bool> VerificarDisponibilidadAsync(int productoId, int cantidad = 1);
+
+        /// <summary>
+        /// Verifica disponibilidad de una lista de productos
+        /// </summary>
+        /// <param name="items">Lista de productos a verificar</param>
+        /// <returns>Resultado detallado de disponibilidad</returns>
+        Task<DisponibilidadResult> VerificarDisponibilidadAsync(List<ItemOrdenRequest> items);
 
         /// <summary>
         /// Obtiene el stock actual de un producto
@@ -266,4 +288,5 @@ namespace ElCriollo.API.Services
         public List<string> ProductosNoDisponibles { get; set; } = new();
         public List<string> Advertencias { get; set; } = new();
     }
+
 }
