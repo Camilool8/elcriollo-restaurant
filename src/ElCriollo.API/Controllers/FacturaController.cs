@@ -410,21 +410,23 @@ namespace ElCriollo.API.Controllers
                 var fechaConsulta = fecha ?? DateTime.Today;
                 _logger.LogInformation("📊 Generando resumen de ventas para {Fecha}", fechaConsulta.ToShortDateString());
                 
-                // TODO: Implementar GetResumenVentasDelDiaAsync en IFacturaService
-                // Por ahora usamos GetResumenFacturacionHoyAsync
-                var resumenBasico = await _facturaService.GetResumenFacturacionHoyAsync();
+                // Usar el método implementado GetResumenVentasDelDiaAsync
+                var resumenDetallado = await _facturaService.GetResumenVentasDelDiaAsync(fechaConsulta);
+                var datosResumen = (dynamic)resumenDetallado;
                 
                 var resumen = new ResumenVentasResponse
                 {
-                    Fecha = fechaConsulta,
-                    TotalFacturas = resumenBasico.TotalFacturas,
-                    VentasBrutas = resumenBasico.TotalVentas, // Usar TotalVentas
-                    TotalDescuentos = 0, // No está disponible en ResumenFacturacionDiaViewModel
-                    TotalITBIS = resumenBasico.TotalITBIS,
-                    VentasNetas = resumenBasico.TotalVentas - resumenBasico.TotalITBIS, // Calcular
-                    TotalPropinas = resumenBasico.TotalPropinas,
-                    VentasPorMetodoPago = resumenBasico.DesglosePorMetodoPago,
-                    FacturasPorMetodoPago = new Dictionary<string, int>()
+                    Fecha = datosResumen.Fecha,
+                    TotalFacturas = datosResumen.TotalFacturas,
+                    VentasBrutas = datosResumen.VentasBrutas,
+                    TotalDescuentos = datosResumen.TotalDescuentos,
+                    TotalITBIS = datosResumen.TotalITBIS,
+                    VentasNetas = datosResumen.VentasNetas,
+                    TotalPropinas = datosResumen.TotalPropinas,
+                    VentasPorMetodoPago = ((IDictionary<string, object>)datosResumen.VentasPorMetodoPago)
+                        .ToDictionary(kvp => kvp.Key, kvp => Convert.ToDecimal(kvp.Value)),
+                    FacturasPorMetodoPago = ((IDictionary<string, object>)datosResumen.FacturasPorMetodoPago)
+                        .ToDictionary(kvp => kvp.Key, kvp => Convert.ToInt32(kvp.Value))
                 };
                 return Ok(resumen);
             }

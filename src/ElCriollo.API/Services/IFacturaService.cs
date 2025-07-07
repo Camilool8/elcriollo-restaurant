@@ -165,6 +165,13 @@ namespace ElCriollo.API.Services
         Task<ResumenFacturacionDiaViewModel> GetResumenFacturacionHoyAsync();
 
         /// <summary>
+        /// Obtiene resumen detallado de ventas para una fecha específica
+        /// </summary>
+        /// <param name="fecha">Fecha a consultar (por defecto hoy)</param>
+        /// <returns>Resumen completo de ventas con desglose detallado</returns>
+        Task<object> GetResumenVentasDelDiaAsync(DateTime? fecha = null);
+
+        /// <summary>
         /// Obtiene estadísticas básicas de facturación por rango de fechas
         /// </summary>
         /// <param name="fechaInicio">Fecha inicio</param>

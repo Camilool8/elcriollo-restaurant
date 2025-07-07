@@ -45,7 +45,7 @@ namespace ElCriollo.API.Controllers
         )]
         [ProducesResponseType(typeof(ReporteVentasDiariasResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public Task<ActionResult<ReporteVentasDiariasResponse>> GetReporteVentasDiarias(
+        public async Task<ActionResult<ReporteVentasDiariasResponse>> GetReporteVentasDiarias(
             [FromQuery] DateTime fechaInicio, 
             [FromQuery] DateTime fechaFin)
         {
@@ -53,41 +53,53 @@ namespace ElCriollo.API.Controllers
             {
                 if (fechaInicio > fechaFin)
                 {
-                    var badRequest = BadRequest(new ValidationProblemDetails
+                    return BadRequest(new ValidationProblemDetails
                     {
                         Title = "Rango de fechas inválido",
                         Detail = "La fecha de inicio debe ser anterior a la fecha fin",
                         Status = StatusCodes.Status400BadRequest
                     });
-
-                    return Task.FromResult<ActionResult<ReporteVentasDiariasResponse>>(badRequest);
                 }
 
                 _logger.LogInformation("📊 Generando reporte de ventas diarias desde {FechaInicio} hasta {FechaFin}", 
                     fechaInicio, fechaFin);
 
-                // TODO: Implementar GetVentasDiariasAsync en IReporteService
-                // Por ahora retornamos datos vacíos
+                // Usar el método implementado en IReporteService
+                var reporteData = await _reporteService.GetVentasDiariasAsync(fechaInicio, fechaFin);
+                var datosReporte = (dynamic)reporteData;
+
                 var reporte = new ReporteVentasDiariasResponse
                 {
-                    FechaInicio = fechaInicio,
-                    FechaFin = fechaFin,
-                    VentasTotales = 0,
-                    PromedioVentaDiaria = 0,
-                    DiasOperativos = 0,
-                    VentasPorDia = new List<VentaDiariaDetalladaItem>(),
-                    Tendencia = new GraficoTendencia()
+                    FechaInicio = datosReporte.FechaInicio,
+                    FechaFin = datosReporte.FechaFin,
+                    VentasTotales = datosReporte.VentasTotales,
+                    PromedioVentaDiaria = datosReporte.PromedioVentaDiaria,
+                    DiasOperativos = datosReporte.DiasOperativos,
+                    VentasPorDia = ((IEnumerable<dynamic>)datosReporte.VentasPorDia)
+                        .Select(v => new VentaDiariaDetalladaItem
+                        {
+                            Fecha = v.Fecha,
+                            VentasBrutas = v.VentasBrutas,
+                            Descuentos = v.Descuentos,
+                            ITBIS = v.ITBIS,
+                            VentasNetas = v.VentasNetas,
+                            CantidadOrdenes = v.CantidadOrdenes,
+                            TicketPromedio = v.TicketPromedio
+                        }).ToList(),
+                    Tendencia = new GraficoTendencia
+                    {
+                        Tipo = datosReporte.Tendencia.Tipo,
+                        Porcentaje = datosReporte.Tendencia.Porcentaje,
+                        Descripcion = datosReporte.Tendencia.Descripcion
+                    }
                 };
                 
-                _logger.LogWarning("⚠️ GetVentasDiariasAsync no está implementado. Retornando datos vacíos.");
-                var result = Ok(reporte);
-                return Task.FromResult<ActionResult<ReporteVentasDiariasResponse>>(result);
+                return Ok(reporte);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al generar reporte de ventas diarias");
-                var result = StatusCode(StatusCodes.Status500InternalServerError);
-                return Task.FromResult<ActionResult<ReporteVentasDiariasResponse>>(result);
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
 
@@ -116,25 +128,26 @@ namespace ElCriollo.API.Controllers
             {
                 _logger.LogInformation("📊 Generando reporte de ventas por producto - Top {Top}", top);
 
-                // TODO: Implementar GetVentasPorProductoAsync en IReporteService
-                // Por ahora usamos GetProductosPopularesAsync como alternativa
-                var productosPopulares = await _reporteService.GetProductosPopularesAsync(fechaInicio, top);
+                // Usar el método implementado en IReporteService
+                var reporteData = await _reporteService.GetVentasPorProductoAsync(fechaInicio, fechaFin, top);
+                var datosReporte = (dynamic)reporteData;
                 
                 var reporte = new ReporteVentasProductosResponse
                 {
-                    FechaInicio = fechaInicio,
-                    FechaFin = fechaFin,
-                    TotalProductosVendidos = productosPopulares.Count,
-                    TopProductos = productosPopulares.Select((p, index) => new ProductoVendidoItem
-                    {
-                        ProductoId = p.Posicion, // Usar Posicion como ID temporal
-                        Nombre = p.Nombre,
-                        Categoria = p.Categoria,
-                        CantidadVendida = p.CantidadVendida,
-                        IngresoTotal = decimal.TryParse(p.Ingresos.Replace("RD$", "").Replace(",", "").Trim(), out var ingreso) ? ingreso : 0,
-                        PorcentajeVentas = 0, // Calcular si es necesario
-                        Ranking = p.Posicion
-                    }).ToList()
+                    FechaInicio = datosReporte.FechaInicio,
+                    FechaFin = datosReporte.FechaFin,
+                    TotalProductosVendidos = datosReporte.TotalProductosVendidos,
+                    TopProductos = ((IEnumerable<dynamic>)datosReporte.TopProductos)
+                        .Select(p => new ProductoVendidoItem
+                        {
+                            ProductoId = p.ProductoId,
+                            Nombre = p.Nombre,
+                            Categoria = p.Categoria,
+                            CantidadVendida = p.CantidadVendida,
+                            IngresoTotal = p.IngresoTotal,
+                            PorcentajeVentas = p.PorcentajeVentas,
+                            Ranking = p.Ranking
+                        }).ToList()
                 };
                 
                 return Ok(reporte);
@@ -161,7 +174,7 @@ namespace ElCriollo.API.Controllers
             Tags = new[] { "Reportes de Ventas" }
         )]
         [ProducesResponseType(typeof(ReporteVentasCategoriasResponse), StatusCodes.Status200OK)]
-        public Task<ActionResult<ReporteVentasCategoriasResponse>> GetReporteVentasPorCategoria(
+        public async Task<ActionResult<ReporteVentasCategoriasResponse>> GetReporteVentasPorCategoria(
             [FromQuery] DateTime fechaInicio, 
             [FromQuery] DateTime fechaFin)
         {
@@ -169,25 +182,32 @@ namespace ElCriollo.API.Controllers
             {
                 _logger.LogInformation("📊 Generando reporte de ventas por categoría");
 
-                // TODO: Implementar GetVentasPorCategoriaAsync en IReporteService
-                // Por ahora retornamos datos vacíos
+                // Usar el método implementado en IReporteService
+                var reporteData = await _reporteService.GetVentasPorCategoriaAsync(fechaInicio, fechaFin);
+                var datosReporte = (dynamic)reporteData;
+                
                 var reporte = new ReporteVentasCategoriasResponse
                 {
-                    FechaInicio = fechaInicio,
-                    FechaFin = fechaFin,
-                    VentasTotales = 0,
-                    Categorias = new List<CategoriaVentaItem>()
+                    FechaInicio = datosReporte.FechaInicio,
+                    FechaFin = datosReporte.FechaFin,
+                    VentasTotales = datosReporte.VentasTotales,
+                    Categorias = ((IEnumerable<dynamic>)datosReporte.Categorias)
+                        .Select(c => new CategoriaVentaItem
+                        {
+                            Categoria = c.Categoria,
+                            VentasTotal = c.VentasTotal,
+                            CantidadProductos = c.CantidadProductos,
+                            PorcentajeTotal = c.PorcentajeTotal,
+                            TicketPromedio = c.TicketPromedio
+                        }).ToList()
                 };
                 
-                _logger.LogWarning("⚠️ GetVentasPorCategoriaAsync no está implementado. Retornando datos vacíos.");
-                var result = Ok(reporte);
-                return Task.FromResult<ActionResult<ReporteVentasCategoriasResponse>>(result);
+                return Ok(reporte);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al generar reporte de ventas por categoría");
-                var result = StatusCode(StatusCodes.Status500InternalServerError);
-                return Task.FromResult<ActionResult<ReporteVentasCategoriasResponse>>(result);
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
 

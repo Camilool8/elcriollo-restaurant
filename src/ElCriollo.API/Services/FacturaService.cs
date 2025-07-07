@@ -546,24 +546,111 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                var facturasHoy = await GetFacturasHoyAsync();
-                var facturasPagadas = facturasHoy.Where(f => f.Estado == "Pagada");
-
-                return new ResumenFacturacionDiaViewModel
+                _logger.LogInformation("📊 Generando resumen de facturación del día");
+                
+                var facturas = await _facturaRepository.GetFacturasHoyAsync();
+                var facturasPagadas = facturas.Where(f => f.Estado == "Pagada");
+                
+                var totalVentas = facturasPagadas.Sum(f => f.Total);
+                var totalITBIS = facturasPagadas.Sum(f => f.Impuesto);
+                var totalPropinas = facturasPagadas.Sum(f => f.Propina);
+                var totalFacturas = facturasPagadas.Count();
+                
+                // Desglose por método de pago
+                var desglosePorMetodoPago = facturasPagadas
+                    .GroupBy(f => f.MetodoPago)
+                    .ToDictionary(g => g.Key, g => g.Sum(f => f.Total));
+                
+                var resumen = new ResumenFacturacionDiaViewModel
                 {
                     Fecha = DateTime.Today,
-                    TotalFacturas = facturasHoy.Count(),
-                    FacturasPagadas = facturasPagadas.Count(),
-                    FacturasPendientes = facturasHoy.Count(f => f.Estado == "Pendiente"),
-                    TotalVentas = facturasPagadas.Sum(f => f.TotalNumerico),
-                    TotalITBIS = facturasPagadas.Sum(f => f.ImpuestoNumerico),
-                    TotalPropinas = facturasPagadas.Sum(f => f.PropinaNumerico),
-                    PromedioVentaPorFactura = facturasPagadas.Any() ? facturasPagadas.Average(f => f.TotalNumerico) : 0
+                    TotalFacturas = totalFacturas,
+                    TotalVentas = totalVentas,
+                    TotalITBIS = totalITBIS,
+                    TotalPropinas = totalPropinas,
+                    DesglosePorMetodoPago = desglosePorMetodoPago
                 };
+                
+                _logger.LogInformation("✅ Resumen de facturación generado: {TotalVentas:C}", totalVentas);
+                return resumen;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al generar resumen de facturación del día");
+                throw;
+            }
+        }
+
+        public async Task<object> GetResumenVentasDelDiaAsync(DateTime? fecha = null)
+        {
+            try
+            {
+                var fechaConsulta = fecha ?? DateTime.Today;
+                _logger.LogInformation("📊 Generando resumen detallado de ventas para {Fecha}", fechaConsulta.ToString("dd/MM/yyyy"));
+
+                // Obtener facturas del día
+                var facturas = await _facturaRepository.GetFacturasPorFechaAsync(fechaConsulta);
+                var facturasPagadas = facturas.Where(f => f.Estado == "Pagada").ToList();
+
+                var ventasBrutas = facturasPagadas.Sum(f => f.Subtotal);
+                var totalDescuentos = facturasPagadas.Sum(f => f.Descuento);
+                var totalITBIS = facturasPagadas.Sum(f => f.Impuesto);
+                var ventasNetas = facturasPagadas.Sum(f => f.Total - f.Impuesto);
+                var totalPropinas = facturasPagadas.Sum(f => f.Propina);
+                var totalFacturas = facturasPagadas.Count;
+
+                // Desglose por método de pago (ventas)
+                var ventasPorMetodoPago = facturasPagadas
+                    .GroupBy(f => f.MetodoPago)
+                    .ToDictionary(g => g.Key, g => g.Sum(f => f.Total));
+
+                // Desglose por método de pago (cantidad de facturas)
+                var facturasPorMetodoPago = facturasPagadas
+                    .GroupBy(f => f.MetodoPago)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                // Cálculos adicionales
+                var ticketPromedio = totalFacturas > 0 ? ventasBrutas / totalFacturas : 0;
+                var porcentajeITBIS = ventasBrutas > 0 ? (totalITBIS / ventasBrutas) * 100 : 0;
+
+                // Comparación con el día anterior para contexto
+                var ayer = fechaConsulta.AddDays(-1);
+                var facturasAyer = await _facturaRepository.GetFacturasPorFechaAsync(ayer);
+                var ventasAyer = facturasAyer.Where(f => f.Estado == "Pagada").Sum(f => f.Total);
+                var cambioPorcentual = ventasAyer > 0 ? ((ventasBrutas - ventasAyer) / ventasAyer) * 100 : 0;
+
+                var resumen = new
+                {
+                    Fecha = fechaConsulta,
+                    TotalFacturas = totalFacturas,
+                    VentasBrutas = ventasBrutas,
+                    TotalDescuentos = totalDescuentos,
+                    TotalITBIS = totalITBIS,
+                    VentasNetas = ventasNetas,
+                    TotalPropinas = totalPropinas,
+                    VentasPorMetodoPago = ventasPorMetodoPago,
+                    FacturasPorMetodoPago = facturasPorMetodoPago,
+                    // Métricas adicionales
+                    TicketPromedio = Math.Round(ticketPromedio, 2),
+                    PorcentajeITBIS = Math.Round(porcentajeITBIS, 2),
+                    CambioPorcentualDiaAnterior = Math.Round(cambioPorcentual, 2),
+                    FacturasAnuladas = facturas.Count(f => f.Estado == "Anulada"),
+                    FacturasPendientes = facturas.Count(f => f.Estado == "Pendiente"),
+                    // Información del período
+                    HoraInicioVentas = facturasPagadas.Any() ? facturasPagadas.Min(f => f.FechaFactura).ToString("HH:mm") : "N/A",
+                    HoraUltimaVenta = facturasPagadas.Any() ? facturasPagadas.Max(f => f.FechaFactura).ToString("HH:mm") : "N/A",
+                    VentaMaxima = facturasPagadas.Any() ? facturasPagadas.Max(f => f.Total) : 0,
+                    VentaMinima = facturasPagadas.Any() ? facturasPagadas.Min(f => f.Total) : 0
+                };
+
+                _logger.LogInformation("✅ Resumen detallado de ventas generado: {VentasBrutas:C} en {TotalFacturas} facturas", 
+                    ventasBrutas, totalFacturas);
+
+                return resumen;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al generar resumen detallado de ventas del día");
                 throw;
             }
         }

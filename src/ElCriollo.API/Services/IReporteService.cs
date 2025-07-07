@@ -138,6 +138,31 @@ namespace ElCriollo.API.Services
         // ============================================================================
 
         /// <summary>
+        /// Obtiene reporte detallado de ventas diarias
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio del reporte</param>
+        /// <param name="fechaFin">Fecha de fin del reporte</param>
+        /// <returns>Reporte completo de ventas diarias con totales y tendencias</returns>
+        Task<object> GetVentasDiariasAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reporte de ventas por producto
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio del reporte</param>
+        /// <param name="fechaFin">Fecha de fin del reporte</param>
+        /// <param name="top">Cantidad máxima de productos a mostrar</param>
+        /// <returns>Reporte de productos más vendidos con detalles</returns>
+        Task<object> GetVentasPorProductoAsync(DateTime fechaInicio, DateTime fechaFin, int top = 10);
+
+        /// <summary>
+        /// Obtiene reporte de ventas por categoría
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio del reporte</param>
+        /// <param name="fechaFin">Fecha de fin del reporte</param>
+        /// <returns>Reporte de ventas agrupadas por categoría</returns>
+        Task<object> GetVentasPorCategoriaAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
         /// Obtiene reporte de ventas por mesero
         /// </summary>
         /// <param name="fechaInicio">Fecha de inicio</param>

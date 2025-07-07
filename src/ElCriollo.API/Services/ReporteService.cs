@@ -575,9 +575,242 @@ namespace ElCriollo.API.Services
         }
 
         // ============================================================================
-        // IMPLEMENTACIONES ADICIONALES PARA REPORTES ESPECÍFICOS
+        // MÉTODOS ADICIONALES PARA REPORTES ESPECÍFICOS
         // ============================================================================
 
+        public async Task<object> GetVentasDiariasAsync(DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                _logger.LogInformation("📊 Generando reporte de ventas diarias desde {FechaInicio} hasta {FechaFin}", fechaInicio, fechaFin);
+
+                var facturas = await _facturaRepository.GetFacturasPorRangoFechasAsync(fechaInicio, fechaFin);
+                var facturasPagadas = facturas.Where(f => f.Estado == "Pagada").ToList();
+
+                // Agrupar por día
+                var ventasPorDia = facturasPagadas
+                    .GroupBy(f => f.FechaFactura.Date)
+                    .Select(g => new
+                    {
+                        Fecha = g.Key,
+                        VentasBrutas = g.Sum(f => f.Subtotal),
+                        Descuentos = g.Sum(f => f.Descuento),
+                        ITBIS = g.Sum(f => f.Impuesto),
+                        VentasNetas = g.Sum(f => f.Total - f.Impuesto),
+                        CantidadOrdenes = g.Count(),
+                        TicketPromedio = g.Any() ? g.Average(f => f.Total) : 0
+                    })
+                    .OrderBy(v => v.Fecha)
+                    .ToList();
+
+                var ventasTotales = facturasPagadas.Sum(f => f.Total);
+                var diasOperativos = ventasPorDia.Count;
+                var promedioVentaDiaria = diasOperativos > 0 ? ventasTotales / diasOperativos : 0;
+
+                // Calcular tendencia
+                var tendencia = CalcularTendenciaVentas(ventasPorDia);
+
+                var reporte = new
+                {
+                    FechaInicio = fechaInicio,
+                    FechaFin = fechaFin,
+                    VentasTotales = ventasTotales,
+                    PromedioVentaDiaria = promedioVentaDiaria,
+                    DiasOperativos = diasOperativos,
+                    VentasPorDia = ventasPorDia,
+                    Tendencia = tendencia
+                };
+
+                _logger.LogInformation("✅ Reporte de ventas diarias generado: {VentasTotales:C} en {DiasOperativos} días", 
+                    ventasTotales, diasOperativos);
+
+                return reporte;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al generar reporte de ventas diarias");
+                throw;
+            }
+        }
+
+        public async Task<object> GetVentasPorProductoAsync(DateTime fechaInicio, DateTime fechaFin, int top = 10)
+        {
+            try
+            {
+                _logger.LogInformation("📊 Generando reporte de ventas por producto - Top {Top}", top);
+
+                // Obtener órdenes del período
+                var ordenes = await _ordenRepository.GetOrdenesPorRangoFechasAsync(fechaInicio, fechaFin);
+                var ordenesEntregadas = ordenes.Where(o => o.Estado == "Entregada" || o.Estado == "Facturada").ToList();
+
+                // Obtener detalles de productos más vendidos
+                var ventasPorProducto = new List<dynamic>();
+
+                foreach (var orden in ordenesEntregadas)
+                {
+                    var ordenCompleta = await _ordenRepository.GetConDetallesAsync(orden.OrdenID);
+                    if (ordenCompleta?.DetalleOrdenes != null)
+                    {
+                        foreach (var detalle in ordenCompleta.DetalleOrdenes)
+                        {
+                            if (detalle.ProductoID.HasValue)
+                            {
+                                var producto = await _productoRepository.GetByIdAsync(detalle.ProductoID.Value);
+                                if (producto != null)
+                                {
+                                    ventasPorProducto.Add(new
+                                    {
+                                        ProductoId = producto.ProductoID,
+                                        Nombre = producto.Nombre,
+                                        Categoria = producto.Categoria?.NombreCategoria ?? "Sin categoría",
+                                        CantidadVendida = detalle.Cantidad,
+                                        IngresoTotal = detalle.Subtotal,
+                                        PrecioUnitario = detalle.PrecioUnitario
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Agrupar y calcular totales por producto
+                var topProductos = ventasPorProducto
+                    .GroupBy(v => new { v.ProductoId, v.Nombre, v.Categoria })
+                    .Select(g => new
+                    {
+                        ProductoId = g.Key.ProductoId,
+                        Nombre = g.Key.Nombre,
+                        Categoria = g.Key.Categoria,
+                        CantidadVendida = g.Sum(x => x.CantidadVendida),
+                        IngresoTotal = g.Sum(x => x.IngresoTotal),
+                        PorcentajeVentas = 0m, // Se calculará después
+                        Ranking = 0 // Se asignará después
+                    })
+                    .OrderByDescending(p => p.CantidadVendida)
+                    .Take(top)
+                    .ToList();
+
+                // Calcular porcentajes y rankings
+                var ingresoTotal = topProductos.Sum(p => p.IngresoTotal);
+                for (int i = 0; i < topProductos.Count; i++)
+                {
+                    var producto = topProductos[i];
+                    topProductos[i] = new
+                    {
+                        producto.ProductoId,
+                        producto.Nombre,
+                        producto.Categoria,
+                        producto.CantidadVendida,
+                        producto.IngresoTotal,
+                        PorcentajeVentas = ingresoTotal > 0 ? Math.Round((decimal)((producto.IngresoTotal / ingresoTotal) * 100), 2) : 0,
+                        Ranking = i + 1
+                    };
+                }
+
+                var reporte = new
+                {
+                    FechaInicio = fechaInicio,
+                    FechaFin = fechaFin,
+                    TotalProductosVendidos = topProductos.Count,
+                    TopProductos = topProductos
+                };
+
+                _logger.LogInformation("✅ Reporte de ventas por producto generado: {TotalProductos} productos", topProductos.Count);
+                return reporte;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al generar reporte de ventas por producto");
+                throw;
+            }
+        }
+
+        public async Task<object> GetVentasPorCategoriaAsync(DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                _logger.LogInformation("📊 Generando reporte de ventas por categoría");
+
+                // Usar el método existente del repositorio
+                var reporteCategoria = await _reporteRepository.GetVentasPorCategoriaAsync(fechaInicio, fechaFin);
+
+                // Si el repositorio devuelve un objeto complejo, lo transformamos
+                if (reporteCategoria != null)
+                {
+                    return reporteCategoria;
+                }
+
+                // Fallback: calcular manualmente si el repositorio no tiene datos
+                var ordenes = await _ordenRepository.GetOrdenesPorRangoFechasAsync(fechaInicio, fechaFin);
+                var ordenesEntregadas = ordenes.Where(o => o.Estado == "Entregada" || o.Estado == "Facturada").ToList();
+
+                var ventasPorCategoria = new List<dynamic>();
+                decimal ventasTotales = 0;
+
+                foreach (var orden in ordenesEntregadas)
+                {
+                    var ordenCompleta = await _ordenRepository.GetConDetallesAsync(orden.OrdenID);
+                    if (ordenCompleta?.DetalleOrdenes != null)
+                    {
+                        foreach (var detalle in ordenCompleta.DetalleOrdenes)
+                        {
+                            if (detalle.ProductoID.HasValue)
+                            {
+                                var producto = await _productoRepository.GetByIdAsync(detalle.ProductoID.Value);
+                                if (producto?.Categoria != null)
+                                {
+                                    ventasPorCategoria.Add(new
+                                    {
+                                        Categoria = producto.Categoria.NombreCategoria,
+                                        VentasTotal = detalle.Subtotal,
+                                        CantidadProductos = detalle.Cantidad,
+                                        TicketPromedio = detalle.PrecioUnitario
+                                    });
+                                    ventasTotales += detalle.Subtotal;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Agrupar por categoría
+                var categorias = ventasPorCategoria
+                    .GroupBy(v => v.Categoria)
+                    .Select(g => new
+                    {
+                        Categoria = g.Key,
+                        VentasTotal = g.Sum(x => x.VentasTotal),
+                        CantidadProductos = g.Sum(x => x.CantidadProductos),
+                        PorcentajeTotal = ventasTotales > 0 ? Math.Round((g.Sum(x => x.VentasTotal) / ventasTotales) * 100, 2) : 0,
+                        TicketPromedio = g.Any() ? g.Average(x => x.TicketPromedio) : 0
+                    })
+                    .OrderByDescending(c => c.VentasTotal)
+                    .ToList();
+
+                var reporte = new
+                {
+                    FechaInicio = fechaInicio,
+                    FechaFin = fechaFin,
+                    VentasTotales = ventasTotales,
+                    Categorias = categorias
+                };
+
+                _logger.LogInformation("✅ Reporte de ventas por categoría generado: {VentasTotales:C}", ventasTotales);
+                return reporte;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al generar reporte de ventas por categoría");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene reporte de ventas por mesero
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de ventas por mesero</returns>
         public async Task<object> GetVentasPorMeseroAsync(DateTime fechaInicio, DateTime fechaFin)
         {
             try
@@ -1034,6 +1267,56 @@ namespace ElCriollo.API.Services
                 _logger.LogError(ex, "❌ Error al generar dashboard ejecutivo");
                 throw;
             }
+        }
+
+        // ============================================================================
+        // MÉTODOS PRIVADOS AUXILIARES
+        // ============================================================================
+
+        /// <summary>
+        /// Calcula la tendencia de ventas basada en los datos históricos
+        /// </summary>
+        private object CalcularTendenciaVentas(IEnumerable<dynamic> ventasPorDia)
+        {
+            var ventasList = ventasPorDia.ToList();
+            if (ventasList.Count < 2)
+            {
+                return new
+                {
+                    Tipo = "Insuficientes datos",
+                    Porcentaje = 0m,
+                    Descripcion = "No hay suficientes datos para calcular la tendencia"
+                };
+            }
+
+            var primeraMitad = ventasList.Take(ventasList.Count / 2).Sum(v => (decimal)v.VentasBrutas);
+            var segundaMitad = ventasList.Skip(ventasList.Count / 2).Sum(v => (decimal)v.VentasBrutas);
+
+            if (primeraMitad == 0)
+            {
+                return new
+                {
+                    Tipo = "Creciente",
+                    Porcentaje = 100m,
+                    Descripcion = "Ventas iniciaron en el período"
+                };
+            }
+
+            var cambio = ((segundaMitad - primeraMitad) / primeraMitad) * 100;
+            var tipo = cambio > 5 ? "Creciente" : cambio < -5 ? "Decreciente" : "Estable";
+            var descripcion = tipo switch
+            {
+                "Creciente" => $"Las ventas han aumentado {Math.Abs(cambio):F1}% en el período",
+                "Decreciente" => $"Las ventas han disminuido {Math.Abs(cambio):F1}% en el período",
+                _ => "Las ventas se mantienen estables"
+            };
+
+            return new
+            {
+                Tipo = tipo,
+                Porcentaje = Math.Abs(cambio),
+                Descripcion = descripcion
+            };
         }
     }
 }
