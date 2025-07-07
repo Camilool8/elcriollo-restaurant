@@ -63,6 +63,17 @@ public class Empleado
     public string? Email { get; set; }
 
     /// <summary>
+    /// Fecha de nacimiento del empleado
+    /// </summary>
+    public DateTime? FechaNacimiento { get; set; }
+
+    /// <summary>
+    /// Preferencias alimentarias del empleado
+    /// </summary>
+    [StringLength(500)]
+    public string? PreferenciasComida { get; set; }
+
+    /// <summary>
     /// Fecha de ingreso del empleado al restaurante
     /// </summary>
     [Required]
@@ -75,10 +86,11 @@ public class Empleado
     public int? UsuarioID { get; set; }
 
     /// <summary>
-    /// Indica si el empleado está activo
+    /// Estado del empleado (Activo/Inactivo)
     /// </summary>
     [Required]
-    public bool Estado { get; set; } = true;
+    [StringLength(20)]
+    public string Estado { get; set; } = "Activo";
 
     /// <summary>
     /// Salario del empleado (RD$)
@@ -153,7 +165,7 @@ public class Empleado
     /// Alias para EsActivo (compatibilidad con servicios)
     /// </summary>
     [NotMapped]
-    public bool EsActivo => Estado;
+    public bool EsActivo => Estado == "Activo";
 
     /// <summary>
     /// RolId del usuario asociado (si existe)
@@ -261,7 +273,7 @@ public class Empleado
     /// </summary>
     public override string ToString()
     {
-        var estado = Estado ? "Activo" : "Inactivo";
+        var estado = Estado == "Activo" ? "Activo" : "Inactivo";
         var rol = ObtenerRol() ?? "Sin acceso al sistema";
         return $"{NombreCompleto} - {rol} ({estado})";
     }

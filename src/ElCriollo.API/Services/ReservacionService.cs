@@ -374,7 +374,7 @@ namespace ElCriollo.API.Services
                 // Ordenar por capacidad (preferir mesas con capacidad más cercana)
                 var mesasOrdenadas = mesasDisponibles
                     .OrderBy(m => m.Capacidad)
-                    .ThenBy(m => m.Numero);
+                    .ThenBy(m => m.NumeroMesa);
 
                 var resultado = _mapper.Map<List<MesaResponse>>(mesasOrdenadas);
 

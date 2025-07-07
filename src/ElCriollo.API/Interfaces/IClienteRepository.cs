@@ -31,5 +31,25 @@ namespace ElCriollo.API.Interfaces
         /// Obtiene clientes con reservas pendientes
         /// </summary>
         Task<IEnumerable<Cliente>> GetClientesConReservasPendientesAsync();
+
+        /// <summary>
+        /// Obtiene únicamente clientes activos
+        /// </summary>
+        Task<IEnumerable<Cliente>> GetClientesActivosAsync();
+
+        /// <summary>
+        /// Obtiene el historial de compras de un cliente
+        /// </summary>
+        Task<IEnumerable<dynamic>> GetHistorialComprasAsync(int clienteId, DateTime? fechaInicio = null, DateTime? fechaFin = null);
+
+        /// <summary>
+        /// Obtiene estadísticas detalladas de un cliente
+        /// </summary>
+        Task<dynamic> GetEstadisticasClienteAsync(int clienteId);
+
+        /// <summary>
+        /// Obtiene clientes que cumplen años en el mes especificado
+        /// </summary>
+        Task<IEnumerable<dynamic>> GetClientesCumpleanosAsync(int mes);
     }
 } 

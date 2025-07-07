@@ -588,6 +588,72 @@ namespace ElCriollo.API.Services
             }
         }
 
+        /// <summary>
+        /// Agrega items a una orden existente
+        /// </summary>
+        public async Task<OrdenResponse> AgregarItemsOrdenAsync(int ordenId, List<ItemOrdenRequest> items, int usuarioId)
+        {
+            try
+            {
+                _logger.LogInformation("➕ Agregando {Count} items a orden {OrdenId}", items.Count, ordenId);
+
+                // Verificar que la orden existe y está en estado válido
+                var orden = await _ordenRepository.GetByIdAsync(ordenId);
+                if (orden == null)
+                {
+                    throw new ArgumentException($"Orden con ID {ordenId} no encontrada");
+                }
+
+                if (orden.Estado != "Pendiente" && orden.Estado != "EnPreparacion")
+                {
+                    throw new InvalidOperationException($"No se pueden agregar items a una orden en estado {orden.Estado}");
+                }
+
+                // Validar disponibilidad de productos
+                var disponibilidad = await VerificarDisponibilidadAsync(items);
+                if (!disponibilidad.TodoDisponible)
+                {
+                    var noDisponibles = string.Join(", ", disponibilidad.ProductosNoDisponibles);
+                    throw new InvalidOperationException($"Productos no disponibles: {noDisponibles}");
+                }
+
+                // Agregar cada item
+                foreach (var item in items)
+                {
+                    var producto = await _productoRepository.GetByIdAsync(item.ProductoId);
+                    if (producto == null) continue;
+
+                    // Crear nuevo detalle siempre (simplificado para evitar duplicados complejos)
+                    var nuevoDetalle = new DetalleOrden
+                    {
+                        OrdenID = ordenId,
+                        ProductoID = item.ProductoId,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = producto.Precio,
+                        Subtotal = item.Cantidad * producto.Precio,
+                        NotasEspeciales = item.NotasEspeciales
+                    };
+
+                    await _ordenRepository.AddDetalleOrdenAsync(nuevoDetalle);
+                }
+
+                // Recalcular totales
+                await RecalcularTotalesAsync(ordenId);
+
+                // Obtener la orden actualizada
+                var ordenActualizada = await _ordenRepository.GetByIdWithIncludesAsync(ordenId);
+                var response = _mapper.Map<OrdenResponse>(ordenActualizada);
+
+                _logger.LogInformation("✅ Items agregados exitosamente a orden {OrdenId}", ordenId);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al agregar items a orden {OrdenId}", ordenId);
+                throw;
+            }
+        }
+
         // ============================================================================
         // MÉTODOS PRIVADOS AUXILIARES
         // ============================================================================

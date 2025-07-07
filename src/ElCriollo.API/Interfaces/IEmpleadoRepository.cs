@@ -31,5 +31,25 @@ namespace ElCriollo.API.Interfaces
         /// Obtiene empleados por departamento
         /// </summary>
         Task<IEnumerable<Empleado>> GetByDepartamentoAsync(string departamento);
+
+        /// <summary>
+        /// Obtiene el historial de compras de un empleado
+        /// </summary>
+        Task<IEnumerable<dynamic>> GetHistorialComprasAsync(int empleadoId, DateTime? fechaInicio = null, DateTime? fechaFin = null);
+
+        /// <summary>
+        /// Obtiene estadísticas detalladas de un empleado
+        /// </summary>
+        Task<dynamic> GetEstadisticasEmpleadoAsync(int empleadoId);
+
+        /// <summary>
+        /// Obtiene empleados frecuentes basado en visitas
+        /// </summary>
+        Task<IEnumerable<dynamic>> GetEmpleadosFrecuentesAsync(int minVisitas = 5);
+
+        /// <summary>
+        /// Obtiene empleados que cumplen años en el mes especificado
+        /// </summary>
+        Task<IEnumerable<dynamic>> GetEmpleadosCumpleanosAsync(int mes);
     }
 } 

@@ -281,7 +281,7 @@ namespace ElCriollo.API.Services
                     Cedula = "00100000001",
                     FechaIngreso = DateTime.UtcNow,
                     Salario = 100000, // Salario simbólico
-                    Estado = true
+                    Estado = "Activo"
                 };
 
                 var empleadoCreado = await _empleadoRepository.CreateAsync(empleadoAdmin);
@@ -579,7 +579,7 @@ namespace ElCriollo.API.Services
                 if (usuario == null)
                     return false;
 
-                usuario.EsActivo = !isBlocked;
+                usuario.Estado = !isBlocked;
                 await _usuarioRepository.UpdateAsync(usuario);
 
                 _logger.LogInformation("Usuario {Action} por admin {AdminUsername}: {Username}", 

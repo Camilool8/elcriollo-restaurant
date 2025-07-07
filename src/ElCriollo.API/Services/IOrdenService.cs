@@ -173,6 +173,15 @@ namespace ElCriollo.API.Services
         /// </summary>
         /// <returns>Lista simple de órdenes pendientes</returns>
         Task<IEnumerable<OrdenCocinaBasicaResponse>> GetColaCocinaBasicaAsync();
+
+        /// <summary>
+        /// Agrega items a una orden existente
+        /// </summary>
+        /// <param name="ordenId">ID de la orden</param>
+        /// <param name="items">Lista de items a agregar</param>
+        /// <param name="usuarioId">ID del usuario que agrega los items</param>
+        /// <returns>Orden actualizada con los nuevos items</returns>
+        Task<OrdenResponse> AgregarItemsOrdenAsync(int ordenId, List<ItemOrdenRequest> items, int usuarioId);
     }
 
     // ============================================================================

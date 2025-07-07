@@ -8,7 +8,7 @@ using AutoMapper;
 using FluentValidation;
 using ElCriollo.API.Data;
 using ElCriollo.API.Configuration;
-//using ElCriollo.API.Middleware;
+using ElCriollo.API.Middleware;
 using ElCriollo.API.Helpers;
 using System.Reflection;
 using Microsoft.AspNetCore.RateLimiting;
@@ -257,8 +257,9 @@ try
         };
     });
 
-    // Error Handling Middleware (se creará en próximos pasos)
-    // app.UseMiddleware<ErrorHandlingMiddleware>();
+    // Error Handling Middleware
+    app.UseErrorHandling();
+
 
     // Swagger (solo en desarrollo)
     if (app.Environment.IsDevelopment())

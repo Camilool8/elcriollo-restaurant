@@ -189,6 +189,15 @@ namespace ElCriollo.API.Services
         /// <param name="ordenId">ID de la orden</param>
         /// <returns>True si se actualizó exitosamente</returns>
         Task<bool> ActualizarEstadoOrdenPostFacturacionAsync(int ordenId);
+
+        /// <summary>
+        /// Envía una factura por email al cliente
+        /// </summary>
+        /// <param name="facturaId">ID de la factura</param>
+        /// <param name="emailDestino">Email del destinatario</param>
+        /// <param name="incluirPDF">Si incluir PDF adjunto</param>
+        /// <returns>True si se envió exitosamente</returns>
+        Task<bool> EnviarFacturaPorEmailAsync(int facturaId, string emailDestino, bool incluirPDF = true);
     }
 
     // ============================================================================

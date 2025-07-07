@@ -17,6 +17,7 @@ namespace ElCriollo.API.Services
         private readonly IFacturaRepository _facturaRepository;
         private readonly IOrdenRepository _ordenRepository;
         private readonly IMesaRepository _mesaRepository;
+        private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly ILogger<FacturaService> _logger;
 
@@ -28,12 +29,14 @@ namespace ElCriollo.API.Services
             IFacturaRepository facturaRepository,
             IOrdenRepository ordenRepository,
             IMesaRepository mesaRepository,
+            IEmailService emailService,
             IMapper mapper,
             ILogger<FacturaService> logger)
         {
             _facturaRepository = facturaRepository;
             _ordenRepository = ordenRepository;
             _mesaRepository = mesaRepository;
+            _emailService = emailService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -639,6 +642,48 @@ namespace ElCriollo.API.Services
             }
         }
 
+        public async Task<bool> EnviarFacturaPorEmailAsync(int facturaId, string emailDestino, bool incluirPDF = true)
+        {
+            try
+            {
+                _logger.LogInformation("📧 Enviando factura {FacturaId} a {Email}", facturaId, emailDestino);
+
+                // Obtener la factura completa
+                var factura = await GetFacturaByIdAsync(facturaId);
+                if (factura == null)
+                {
+                    _logger.LogWarning("⚠️ Factura {FacturaId} no encontrada", facturaId);
+                    return false;
+                }
+
+                // Preparar el contenido del email
+                var asunto = $"Factura #{factura.NumeroFactura} - El Criollo Restaurant";
+                var contenido = GenerarContenidoEmailFactura(factura);
+
+                // Enviar email usando el método disponible
+                var resultado = await _emailService.EnviarNotificacionPersonalizadaAsync(emailDestino, asunto, contenido, true);
+
+                if (resultado)
+                {
+                    _logger.LogInformation("✅ Factura {FacturaId} enviada exitosamente a {Email}", facturaId, emailDestino);
+                    
+                    // Registrar el envío en el log de la factura
+                    await RegistrarEnvioFacturaAsync(facturaId, emailDestino);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Error al enviar factura {FacturaId} a {Email}", facturaId, emailDestino);
+                }
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al enviar factura {FacturaId} por email", facturaId);
+                return false;
+            }
+        }
+
         // ============================================================================
         // MÉTODOS PRIVADOS AUXILIARES
         // ============================================================================
@@ -664,6 +709,70 @@ namespace ElCriollo.API.Services
             } while (existe);
 
             return numeroFactura;
+        }
+
+        private string GenerarContenidoEmailFactura(FacturaDto factura)
+        {
+            var contenido = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
+        .header {{ background-color: #d4821a; color: white; padding: 20px; text-align: center; }}
+        .content {{ padding: 20px; }}
+        .total {{ font-size: 18px; font-weight: bold; color: #d4821a; }}
+        .footer {{ margin-top: 20px; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h1>🍽️ El Criollo Restaurant</h1>
+        <p>Factura #{factura.NumeroFactura}</p>
+    </div>
+    <div class='content'>
+        <h2>Detalles de la Factura</h2>
+        <p><strong>Fecha:</strong> {factura.FechaFactura:dd/MM/yyyy HH:mm}</p>
+        <p><strong>Método de Pago:</strong> {factura.MetodoPago}</p>
+        
+        <hr>
+        
+        <h3>Resumen de Pago</h3>
+        <p><strong>Subtotal:</strong> RD$ {factura.SubtotalNumerico:N2}</p>
+        <p><strong>Descuento:</strong> RD$ {factura.DescuentoNumerico:N2}</p>
+        <p><strong>ITBIS (18%):</strong> RD$ {factura.ImpuestoNumerico:N2}</p>
+        <p><strong>Propina:</strong> RD$ {factura.PropinaNumerico:N2}</p>
+        <p class='total'><strong>TOTAL:</strong> RD$ {factura.TotalNumerico:N2}</p>
+        
+        <div class='footer'>
+            <p>Gracias por su visita a El Criollo Restaurant</p>
+            <p>Para cualquier consulta, por favor contacte a nuestro equipo de atención al cliente.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            return contenido;
+        }
+
+        private async Task RegistrarEnvioFacturaAsync(int facturaId, string emailDestino)
+        {
+            try
+            {
+                // Agregar observación sobre el envío
+                var factura = await _facturaRepository.GetByIdAsync(facturaId);
+                if (factura != null)
+                {
+                    var observacionActual = factura.ObservacionesPago ?? "";
+                    var nuevaObservacion = $"{observacionActual}; Email enviado a {emailDestino} el {DateTime.Now:dd/MM/yyyy HH:mm}";
+                    factura.ObservacionesPago = nuevaObservacion;
+                    await _facturaRepository.UpdateAsync(factura);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al registrar envío de factura {FacturaId}", facturaId);
+            }
         }
     }
 }

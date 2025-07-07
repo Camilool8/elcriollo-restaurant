@@ -132,6 +132,78 @@ namespace ElCriollo.API.Services
         /// <param name="fechaFin">Fecha de fin</param>
         /// <returns>Resultado de validación</returns>
         Task<ValidacionReporteResult> ValidarDatosParaReporteAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        // ============================================================================
+        // MÉTODOS ADICIONALES PARA REPORTES ESPECÍFICOS
+        // ============================================================================
+
+        /// <summary>
+        /// Obtiene reporte de ventas por mesero
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de ventas por mesero</returns>
+        Task<object> GetVentasPorMeseroAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reporte de ocupación de mesas
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de ocupación de mesas</returns>
+        Task<object> GetOcupacionMesasAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reporte de tiempos de servicio
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de tiempos de servicio</returns>
+        Task<object> GetTiemposServicioAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reporte de inventario actual
+        /// </summary>
+        /// <returns>Reporte de inventario actual</returns>
+        Task<object> GetInventarioActualAsync();
+
+        /// <summary>
+        /// Obtiene reporte de movimientos de inventario
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de movimientos de inventario</returns>
+        Task<object> GetMovimientosInventarioAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene estado de resultados
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Estado de resultados</returns>
+        Task<object> GetEstadoResultadosAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene reporte de flujo de caja
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio</param>
+        /// <param name="fechaFin">Fecha de fin</param>
+        /// <returns>Reporte de flujo de caja</returns>
+        Task<object> GetFlujoCajaAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene análisis de tendencias
+        /// </summary>
+        /// <param name="fechaInicio">Fecha de inicio del análisis</param>
+        /// <param name="fechaFin">Fecha de fin del análisis</param>
+        /// <returns>Análisis de tendencias</returns>
+        Task<object> GetAnalisisTendenciasAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtiene dashboard ejecutivo
+        /// </summary>
+        /// <returns>Dashboard ejecutivo</returns>
+        Task<object> GetDashboardEjecutivoAsync();
     }
 
     // ============================================================================

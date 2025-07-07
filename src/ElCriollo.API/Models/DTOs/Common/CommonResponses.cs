@@ -93,4 +93,30 @@ namespace ElCriollo.API.Models.DTOs.Common
         public string NombreRol { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
     }
+
+    /// <summary>
+    /// Response genérico para operaciones de API
+    /// </summary>
+    public class ApiResponse
+    {
+        /// <summary>
+        /// Indica si la operación fue exitosa
+        /// </summary>
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Mensaje de respuesta
+        /// </summary>
+        public string Message { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Datos adicionales (opcional)
+        /// </summary>
+        public object? Data { get; set; }
+
+        /// <summary>
+        /// Timestamp de la respuesta
+        /// </summary>
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
 } 

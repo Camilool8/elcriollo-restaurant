@@ -302,3 +302,85 @@ public class EmpleadoActivoViewModel
     /// </summary>
     public string EstadoConexion { get; set; } = "En línea";
 }
+
+    /// <summary>
+    /// Vista de cocina para mostrar órdenes pendientes
+    /// </summary>
+    public class VistaCocinaViewModel
+    {
+        /// <summary>
+        /// ID de la orden
+        /// </summary>
+        public int OrdenId { get; set; }
+
+        /// <summary>
+        /// Número de mesa
+        /// </summary>
+        public int NumeroMesa { get; set; }
+
+        /// <summary>
+        /// Nombre del mesero
+        /// </summary>
+        public string NombreMesero { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Hora de la orden
+        /// </summary>
+        public DateTime HoraOrden { get; set; }
+
+        /// <summary>
+        /// Tiempo transcurrido desde la orden
+        /// </summary>
+        public TimeSpan TiempoTranscurrido { get; set; }
+
+        /// <summary>
+        /// Estado de la orden
+        /// </summary>
+        public string Estado { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Prioridad de la orden
+        /// </summary>
+        public string Prioridad { get; set; } = "Normal";
+
+        /// <summary>
+        /// Detalles de productos en la orden
+        /// </summary>
+        public List<DetalleOrdenCocinaViewModel> Detalles { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Detalle de orden para vista de cocina
+    /// </summary>
+    public class DetalleOrdenCocinaViewModel
+    {
+        /// <summary>
+        /// ID del detalle
+        /// </summary>
+        public int DetalleId { get; set; }
+
+        /// <summary>
+        /// Nombre del producto
+        /// </summary>
+        public string NombreProducto { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Cantidad
+        /// </summary>
+        public int Cantidad { get; set; }
+
+        /// <summary>
+        /// Observaciones especiales
+        /// </summary>
+        public string? Observaciones { get; set; }
+
+        /// <summary>
+        /// Categoría del producto
+        /// </summary>
+        public string Categoria { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tiempo de preparación estimado
+        /// </summary>
+        public int TiempoPreparacionMinutos { get; set; }
+    }

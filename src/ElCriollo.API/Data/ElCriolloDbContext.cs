@@ -62,6 +62,11 @@ public class ElCriolloDbContext : DbContext
     public DbSet<Inventario> Inventario { get; set; }
 
     /// <summary>
+    /// Historial de movimientos de inventario
+    /// </summary>
+    public DbSet<MovimientoInventario> MovimientosInventario { get; set; }
+
+    /// <summary>
     /// Combos especiales del restaurante
     /// </summary>
     public DbSet<Combo> Combos { get; set; }
@@ -244,6 +249,35 @@ public class ElCriolloDbContext : DbContext
                   .WithOne(p => p.Inventario)
                   .HasForeignKey<Inventario>(e => e.ProductoID)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurar MovimientosInventario
+        modelBuilder.Entity<MovimientoInventario>(entity =>
+        {
+            entity.HasKey(e => e.MovimientoID);
+            entity.Property(e => e.TipoMovimiento).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Cantidad).IsRequired();
+            entity.Property(e => e.StockAnterior).IsRequired();
+            entity.Property(e => e.StockResultante).IsRequired();
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.Referencia).HasMaxLength(100);
+            entity.Property(e => e.Usuario).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Observaciones).HasMaxLength(500);
+            entity.Property(e => e.FechaMovimiento).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.Motivo).HasMaxLength(200);
+            entity.Property(e => e.Proveedor).HasMaxLength(200);
+
+            // Relación con Productos
+            entity.HasOne(e => e.Producto)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProductoID)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Índices para optimizar consultas
+            entity.HasIndex(e => e.ProductoID);
+            entity.HasIndex(e => e.FechaMovimiento);
+            entity.HasIndex(e => e.TipoMovimiento);
+            entity.HasIndex(e => new { e.ProductoID, e.FechaMovimiento });
         });
 
         // Configurar Combos

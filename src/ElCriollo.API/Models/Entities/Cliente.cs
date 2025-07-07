@@ -50,16 +50,46 @@ public class Cliente
     public string? Email { get; set; }
 
     /// <summary>
+    /// Dirección del cliente
+    /// </summary>
+    [StringLength(200)]
+    public string? Direccion { get; set; }
+
+    /// <summary>
+    /// Fecha de nacimiento del cliente
+    /// </summary>
+    public DateTime? FechaNacimiento { get; set; }
+
+    /// <summary>
+    /// Preferencias de comida del cliente
+    /// </summary>
+    [StringLength(500)]
+    public string? PreferenciasComida { get; set; }
+
+    /// <summary>
     /// Fecha de registro del cliente en el sistema
     /// </summary>
     [Required]
     public DateTime FechaRegistro { get; set; } = DateTime.Now.Date;
 
     /// <summary>
-    /// Indica si el cliente está activo en el sistema
+    /// Estado del cliente (Activo/Inactivo)
     /// </summary>
     [Required]
-    public bool Estado { get; set; } = true;
+    [StringLength(20)]
+    public string Estado { get; set; } = "Activo";
+
+    /// <summary>
+    /// Indica si el cliente está activo en el sistema (propiedad calculada para compatibilidad)
+    /// </summary>
+    [NotMapped]
+    public bool EsActivo => Estado == "Activo";
+
+    /// <summary>
+    /// Indica si el cliente es un cliente especial o VIP
+    /// </summary>
+    [NotMapped]
+    public bool EsClienteEspecial => EsClienteFrecuente && Estado == "Activo";
 
     // ============================================================================
     // NAVEGACIÓN - RELACIONES
@@ -182,7 +212,7 @@ public class Cliente
     /// </summary>
     public bool PuedeRecibirEmails()
     {
-        return !string.IsNullOrEmpty(Email) && Estado;
+        return !string.IsNullOrEmpty(Email) && Estado == "Activo";
     }
 
     /// <summary>
