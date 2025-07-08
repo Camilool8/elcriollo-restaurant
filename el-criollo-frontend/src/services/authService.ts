@@ -1,3 +1,4 @@
+import { jwtDecode } from 'jwt-decode';
 import { api } from './api';
 import { LoginRequest, AuthResponse, RefreshTokenRequest, UsuarioResponse } from '@/types';
 
@@ -43,7 +44,7 @@ class AuthService {
   // ====================================
   // REFRESH TOKEN
   // ====================================
-  async refreshToken(): Promise<string | null> {
+  async refreshToken(): Promise<AuthResponse | null> {
     try {
       const refreshToken = this.getStoredRefreshToken();
 
@@ -55,9 +56,9 @@ class AuthService {
       const response = await api.post<AuthResponse>('/auth/refresh', request);
 
       if (response.token) {
-        this.saveAuthData(response, true); // Assume refresh token should be remembered
+        this.saveAuthData(response, true);
         console.log('✅ Token renovado exitosamente');
-        return response.token;
+        return response;
       } else {
         throw new Error('Error al renovar token');
       }
@@ -71,13 +72,43 @@ class AuthService {
   // ====================================
   // VALIDAR TOKEN
   // ====================================
-  async validateToken(token: string): Promise<boolean> {
-    try {
-      await api.post<void>('/auth/validate-token', { token });
+  isTokenExpired(token: string): boolean {
+    if (!token) {
       return true;
+    }
+    try {
+      const decoded: { exp: number } = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp < currentTime;
     } catch (error) {
-      console.error('❌ Error validando token:', error);
-      return false;
+      console.error('❌ Error decodificando el token:', error);
+      return true;
+    }
+  }
+
+  // ====================================
+  // VERIFICAR Y REFRESCAR TOKEN
+  // ====================================
+  async verifyAndRefreshToken(): Promise<{
+    user: UsuarioResponse;
+    newToken: string;
+    newRefreshToken: string;
+  }> {
+    try {
+      const response = await api.post<AuthResponse>('/auth/verify-and-refresh');
+      if (response && response.token && response.usuario) {
+        this.saveAuthData(response, true);
+        return {
+          user: response.usuario,
+          newToken: response.token,
+          newRefreshToken: response.refreshToken,
+        };
+      }
+      throw new Error('Respuesta de verificación inválida');
+    } catch (error) {
+      console.error('❌ Error verificando y refrescando el token:', error);
+      this.clearLocalAuthData();
+      throw error;
     }
   }
 

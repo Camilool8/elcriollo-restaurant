@@ -4,10 +4,11 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, User, Lock, Coffee } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginRequest } from '@/types';
+import { LoginRequest, UsuarioResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { authService } from '@/services/authService';
 
 // ====================================
 // TIPOS
@@ -22,6 +23,14 @@ interface LoginFormData {
 // ====================================
 // COMPONENTE PRINCIPAL
 // ====================================
+
+const getRedirectPath = (user: UsuarioResponse | null): string => {
+  if (!user) return '/login';
+  if (user.rol === 'Administrador') {
+    return '/admin';
+  }
+  return '/mesas';
+};
 
 const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -52,10 +61,10 @@ const LoginForm: React.FC = () => {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (state.isAuthenticated && !state.isLoading) {
-      const from = (location.state as any)?.from || '/dashboard';
+      const from = (location.state as any)?.from || getRedirectPath(state.user);
       navigate(from, { replace: true });
     }
-  }, [state.isAuthenticated, state.isLoading, navigate, location]);
+  }, [state.isAuthenticated, state.isLoading, state.user, navigate, location]);
 
   // Auto-completar credenciales demo para desarrollo
   useEffect(() => {
@@ -82,8 +91,10 @@ const LoginForm: React.FC = () => {
       const success = await login(loginRequest);
 
       if (success) {
-        const from = (location.state as any)?.from || '/dashboard';
-        navigate(from, { replace: true });
+        // La redirección se maneja en el useEffect de arriba
+        // pero lo hacemos aquí también por si el estado no se actualiza a tiempo
+        const redirectPath = getRedirectPath(authService.getStoredUser());
+        navigate(redirectPath, { replace: true });
       }
     } catch (error: any) {
       console.error('Error en login:', error);

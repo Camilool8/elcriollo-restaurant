@@ -56,6 +56,9 @@ export const ROUTES = {
   ADMIN_PRODUCTOS: '/admin/productos',
   ADMIN_REPORTES: '/admin/reportes',
   ADMIN_CONFIGURACION: '/admin/configuracion',
+  ADMIN_MESAS: '/admin/mesas',
+  MESAS: '/mesas',
+  MESAS_GESTION: '/mesas/gestion',
 } as const;
 
 // Configuración de desarrollo

@@ -14,6 +14,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="usuarios" element={<UsuariosPage />} />
         <Route path="clientes" element={<ClientesPage />} />
         <Route path="empleados" element={<EmpleadosPage />} />
+
         {/* TODO: Próximas implementaciones */}
         <Route
           path="productos"

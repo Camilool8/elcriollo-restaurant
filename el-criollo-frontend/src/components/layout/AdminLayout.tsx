@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Coffee,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -18,17 +19,40 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { state, logout } = useAuth();
+  const { state, logout, hasAnyRole } = useAuth();
   const location = useLocation();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: Home },
-    { name: 'Usuarios', href: '/admin/usuarios', icon: Users },
-    { name: 'Clientes', href: '/admin/clientes', icon: UserPlus },
-    { name: 'Empleados', href: '/admin/empleados', icon: Briefcase },
-    { name: 'Reportes', href: '/admin/reportes', icon: BarChart3 },
-    { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
+  const allNavigation = [
+    {
+      name: 'Dashboard',
+      href: '/admin',
+      icon: Home,
+      roles: ['Administrador', 'Cajero', 'Mesero', 'Recepcion', 'Cocina'],
+    },
+    {
+      name: 'Mesas',
+      href: '/mesas',
+      icon: ClipboardList,
+      roles: ['Administrador', 'Cajero', 'Mesero', 'Recepcion'],
+    },
+    { name: 'Usuarios', href: '/admin/usuarios', icon: Users, roles: ['Administrador'] },
+    {
+      name: 'Clientes',
+      href: '/admin/clientes',
+      icon: UserPlus,
+      roles: ['Administrador', 'Cajero', 'Recepcion'],
+    },
+    { name: 'Empleados', href: '/admin/empleados', icon: Briefcase, roles: ['Administrador'] },
+    { name: 'Reportes', href: '/admin/reportes', icon: BarChart3, roles: ['Administrador'] },
+    {
+      name: 'Configuración',
+      href: '/admin/configuracion',
+      icon: Settings,
+      roles: ['Administrador'],
+    },
   ];
+
+  const navigation = allNavigation.filter((item) => hasAnyRole(item.roles));
 
   const handleLogout = async () => {
     await logout();
@@ -79,24 +103,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             })}
           </div>
         </nav>
-
-        {/* User info */}
-        <div className="absolute bottom-0 w-64 p-4 border-t bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {state.user?.usuario || state.user?.username}
-              </p>
-              <p className="text-xs text-dominican-red">
-                {state.user?.nombreRol || state.user?.rol}
-              </p>
-            </div>
-
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
       </div>
 
       {/* Main content */}

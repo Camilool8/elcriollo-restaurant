@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { toast } from 'react-toastify';
+import { authService } from './authService';
 
 // Configuración base de la API
 const API_BASE_URL = 'https://elcriolloapi.cjoga.cloud/api';
@@ -21,7 +22,7 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Agregar token JWT si está disponible
-    const token = localStorage.getItem('authToken');
+    const token = authService.getStoredToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -75,36 +76,16 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-
-          const { token, refreshToken: newRefreshToken } = response.data;
-
-          // Actualizar tokens en localStorage
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('refreshToken', newRefreshToken);
-
-          // Reintentar request original con nuevo token
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        const newAuthResponse = await authService.refreshToken();
+        if (newAuthResponse) {
+          originalRequest.headers.Authorization = `Bearer ${newAuthResponse.token}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
         console.error('❌ Token refresh failed:', refreshError);
-
-        // Limpiar tokens y redirigir al login
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-
-        // Notificar al usuario
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-
-        // Redirigir al login
+        authService.logout(); // Centralizar el logout
         window.location.href = '/login';
-
+        toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
         return Promise.reject(refreshError);
       }
     }

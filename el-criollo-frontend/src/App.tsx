@@ -12,6 +12,8 @@ import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import AdminRoutes from '@/routes/AdminRoutes';
 import { useAuth } from '@/contexts/AuthContext';
+import { MesasPage } from '@/pages/MesasPage';
+import { AuthenticatedLayout } from '@/components/layout/AuthenticatedLayout';
 
 // ====================================
 // COMPONENTE PRINCIPAL
@@ -24,43 +26,29 @@ const App: React.FC = () => {
         <div className="App min-h-screen bg-warm-beige">
           {/* Rutas principales */}
           <Routes>
-            {/* Ruta raíz - redirige inteligentemente */}
-            <Route path="/" element={<SmartRedirect />} />
-
-            {/* Login público */}
+            {/* Login es público */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Dashboard básico para roles no-admin */}
+            {/* Rutas que requieren autenticación */}
             <Route
-              path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <AuthenticatedLayout />
                 </ProtectedRoute>
               }
-            />
-
-            {/* Rutas administrativas */}
-            <Route
-              path="/admin/*"
-              element={
-                <AdminRoute>
-                  <AdminRoutes />
-                </AdminRoute>
-              }
-            />
-
-            {/* TODO: Futuras rutas específicas por rol */}
-            {/* 
-            <Route 
-              path="/caja/*" 
-              element={
-                <CajeroRoute>
-                  <CajeroRoutes />
-                </CajeroRoute>
-              } 
-            />
-            */}
+            >
+              <Route path="/" element={<SmartRedirect />} />
+              <Route path="/mesas" element={<MesasPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route
+                path="/admin/*"
+                element={
+                  <AdminRoute>
+                    <AdminRoutes />
+                  </AdminRoute>
+                }
+              />
+            </Route>
 
             {/* Ruta catch-all para 404 */}
             <Route path="*" element={<NotFoundPage />} />

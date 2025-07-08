@@ -140,52 +140,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ====================================
   useEffect(() => {
     const initializeAuth = async () => {
+      dispatch({ type: 'AUTH_START' });
       try {
-        dispatch({ type: 'AUTH_START' });
-
-        const user = authService.getStoredUser();
         const token = authService.getStoredToken();
         const refreshToken = authService.getStoredRefreshToken();
+        const user = authService.getStoredUser();
 
-        if (user && token && refreshToken) {
-          const isValid = await authService.validateToken(token);
-          if (isValid) {
-            dispatch({
-              type: 'AUTH_SUCCESS',
-              payload: { user, token, refreshToken },
-            });
-            console.log('✅ Autenticación restaurada:', user.usuario);
+        if (token && refreshToken && user) {
+          if (!authService.isTokenExpired(token)) {
+            // El token de acceso es válido
+            dispatch({ type: 'AUTH_SUCCESS', payload: { user, token, refreshToken } });
+            console.log('✅ Sesión restaurada con token válido:', user.usuario);
           } else {
-            // Si el token no es válido, intentar refrescarlo
-            const newToken = await authService.refreshToken();
-            if (newToken) {
-              const refreshedUser = authService.getStoredUser();
-              const refreshedRefreshToken = authService.getStoredRefreshToken();
-              if (refreshedUser && refreshedRefreshToken) {
-                dispatch({
-                  type: 'AUTH_SUCCESS',
-                  payload: {
-                    user: refreshedUser,
-                    token: newToken,
-                    refreshToken: refreshedRefreshToken,
-                  },
-                });
-                console.log('✅ Autenticación restaurada con nuevo token:', refreshedUser.usuario);
-              }
+            // El token de acceso expiró, intentar refrescar
+            console.warn('⚠️ Token de acceso expirado, intentando refrescar...');
+            const newAuthResponse = await authService.refreshToken();
+            if (newAuthResponse) {
+              dispatch({
+                type: 'AUTH_SUCCESS',
+                payload: {
+                  user: newAuthResponse.usuario,
+                  token: newAuthResponse.token,
+                  refreshToken: newAuthResponse.refreshToken,
+                },
+              });
+              console.log(
+                '✅ Sesión restaurada con token refrescado:',
+                newAuthResponse.usuario.usuario
+              );
             } else {
+              console.error('❌ Falló el refresco del token, cerrando sesión.');
               dispatch({ type: 'AUTH_LOGOUT' });
             }
           }
         } else {
-          // Si no hay datos válidos, limpiar estado
+          // No hay datos de sesión, no hacer nada y dejar que el usuario inicie sesión
           dispatch({ type: 'AUTH_LOGOUT' });
         }
-      } catch (error: any) {
-        console.error('❌ Error inicializando autenticación:', error);
-        dispatch({
-          type: 'AUTH_FAILURE',
-          payload: 'Error al inicializar la sesión',
-        });
+      } catch (error) {
+        console.error('❌ Error al inicializar la autenticación:', error);
+        dispatch({ type: 'AUTH_LOGOUT' });
       }
     };
 
@@ -267,17 +261,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const checkAuth = async (): Promise<void> => {
-    dispatch({ type: 'AUTH_SET_LOADING', payload: true });
-    const token = authService.getStoredToken();
-    if (token) {
-      const isValid = await authService.validateToken(token);
-      if (!isValid) {
-        await authService.refreshToken();
-      }
-    } else {
-      dispatch({ type: 'AUTH_LOGOUT' });
+    // Esta función ahora solo asegura que el estado de carga no interfiera.
+    // La lógica principal está en `initializeAuth`.
+    if (state.isLoading) {
+      // Esperar a que termine la inicialización si aún está en proceso
+      await new Promise((resolve) => {
+        const check = () => {
+          if (!state.isLoading) resolve(true);
+          else setTimeout(check, 50);
+        };
+        check();
+      });
     }
-    dispatch({ type: 'AUTH_SET_LOADING', payload: false });
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {

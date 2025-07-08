@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
   padding?: 'none' | 'sm' | 'md' | 'lg';
@@ -16,6 +16,7 @@ const Card: React.FC<CardProps> = ({
   shadow = 'md',
   rounded = 'md',
   hover = false,
+  ...props
 }) => {
   const paddingClasses = {
     none: '',
@@ -40,16 +41,19 @@ const Card: React.FC<CardProps> = ({
 
   const hoverClass = hover ? 'hover:shadow-lg smooth-transition' : '';
 
+  const hasBgColor = className.includes('bg-');
+
   return (
     <div
       className={`
-        bg-white
+        ${!hasBgColor && 'bg-white'}
         ${paddingClasses[padding]}
         ${shadowClasses[shadow]}
         ${roundedClasses[rounded]}
         ${hoverClass}
         ${className}
       `}
+      {...props}
     >
       {children}
     </div>

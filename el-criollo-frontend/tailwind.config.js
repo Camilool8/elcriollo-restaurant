@@ -1,28 +1,57 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        // Colores dominicanos principales
-        'dominican-red': '#CF142B',
-        'dominican-blue': '#002D62',
-        'dominican-white': '#FFFFFF',
-        
+        'dominican-red': {
+          DEFAULT: '#C41E3A',
+          50: '#FBE9EC',
+          100: '#F6D3DA',
+          200: '#EFA7B6',
+          300: '#E87B91',
+          400: '#E14F6D',
+          500: '#C41E3A',
+          600: '#A51931',
+          700: '#861428',
+          800: '#68101F',
+          900: '#490B15',
+        },
+        'dominican-blue': {
+          DEFAULT: '#002D62',
+          50: '#E6EAF0',
+          100: '#BFCBDB',
+          200: '#99ACC7',
+          300: '#738EB2',
+          400: '#4D709E',
+          500: '#002D62',
+          600: '#002653',
+          700: '#001E44',
+          800: '#001735',
+          900: '#001026',
+        },
+        'palm-green': {
+          DEFAULT: '#3A7D44',
+          50: '#ECF2ED',
+          100: '#D8E5DA',
+          200: '#B2CBBB',
+          300: '#8CB09B',
+          400: '#65967C',
+          500: '#3A7D44',
+          600: '#326B3B',
+          700: '#2A5A32',
+          800: '#224828',
+          900: '#1A361F',
+        },
+        'warm-beige': '#F5F5DC',
+        'stone-gray': '#6B7280',
+
         // Colores complementarios del Caribe
         'caribbean-gold': '#FFD700',
-        'palm-green': '#228B22',
         'sunset-orange': '#FF6B35',
-        
-        // Neutros cálidos
-        'stone-gray': '#6B7280',
-        'warm-beige': '#F5F5DC',
-        
+
         // Variaciones para UI
-        'red': {
+        red: {
           50: '#fef2f2',
           100: '#fee2e2',
           200: '#fecaca',
@@ -34,7 +63,7 @@ export default {
           800: '#991b1b',
           900: '#7f1d1d',
         },
-        'blue': {
+        blue: {
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -48,14 +77,48 @@ export default {
         },
       },
       fontFamily: {
-        'sans': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
-        'heading': ['Poppins', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
-        'mono': ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+        sans: [
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'Noto Sans',
+          'sans-serif',
+        ],
+        heading: [
+          'Poppins',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'Noto Sans',
+          'sans-serif',
+        ],
+        mono: [
+          'JetBrains Mono',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          'Liberation Mono',
+          'Courier New',
+          'monospace',
+        ],
       },
       spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-        '128': '32rem',
+        18: '4.5rem',
+        88: '22rem',
+        128: '32rem',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -78,8 +141,9 @@ export default {
         },
       },
       boxShadow: {
-        'caribbean': '0 4px 6px -1px rgba(207, 20, 43, 0.1), 0 2px 4px -1px rgba(207, 20, 43, 0.06)',
-        'caribbean-lg': '0 10px 15px -3px rgba(207, 20, 43, 0.1), 0 4px 6px -2px rgba(207, 20, 43, 0.05)',
+        caribbean: '0 4px 6px -1px rgba(207, 20, 43, 0.1), 0 2px 4px -1px rgba(207, 20, 43, 0.06)',
+        'caribbean-lg':
+          '0 10px 15px -3px rgba(207, 20, 43, 0.1), 0 4px 6px -2px rgba(207, 20, 43, 0.05)',
       },
       backdropBlur: {
         xs: '2px',
@@ -88,7 +152,7 @@ export default {
   },
   plugins: [
     // Plugin para formularios
-    function({ addUtilities }) {
+    function ({ addUtilities }) {
       addUtilities({
         '.smooth-transition': {
           transition: 'all 0.2s ease-in-out',
@@ -113,4 +177,4 @@ export default {
       });
     },
   ],
-}
+};
