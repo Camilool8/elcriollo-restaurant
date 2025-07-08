@@ -1,0 +1,307 @@
+---
+# Secret para configuración de El Criollo API
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elcriollo-api-secret
+  namespace: elcriollo
+type: Opaque
+data:
+  # JWT Secret Key: ElCriollo2024_Production_SecretKey_SuperSecure_MinimumOf32Characters!
+  JWT_SECRET_KEY: RWxDcmlvbGxvMjAyNF9Qcm9kdWN0aW9uX1NlY3JldEtleV9TdXBlclNlY3VyZV9NaW5pbXVtT2YzMkNoYXJhY3RlcnMh
+  # Database Connection String (con TrustServerCertificate=true y Encrypt=false para SQL Server 2022)
+  DB_CONNECTION_STRING: U2VydmVyPXNxbHNlcnZlci1zZXJ2aWNlLDE0MzM7RGF0YWJhc2U9RWxDcmlvbGxvUmVzdGF1cmFudGU7VXNlciBJZD1zYTtQYXNzd29yZD1FbENyaW9sbG8yMDI0ITtNdWx0aXBsZUFjdGl2ZVJlc3VsdFNldHM9dHJ1ZTtUcnVzdFNlcnZlckNlcnRpZmljYXRlPXRydWU7RW5jcnlwdD1mYWxzZTs=
+  # Email Settings (Gmail)
+  EMAIL_USERNAME: am9zZWpvZ2Eub3B4QGdtYWlsLmNvbQ==
+  EMAIL_PASSWORD: dWRpbXZxeGZqamt3ZXVidA==
+
+---
+# ConfigMap para configuración de la aplicación
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elcriollo-api-config
+  namespace: elcriollo
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  ASPNETCORE_HTTP_PORTS: "8080"
+  JWT_ISSUER: "ElCriolloAPI"
+  JWT_AUDIENCE: "ElCriolloClients"
+  JWT_EXPIRY_MINUTES: "60"
+  JWT_REFRESH_EXPIRY_DAYS: "7"
+  EMAIL_SMTP_SERVER: "smtp.gmail.com"
+  EMAIL_SMTP_PORT: "587"
+  EMAIL_ENABLE_SSL: "true"
+  EMAIL_FROM_EMAIL: "elcriollo.restaurant@gmail.com"
+  EMAIL_FROM_NAME: "Restaurante El Criollo"
+  EMAIL_ENABLE_SENDING: "true"
+  EMAIL_SAVE_TO_FILE: "false"
+  TAX_RATE: "0.18"
+  SERVICE_CHARGE_RATE: "0.10"
+  ENABLE_SWAGGER: "true"
+  ENABLE_SEED_DATA: "true"
+  ENABLE_AUTO_MIGRATION: "true"
+
+---
+# Deployment de El Criollo API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elcriollo-api-deployment
+  namespace: elcriollo
+  labels:
+    app: elcriollo-api
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: elcriollo-api
+  template:
+    metadata:
+      labels:
+        app: elcriollo-api
+    spec:
+      containers:
+        - name: elcriollo-api
+          image: cjoga/elcriollo-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            # Configuración desde ConfigMap
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ASPNETCORE_ENVIRONMENT
+            - name: ASPNETCORE_URLS
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ASPNETCORE_URLS
+            - name: ASPNETCORE_HTTP_PORTS
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ASPNETCORE_HTTP_PORTS
+
+            # JWT Configuration
+            - name: JwtSettings__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: elcriollo-api-secret
+                  key: JWT_SECRET_KEY
+            - name: JwtSettings__Issuer
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: JWT_ISSUER
+            - name: JwtSettings__Audience
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: JWT_AUDIENCE
+            - name: JwtSettings__ExpiryInMinutes
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: JWT_EXPIRY_MINUTES
+            - name: JwtSettings__RefreshTokenExpiryInDays
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: JWT_REFRESH_EXPIRY_DAYS
+
+            # Database Configuration
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: elcriollo-api-secret
+                  key: DB_CONNECTION_STRING
+
+            # Email Configuration
+            - name: EmailSettings__SmtpServer
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_SMTP_SERVER
+            - name: EmailSettings__SmtpPort
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_SMTP_PORT
+            - name: EmailSettings__EnableSsl
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_ENABLE_SSL
+            - name: EmailSettings__FromEmail
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_FROM_EMAIL
+            - name: EmailSettings__FromName
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_FROM_NAME
+            - name: EmailSettings__Username
+              valueFrom:
+                secretKeyRef:
+                  name: elcriollo-api-secret
+                  key: EMAIL_USERNAME
+            - name: EmailSettings__Password
+              valueFrom:
+                secretKeyRef:
+                  name: elcriollo-api-secret
+                  key: EMAIL_PASSWORD
+            - name: EmailSettings__EnableEmailSending
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_ENABLE_SENDING
+            - name: EmailSettings__SaveEmailsToFile
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: EMAIL_SAVE_TO_FILE
+
+            # Business Rules
+            - name: BusinessRules__TaxRate
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: TAX_RATE
+            - name: BusinessRules__ServiceChargeRate
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: SERVICE_CHARGE_RATE
+
+            # Developer Settings
+            - name: DeveloperSettings__EnableSwagger
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ENABLE_SWAGGER
+            - name: DeveloperSettings__EnableSeedData
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ENABLE_SEED_DATA
+            - name: DeveloperSettings__EnableAutoMigration
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-api-config
+                  key: ENABLE_AUTO_MIGRATION
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: logs-volume
+              mountPath: /app/logs
+
+      volumes:
+        - name: logs-volume
+          emptyDir: {}
+
+      # Esperar a que SQL Server esté disponible
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command:
+            - "sh"
+            - "-c"
+            - 'until nc -z sqlserver-service 1433; do echo "Esperando SQL Server..."; sleep 5; done; echo "SQL Server está disponible!"'
+
+---
+# Service para El Criollo API
+apiVersion: v1
+kind: Service
+metadata:
+  name: elcriollo-api-service
+  namespace: elcriollo
+  labels:
+    app: elcriollo-api
+spec:
+  selector:
+    app: elcriollo-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+
+---
+# IngressRoute para acceso externo a la API
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: elcriollo-api-ingress
+  namespace: elcriollo
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`elcriolloapi.cjoga.cloud`)
+      kind: Rule
+      services:
+        - name: elcriollo-api-service
+          port: 80
+      middlewares:
+        - name: api-cors
+          namespace: elcriollo
+
+---
+# Middleware para CORS
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-cors
+  namespace: elcriollo
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+    accessControlAllowHeaders:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+    accessControlAllowCredentials: true
+    accessControlMaxAge: 86400

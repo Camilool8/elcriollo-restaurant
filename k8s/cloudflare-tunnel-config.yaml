@@ -1,0 +1,40 @@
+---
+# ConfigMap actualizado para Cloudflare Tunnel incluyendo El Criollo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    tunnel: b7ab5fe0-38a0-4ec9-ba08-09befc75957a
+    credentials-file: /etc/cloudflared/creds/credentials.json
+
+    ingress:
+      # El Criollo API
+      - hostname: elcriolloapi.cjoga.cloud
+        service: http://elcriollo-api-service.elcriollo.svc.cluster.local:80
+        
+      # El Criollo Database (acceso externo para administración)
+      - hostname: db.cjoga.cloud
+        service: tcp://sqlserver-service.elcriollo.svc.cluster.local:1433
+        
+      # Portfolio existente
+      - hostname: cjoga.cloud
+        service: http://portfolio-svc.default.svc.cluster.local:80
+        
+      - hostname: www.cjoga.cloud
+        service: http://portfolio-svc.default.svc.cluster.local:80
+        
+      # Dashboard de Kubernetes
+      - hostname: dashboard.cjoga.cloud
+        service: https://kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local:443
+        originRequest:
+          noTLSVerify: true
+          
+      # Kubeconfig provider
+      - hostname: getconfig.cjoga.cloud
+        service: http://kubeconfig-provider-svc.kube-system.svc.cluster.local:80
+        
+      # Catch-all rule (debe ser el último)
+      - service: http_status:404

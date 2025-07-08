@@ -1,0 +1,152 @@
+---
+# Secret para credenciales de SQL Server
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sqlserver-secret
+  namespace: elcriollo
+type: Opaque
+data:
+  # Usuario: sa
+  # Contraseña: ElCriollo2024!
+  SA_PASSWORD: RWxDcmlvbGxvMjAyNCE=
+
+---
+# PersistentVolumeClaim para datos de SQL Server
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlserver-data-pvc
+  namespace: elcriollo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path # Usar local-path de k3s
+
+---
+# Deployment de SQL Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlserver-deployment
+  namespace: elcriollo
+  labels:
+    app: sqlserver
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+    spec:
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1433
+              name: mssql
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: SA_PASSWORD
+            - name: MSSQL_PID
+              value: "Express"
+            - name: MSSQL_COLLATION
+              value: "SQL_Latin1_General_CP1_CI_AS"
+          volumeMounts:
+            - name: sqlserver-data
+              mountPath: /var/opt/mssql
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /opt/mssql-tools18/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - $(SA_PASSWORD)
+                - -C
+                - -Q
+                - "SELECT 1"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /opt/mssql-tools18/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - $(SA_PASSWORD)
+                - -C
+                - -Q
+                - "SELECT 1"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: sqlserver-data
+          persistentVolumeClaim:
+            claimName: sqlserver-data-pvc
+
+---
+# Service para SQL Server
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver-service
+  namespace: elcriollo
+  labels:
+    app: sqlserver
+spec:
+  selector:
+    app: sqlserver
+  ports:
+    - name: mssql
+      port: 1433
+      targetPort: 1433
+      protocol: TCP
+  type: ClusterIP
+
+---
+# IngressRoute para acceso externo a SQL Server (opcional, para administración)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: sqlserver-ingress
+  namespace: elcriollo
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostSNI(`db.cjoga.cloud`)
+      services:
+        - name: sqlserver-service
+          port: 1433
+  tls:
+    passthrough: true

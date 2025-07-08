@@ -1,0 +1,104 @@
+---
+# Job para inicializar la base de datos de SQL Server
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlserver-init-job
+  namespace: elcriollo
+  labels:
+    app: sqlserver-init
+    component: database-setup
+spec:
+  template:
+    metadata:
+      labels:
+        app: sqlserver-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: sqlserver-init
+          image: mcr.microsoft.com/mssql-tools18:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: SA_PASSWORD
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "🔄 Esperando a que SQL Server esté disponible..."
+
+              # Esperar hasta que SQL Server esté disponible
+              until /opt/mssql-tools18/bin/sqlcmd -S sqlserver-service -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; do
+                echo "⏳ SQL Server no está listo todavía. Esperando 10 segundos..."
+                sleep 10
+              done
+
+              echo "✅ SQL Server está disponible. Iniciando configuración..."
+
+              # Crear la base de datos si no existe
+              echo "📊 Creando base de datos ElCriolloRestaurante..."
+              /opt/mssql-tools18/bin/sqlcmd -S sqlserver-service -U sa -P "$SA_PASSWORD" -C -Q "
+              IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'ElCriolloRestaurante')
+              BEGIN
+                  CREATE DATABASE ElCriolloRestaurante;
+                  PRINT 'Base de datos ElCriolloRestaurante creada exitosamente.';
+              END
+              ELSE
+              BEGIN
+                  PRINT 'Base de datos ElCriolloRestaurante ya existe.';
+              END
+              "
+
+              # Verificar que la base de datos fue creada
+              echo "🔍 Verificando creación de la base de datos..."
+              /opt/mssql-tools18/bin/sqlcmd -S sqlserver-service -U sa -P "$SA_PASSWORD" -C -d ElCriolloRestaurante -Q "
+              SELECT 
+                  DB_NAME() as DatabaseName,
+                  GETDATE() as CurrentTime,
+                  'Database initialized successfully' as Status
+              "
+
+              # Crear un usuario específico para la aplicación (opcional)
+              echo "👤 Configurando usuario de aplicación..."
+              /opt/mssql-tools18/bin/sqlcmd -S sqlserver-service -U sa -P "$SA_PASSWORD" -C -d ElCriolloRestaurante -Q "
+              IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'elcriollo_user')
+              BEGIN
+                  CREATE LOGIN elcriollo_user WITH PASSWORD = 'ElCriollo2024App!';
+                  PRINT 'Login elcriollo_user creado.';
+              END
+
+              IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'elcriollo_user')
+              BEGIN
+                  CREATE USER elcriollo_user FOR LOGIN elcriollo_user;
+                  ALTER ROLE db_owner ADD MEMBER elcriollo_user;
+                  PRINT 'Usuario elcriollo_user creado y configurado.';
+              END
+              "
+
+              echo "🎉 Inicialización de base de datos completada exitosamente!"
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+      # Esperar a que el servicio de SQL Server esté disponible
+      initContainers:
+        - name: wait-for-sqlserver-service
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command:
+            - "sh"
+            - "-c"
+            - 'until nc -z sqlserver-service 1433; do echo "Esperando servicio SQL Server..."; sleep 5; done; echo "Servicio SQL Server disponible!"'
+
+  # Configuración del Job
+  backoffLimit: 3 # Máximo 3 reintentos
+  activeDeadlineSeconds: 600 # Timeout de 10 minutos
