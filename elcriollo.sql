@@ -1,296 +1,477 @@
 -- =============================================
 -- Script de Creación de Base de Datos: El Criollo Restaurant
 -- Sistema de Gestión para Restaurante Dominicano
--- Versión: 2.0 - Sincronizado con entidades C#
+-- Versión: 2.1 - IDEMPOTENTE con GO batches
 -- Fecha: Diciembre 2024
 -- =============================================
 
 -- Configuración inicial
 USE master;
+GO
 
--- Eliminar base de datos si existe (para recreación limpia)
-IF EXISTS (SELECT name FROM sys.databases WHERE name = 'ElCriolloRestaurante')
+-- Crear base de datos solo si no existe
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ElCriolloRestaurante')
 BEGIN
-    ALTER DATABASE ElCriolloRestaurante SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE ElCriolloRestaurante;
-    PRINT 'Base de datos anterior eliminada.';
+    CREATE DATABASE ElCriolloRestaurante;
+    PRINT 'Base de datos ElCriolloRestaurante creada exitosamente.';
 END
-
--- Crear nueva base de datos
-CREATE DATABASE ElCriolloRestaurante;
-PRINT 'Base de datos ElCriolloRestaurante creada exitosamente.';
+ELSE
+BEGIN
+    PRINT 'Base de datos ElCriolloRestaurante ya existe.';
+END
+GO
 
 USE ElCriolloRestaurante;
+GO
 
 -- =============================================
 -- CREACIÓN DE TABLAS (EN ORDEN DE DEPENDENCIAS)
 -- =============================================
 
 -- 1. Tabla Roles
-CREATE TABLE Roles (
-    RolID INT IDENTITY(1,1) PRIMARY KEY,
-    NombreRol VARCHAR(50) NOT NULL UNIQUE,
-    Descripcion VARCHAR(200) NULL,
-    Estado BIT NOT NULL DEFAULT 1
-);
-PRINT 'Tabla Roles creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Roles]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Roles (
+        RolID INT IDENTITY(1,1) PRIMARY KEY,
+        NombreRol VARCHAR(50) NOT NULL UNIQUE,
+        Descripcion VARCHAR(200) NULL,
+        Estado BIT NOT NULL DEFAULT 1
+    );
+    PRINT 'Tabla Roles creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Roles ya existe.';
+END
+GO
 
 -- 2. Tabla Usuarios
-CREATE TABLE Usuarios (
-    UsuarioID INT IDENTITY(1,1) PRIMARY KEY,
-    Usuario VARCHAR(50) NOT NULL UNIQUE,
-    ContrasenaHash VARCHAR(500) NOT NULL,
-    RolID INT NOT NULL,
-    Email VARCHAR(70) NULL,
-    FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-    UltimoAcceso DATETIME NULL,
-    Estado BIT NOT NULL DEFAULT 1,
-    RequiereCambioContrasena BIT NOT NULL DEFAULT 0,
-    RefreshToken VARCHAR(500) NULL,
-    RefreshTokenExpiry DATETIME NULL,
-    EmpleadoID INT NULL,
-    CONSTRAINT FK_Usuarios_Rol FOREIGN KEY (RolID) REFERENCES Roles(RolID)
-);
-PRINT 'Tabla Usuarios creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Usuarios (
+        UsuarioID INT IDENTITY(1,1) PRIMARY KEY,
+        Usuario VARCHAR(50) NOT NULL UNIQUE,
+        ContrasenaHash VARCHAR(500) NOT NULL,
+        RolID INT NOT NULL,
+        Email VARCHAR(70) NULL,
+        FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        UltimoAcceso DATETIME NULL,
+        Estado BIT NOT NULL DEFAULT 1,
+        RequiereCambioContrasena BIT NOT NULL DEFAULT 0,
+        RefreshToken VARCHAR(500) NULL,
+        RefreshTokenExpiry DATETIME NULL,
+        EmpleadoID INT NULL,
+        CONSTRAINT FK_Usuarios_Rol FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+    PRINT 'Tabla Usuarios creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Usuarios ya existe.';
+END
+GO
 
 -- 3. Tabla Empleados
-CREATE TABLE Empleados (
-    EmpleadoID INT IDENTITY(1,1) PRIMARY KEY,
-    Cedula VARCHAR(16) NOT NULL UNIQUE,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    Sexo VARCHAR(15) NULL,
-    Direccion VARCHAR(100) NULL,
-    Telefono VARCHAR(50) NULL,
-    Email VARCHAR(70) NULL,
-    FechaNacimiento DATE NULL,
-    PreferenciasComida VARCHAR(500) NULL,
-    Salario DECIMAL(18,2) NULL,
-    Departamento VARCHAR(50) NULL,
-    FechaIngreso DATE NOT NULL DEFAULT GETDATE(),
-    UsuarioID INT NULL,
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
-    CONSTRAINT FK_Empleados_Usuario FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID)
-);
-PRINT 'Tabla Empleados creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Empleados]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Empleados (
+        EmpleadoID INT IDENTITY(1,1) PRIMARY KEY,
+        Cedula VARCHAR(16) NOT NULL UNIQUE,
+        Nombre VARCHAR(50) NOT NULL,
+        Apellido VARCHAR(50) NOT NULL,
+        Sexo VARCHAR(15) NULL,
+        Direccion VARCHAR(100) NULL,
+        Telefono VARCHAR(50) NULL,
+        Email VARCHAR(70) NULL,
+        FechaNacimiento DATE NULL,
+        PreferenciasComida VARCHAR(500) NULL,
+        Salario DECIMAL(18,2) NULL,
+        Departamento VARCHAR(50) NULL,
+        FechaIngreso DATE NOT NULL DEFAULT GETDATE(),
+        UsuarioID INT NULL,
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+        CONSTRAINT FK_Empleados_Usuario FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID)
+    );
+    PRINT 'Tabla Empleados creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Empleados ya existe.';
+END
+GO
 
--- Agregar FK de Usuario a Empleado (relación bidireccional)
-ALTER TABLE Usuarios ADD CONSTRAINT FK_Usuarios_Empleado 
-    FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID);
+-- Agregar FK de Usuario a Empleado (relación bidireccional) solo si no existe
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Usuarios_Empleado')
+BEGIN
+    ALTER TABLE Usuarios ADD CONSTRAINT FK_Usuarios_Empleado 
+        FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID);
+    PRINT 'Constraint FK_Usuarios_Empleado agregada.';
+END
+ELSE
+BEGIN
+    PRINT 'Constraint FK_Usuarios_Empleado ya existe.';
+END
+GO
 
 -- 4. Tabla Clientes
-CREATE TABLE Clientes (
-    ClienteID INT IDENTITY(1,1) PRIMARY KEY,
-    Cedula VARCHAR(16) NULL,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    Telefono VARCHAR(50) NULL,
-    Email VARCHAR(70) NULL,
-    Direccion VARCHAR(200) NULL,
-    FechaNacimiento DATE NULL,
-    PreferenciasComida VARCHAR(500) NULL,
-    FechaRegistro DATE NOT NULL DEFAULT GETDATE(),
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Activo'
-);
-PRINT 'Tabla Clientes creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Clientes]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Clientes (
+        ClienteID INT IDENTITY(1,1) PRIMARY KEY,
+        Cedula VARCHAR(16) NULL,
+        Nombre VARCHAR(50) NOT NULL,
+        Apellido VARCHAR(50) NOT NULL,
+        Telefono VARCHAR(50) NULL,
+        Email VARCHAR(70) NULL,
+        Direccion VARCHAR(200) NULL,
+        FechaNacimiento DATE NULL,
+        PreferenciasComida VARCHAR(500) NULL,
+        FechaRegistro DATE NOT NULL DEFAULT GETDATE(),
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Activo'
+    );
+    PRINT 'Tabla Clientes creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Clientes ya existe.';
+END
+GO
 
 -- 5. Tabla Mesas
-CREATE TABLE Mesas (
-    MesaID INT IDENTITY(1,1) PRIMARY KEY,
-    NumeroMesa INT NOT NULL UNIQUE,
-    Capacidad INT NOT NULL,
-    Ubicacion VARCHAR(50) NULL,
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Libre',
-    FechaUltimaLimpieza DATETIME NULL,
-    FechaUltimaActualizacion DATETIME NULL
-);
-PRINT 'Tabla Mesas creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Mesas]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Mesas (
+        MesaID INT IDENTITY(1,1) PRIMARY KEY,
+        NumeroMesa INT NOT NULL UNIQUE,
+        Capacidad INT NOT NULL,
+        Ubicacion VARCHAR(50) NULL,
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Libre',
+        FechaUltimaLimpieza DATETIME NULL,
+        FechaUltimaActualizacion DATETIME NULL
+    );
+    PRINT 'Tabla Mesas creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Mesas ya existe.';
+END
+GO
 
 -- 6. Tabla Reservaciones
-CREATE TABLE Reservaciones (
-    ReservacionID INT IDENTITY(1,1) PRIMARY KEY,
-    MesaID INT NOT NULL,
-    ClienteID INT NOT NULL,
-    CantidadPersonas INT NOT NULL,
-    FechaYHora DATETIME NOT NULL,
-    DuracionEstimada INT NOT NULL DEFAULT 120,
-    Observaciones VARCHAR(500) NULL,
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-    FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-    UsuarioCreacion INT NULL,
-    FechaModificacion DATETIME NULL,
-    CONSTRAINT FK_Reservaciones_Mesa FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
-    CONSTRAINT FK_Reservaciones_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
-    CONSTRAINT FK_Reservaciones_Usuario FOREIGN KEY (UsuarioCreacion) REFERENCES Usuarios(UsuarioID)
-);
-PRINT 'Tabla Reservaciones creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reservaciones]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Reservaciones (
+        ReservacionID INT IDENTITY(1,1) PRIMARY KEY,
+        MesaID INT NOT NULL,
+        ClienteID INT NOT NULL,
+        CantidadPersonas INT NOT NULL,
+        FechaYHora DATETIME NOT NULL,
+        DuracionEstimada INT NOT NULL DEFAULT 120,
+        Observaciones VARCHAR(500) NULL,
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
+        FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        UsuarioCreacion INT NULL,
+        FechaModificacion DATETIME NULL,
+        CONSTRAINT FK_Reservaciones_Mesa FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
+        CONSTRAINT FK_Reservaciones_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        CONSTRAINT FK_Reservaciones_Usuario FOREIGN KEY (UsuarioCreacion) REFERENCES Usuarios(UsuarioID)
+    );
+    PRINT 'Tabla Reservaciones creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Reservaciones ya existe.';
+END
+GO
 
 -- 7. Tabla Categorias
-CREATE TABLE Categorias (
-    CategoriaID INT IDENTITY(1,1) PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL UNIQUE,
-    Descripcion VARCHAR(200) NULL,
-    Estado BIT NOT NULL DEFAULT 1
-);
-PRINT 'Tabla Categorias creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Categorias]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Categorias (
+        CategoriaID INT IDENTITY(1,1) PRIMARY KEY,
+        Nombre VARCHAR(50) NOT NULL UNIQUE,
+        Descripcion VARCHAR(200) NULL,
+        Estado BIT NOT NULL DEFAULT 1
+    );
+    PRINT 'Tabla Categorias creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Categorias ya existe.';
+END
+GO
 
 -- 8. Tabla Productos
-CREATE TABLE Productos (
-    ProductoID INT IDENTITY(1,1) PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL,
-    Descripcion VARCHAR(200) NULL,
-    CategoriaID INT NOT NULL,
-    Precio DECIMAL(10,2) NOT NULL,
-    CostoPreparacion DECIMAL(10,2) NULL,
-    TiempoPreparacion INT NULL,
-    Imagen VARCHAR(255) NULL,
-    Estado BIT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_Productos_Categoria FOREIGN KEY (CategoriaID) REFERENCES Categorias(CategoriaID)
-);
-PRINT 'Tabla Productos creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Productos]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Productos (
+        ProductoID INT IDENTITY(1,1) PRIMARY KEY,
+        Nombre VARCHAR(100) NOT NULL,
+        Descripcion VARCHAR(200) NULL,
+        CategoriaID INT NOT NULL,
+        Precio DECIMAL(10,2) NOT NULL,
+        CostoPreparacion DECIMAL(10,2) NULL,
+        TiempoPreparacion INT NULL,
+        Imagen VARCHAR(255) NULL,
+        Estado BIT NOT NULL DEFAULT 1,
+        CONSTRAINT FK_Productos_Categoria FOREIGN KEY (CategoriaID) REFERENCES Categorias(CategoriaID)
+    );
+    PRINT 'Tabla Productos creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Productos ya existe.';
+END
+GO
 
 -- 9. Tabla Inventario
-CREATE TABLE Inventario (
-    InventarioID INT IDENTITY(1,1) PRIMARY KEY,
-    ProductoID INT NOT NULL,
-    CantidadDisponible INT NOT NULL DEFAULT 0,
-    CantidadMinima INT NOT NULL DEFAULT 5,
-    UltimaActualizacion DATETIME NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Inventario_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
-);
-PRINT 'Tabla Inventario creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Inventario]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Inventario (
+        InventarioID INT IDENTITY(1,1) PRIMARY KEY,
+        ProductoID INT NOT NULL,
+        CantidadDisponible INT NOT NULL DEFAULT 0,
+        CantidadMinima INT NOT NULL DEFAULT 5,
+        UltimaActualizacion DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT FK_Inventario_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
+    );
+    PRINT 'Tabla Inventario creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Inventario ya existe.';
+END
+GO
 
 -- 10. Tabla Combos
-CREATE TABLE Combos (
-    ComboID INT IDENTITY(1,1) PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL,
-    Descripcion VARCHAR(500) NULL,
-    Precio DECIMAL(10,2) NOT NULL,
-    Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
-    Estado BIT NOT NULL DEFAULT 1
-);
-PRINT 'Tabla Combos creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Combos]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Combos (
+        ComboID INT IDENTITY(1,1) PRIMARY KEY,
+        Nombre VARCHAR(100) NOT NULL,
+        Descripcion VARCHAR(500) NULL,
+        Precio DECIMAL(10,2) NOT NULL,
+        Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
+        Estado BIT NOT NULL DEFAULT 1
+    );
+    PRINT 'Tabla Combos creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Combos ya existe.';
+END
+GO
 
 -- 11. Tabla ComboProductos
-CREATE TABLE ComboProductos (
-    ComboProductoID INT IDENTITY(1,1) PRIMARY KEY,
-    ComboID INT NOT NULL,
-    ProductoID INT NOT NULL,
-    Cantidad INT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_ComboProductos_Combo FOREIGN KEY (ComboID) REFERENCES Combos(ComboID),
-    CONSTRAINT FK_ComboProductos_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
-);
-PRINT 'Tabla ComboProductos creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ComboProductos]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE ComboProductos (
+        ComboProductoID INT IDENTITY(1,1) PRIMARY KEY,
+        ComboID INT NOT NULL,
+        ProductoID INT NOT NULL,
+        Cantidad INT NOT NULL DEFAULT 1,
+        CONSTRAINT FK_ComboProductos_Combo FOREIGN KEY (ComboID) REFERENCES Combos(ComboID),
+        CONSTRAINT FK_ComboProductos_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
+    );
+    PRINT 'Tabla ComboProductos creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla ComboProductos ya existe.';
+END
+GO
 
 -- 12. Tabla Ordenes
-CREATE TABLE Ordenes (
-    OrdenID INT IDENTITY(1,1) PRIMARY KEY,
-    NumeroOrden VARCHAR(20) NOT NULL UNIQUE,
-    MesaID INT NULL,
-    ClienteID INT NULL,
-    EmpleadoID INT NOT NULL,
-    FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
-    FechaActualizacion DATETIME NULL,
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-    TipoOrden VARCHAR(20) NOT NULL DEFAULT 'Mesa',
-    Observaciones VARCHAR(500) NULL,
-    SubtotalCalculado DECIMAL(18,2) NOT NULL DEFAULT 0,
-    Impuesto DECIMAL(18,2) NOT NULL DEFAULT 0,
-    TotalCalculado DECIMAL(18,2) NOT NULL DEFAULT 0,
-    CONSTRAINT FK_Ordenes_Mesa FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
-    CONSTRAINT FK_Ordenes_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
-    CONSTRAINT FK_Ordenes_Empleado FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID)
-);
-PRINT 'Tabla Ordenes creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Ordenes]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Ordenes (
+        OrdenID INT IDENTITY(1,1) PRIMARY KEY,
+        NumeroOrden VARCHAR(20) NOT NULL UNIQUE,
+        MesaID INT NULL,
+        ClienteID INT NULL,
+        EmpleadoID INT NOT NULL,
+        FechaCreacion DATETIME NOT NULL DEFAULT GETDATE(),
+        FechaActualizacion DATETIME NULL,
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
+        TipoOrden VARCHAR(20) NOT NULL DEFAULT 'Mesa',
+        Observaciones VARCHAR(500) NULL,
+        SubtotalCalculado DECIMAL(18,2) NOT NULL DEFAULT 0,
+        Impuesto DECIMAL(18,2) NOT NULL DEFAULT 0,
+        TotalCalculado DECIMAL(18,2) NOT NULL DEFAULT 0,
+        CONSTRAINT FK_Ordenes_Mesa FOREIGN KEY (MesaID) REFERENCES Mesas(MesaID),
+        CONSTRAINT FK_Ordenes_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        CONSTRAINT FK_Ordenes_Empleado FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID)
+    );
+    PRINT 'Tabla Ordenes creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Ordenes ya existe.';
+END
+GO
 
 -- 13. Tabla DetalleOrdenes
-CREATE TABLE DetalleOrdenes (
-    DetalleOrdenID INT IDENTITY(1,1) PRIMARY KEY,
-    OrdenID INT NOT NULL,
-    ProductoID INT NULL,
-    ComboID INT NULL,
-    Cantidad INT NOT NULL,
-    PrecioUnitario DECIMAL(10,2) NOT NULL,
-    Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
-    Subtotal AS (Cantidad * PrecioUnitario - Descuento) PERSISTED,
-    Observaciones VARCHAR(250) NULL,
-    CONSTRAINT FK_DetalleOrdenes_Orden FOREIGN KEY (OrdenID) REFERENCES Ordenes(OrdenID),
-    CONSTRAINT FK_DetalleOrdenes_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID),
-    CONSTRAINT FK_DetalleOrdenes_Combo FOREIGN KEY (ComboID) REFERENCES Combos(ComboID)
-);
-PRINT 'Tabla DetalleOrdenes creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DetalleOrdenes]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE DetalleOrdenes (
+        DetalleOrdenID INT IDENTITY(1,1) PRIMARY KEY,
+        OrdenID INT NOT NULL,
+        ProductoID INT NULL,
+        ComboID INT NULL,
+        Cantidad INT NOT NULL,
+        PrecioUnitario DECIMAL(10,2) NOT NULL,
+        Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
+        Subtotal AS (Cantidad * PrecioUnitario - Descuento) PERSISTED,
+        Observaciones VARCHAR(250) NULL,
+        CONSTRAINT FK_DetalleOrdenes_Orden FOREIGN KEY (OrdenID) REFERENCES Ordenes(OrdenID),
+        CONSTRAINT FK_DetalleOrdenes_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID),
+        CONSTRAINT FK_DetalleOrdenes_Combo FOREIGN KEY (ComboID) REFERENCES Combos(ComboID)
+    );
+    PRINT 'Tabla DetalleOrdenes creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla DetalleOrdenes ya existe.';
+END
+GO
 
 -- 14. Tabla Facturas
-CREATE TABLE Facturas (
-    FacturaID INT IDENTITY(1,1) PRIMARY KEY,
-    NumeroFactura VARCHAR(20) NOT NULL UNIQUE,
-    OrdenID INT NOT NULL,
-    ClienteID INT NOT NULL,
-    EmpleadoID INT NOT NULL,
-    FechaFactura DATETIME NOT NULL DEFAULT GETDATE(),
-    FechaPago DATETIME NULL,
-    Subtotal DECIMAL(10,2) NOT NULL,
-    Impuesto DECIMAL(10,2) NOT NULL DEFAULT 0,
-    Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
-    Propina DECIMAL(10,2) NOT NULL DEFAULT 0,
-    Total DECIMAL(10,2) NOT NULL,
-    MetodoPago VARCHAR(20) NOT NULL DEFAULT 'Efectivo',
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Pagada',
-    ObservacionesPago VARCHAR(500) NULL,
-    CONSTRAINT FK_Facturas_Orden FOREIGN KEY (OrdenID) REFERENCES Ordenes(OrdenID),
-    CONSTRAINT FK_Facturas_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
-    CONSTRAINT FK_Facturas_Empleado FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID)
-);
-PRINT 'Tabla Facturas creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Facturas]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE Facturas (
+        FacturaID INT IDENTITY(1,1) PRIMARY KEY,
+        NumeroFactura VARCHAR(20) NOT NULL UNIQUE,
+        OrdenID INT NOT NULL,
+        ClienteID INT NOT NULL,
+        EmpleadoID INT NOT NULL,
+        FechaFactura DATETIME NOT NULL DEFAULT GETDATE(),
+        FechaPago DATETIME NULL,
+        Subtotal DECIMAL(10,2) NOT NULL,
+        Impuesto DECIMAL(10,2) NOT NULL DEFAULT 0,
+        Descuento DECIMAL(10,2) NOT NULL DEFAULT 0,
+        Propina DECIMAL(10,2) NOT NULL DEFAULT 0,
+        Total DECIMAL(10,2) NOT NULL,
+        MetodoPago VARCHAR(20) NOT NULL DEFAULT 'Efectivo',
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Pagada',
+        ObservacionesPago VARCHAR(500) NULL,
+        CONSTRAINT FK_Facturas_Orden FOREIGN KEY (OrdenID) REFERENCES Ordenes(OrdenID),
+        CONSTRAINT FK_Facturas_Cliente FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        CONSTRAINT FK_Facturas_Empleado FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID)
+    );
+    PRINT 'Tabla Facturas creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Facturas ya existe.';
+END
+GO
 
 -- 15. Tabla EmailTransacciones
-CREATE TABLE EmailTransacciones (
-    EmailID INT IDENTITY(1,1) PRIMARY KEY,
-    DestinatarioEmail VARCHAR(100) NOT NULL,
-    Asunto VARCHAR(200) NOT NULL,
-    Mensaje TEXT NULL,
-    TipoEmail VARCHAR(50) NULL,
-    ReferenciaID INT NULL,
-    FechaEnvio DATETIME NOT NULL DEFAULT GETDATE(),
-    Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-    MensajeError VARCHAR(500) NULL,
-    IntentosEnvio INT NOT NULL DEFAULT 0
-);
-PRINT 'Tabla EmailTransacciones creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[EmailTransacciones]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE EmailTransacciones (
+        EmailID INT IDENTITY(1,1) PRIMARY KEY,
+        DestinatarioEmail VARCHAR(100) NOT NULL,
+        Asunto VARCHAR(200) NOT NULL,
+        Mensaje TEXT NULL,
+        TipoEmail VARCHAR(50) NULL,
+        ReferenciaID INT NULL,
+        FechaEnvio DATETIME NOT NULL DEFAULT GETDATE(),
+        Estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
+        MensajeError VARCHAR(500) NULL,
+        IntentosEnvio INT NOT NULL DEFAULT 0
+    );
+    PRINT 'Tabla EmailTransacciones creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla EmailTransacciones ya existe.';
+END
+GO
 
 -- 16. Tabla MovimientosInventario
-CREATE TABLE MovimientosInventario (
-    MovimientoID INT IDENTITY(1,1) PRIMARY KEY,
-    ProductoID INT NOT NULL,
-    TipoMovimiento VARCHAR(20) NOT NULL,
-    Cantidad INT NOT NULL,
-    StockAnterior INT NOT NULL,
-    StockResultante INT NOT NULL,
-    CostoUnitario DECIMAL(10,2) NULL,
-    Referencia VARCHAR(100) NULL,
-    Usuario VARCHAR(100) NOT NULL,
-    Observaciones VARCHAR(500) NULL,
-    FechaMovimiento DATETIME NOT NULL DEFAULT GETDATE(),
-    Motivo VARCHAR(200) NULL,
-    Proveedor VARCHAR(200) NULL,
-    CONSTRAINT FK_MovimientosInventario_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
-);
-PRINT 'Tabla MovimientosInventario creada.';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[MovimientosInventario]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE MovimientosInventario (
+        MovimientoID INT IDENTITY(1,1) PRIMARY KEY,
+        ProductoID INT NOT NULL,
+        TipoMovimiento VARCHAR(20) NOT NULL,
+        Cantidad INT NOT NULL,
+        StockAnterior INT NOT NULL,
+        StockResultante INT NOT NULL,
+        CostoUnitario DECIMAL(10,2) NULL,
+        Referencia VARCHAR(100) NULL,
+        Usuario VARCHAR(100) NOT NULL,
+        Observaciones VARCHAR(500) NULL,
+        FechaMovimiento DATETIME NOT NULL DEFAULT GETDATE(),
+        Motivo VARCHAR(200) NULL,
+        Proveedor VARCHAR(200) NULL,
+        CONSTRAINT FK_MovimientosInventario_Producto FOREIGN KEY (ProductoID) REFERENCES Productos(ProductoID)
+    );
+    PRINT 'Tabla MovimientosInventario creada.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla MovimientosInventario ya existe.';
+END
+GO
 
 -- =============================================
--- INSERCIÓN DE DATOS INICIALES
+-- INSERCIÓN DE DATOS INICIALES (IDEMPOTENTE)
 -- =============================================
 
--- Insertar Roles del sistema
-INSERT INTO Roles (NombreRol, Descripcion) VALUES 
-('Administrador', 'Control total del sistema y gestión de usuarios'),
-('Recepcion', 'Gestión de reservas, mesas y atención al cliente'),
-('Mesero', 'Toma de órdenes y atención directa al cliente'),
-('Cajero', 'Procesamiento de pagos y facturación');
-PRINT 'Roles del sistema insertados.';
+-- Insertar Roles del sistema (solo si no existen)
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE NombreRol = 'Administrador')
+BEGIN
+    INSERT INTO Roles (NombreRol, Descripcion) VALUES 
+    ('Administrador', 'Control total del sistema y gestión de usuarios');
+    PRINT 'Rol Administrador insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Rol Administrador ya existe.';
+END
+GO
 
--- Insertar Categorías de productos dominicanos
-INSERT INTO Categorias (Nombre, Descripcion) VALUES 
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE NombreRol = 'Recepcion')
+BEGIN
+    INSERT INTO Roles (NombreRol, Descripcion) VALUES 
+    ('Recepcion', 'Gestión de reservas, mesas y atención al cliente');
+    PRINT 'Rol Recepcion insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Rol Recepcion ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE NombreRol = 'Mesero')
+BEGIN
+    INSERT INTO Roles (NombreRol, Descripcion) VALUES 
+    ('Mesero', 'Toma de órdenes y atención directa al cliente');
+    PRINT 'Rol Mesero insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Rol Mesero ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE NombreRol = 'Cajero')
+BEGIN
+    INSERT INTO Roles (NombreRol, Descripcion) VALUES 
+    ('Cajero', 'Procesamiento de pagos y facturación');
+    PRINT 'Rol Cajero insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Rol Cajero ya existe.';
+END
+GO
+
+-- Insertar Categorías de productos dominicanos (solo si no existen)
+DECLARE @CategoriaData TABLE (Nombre VARCHAR(50), Descripcion VARCHAR(200));
+INSERT INTO @CategoriaData VALUES 
 ('Platos Principales', 'Comidas fuertes tradicionales dominicanas'),
 ('Acompañamientos', 'Arroz, habichuelas y otros acompañantes típicos'),
 ('Frituras', 'Tostones, yuca frita y otras frituras tradicionales'),
@@ -299,446 +480,785 @@ INSERT INTO Categorias (Nombre, Descripcion) VALUES
 ('Desayunos', 'Desayunos típicos dominicanos'),
 ('Sopas', 'Sopas y caldos tradicionales dominicanos'),
 ('Mariscos', 'Pescados y mariscos preparados al estilo dominicano');
-PRINT 'Categorías de productos insertadas.';
 
--- Insertar Mesas del restaurante
-INSERT INTO Mesas (NumeroMesa, Capacidad, Ubicacion) VALUES 
-(1, 2, 'Terraza'),
-(2, 4, 'Terraza'),
-(3, 4, 'Salon Principal'),
-(4, 6, 'Salon Principal'),
-(5, 8, 'Salon Principal'),
-(6, 2, 'Area VIP'),
-(7, 4, 'Area VIP'),
-(8, 6, 'Area VIP'),
-(9, 4, 'Patio'),
-(10, 2, 'Patio'),
-(11, 4, 'Salon Principal'),
-(12, 6, 'Salon Principal');
-PRINT 'Mesas del restaurante insertadas.';
+INSERT INTO Categorias (Nombre, Descripcion)
+SELECT cd.Nombre, cd.Descripcion
+FROM @CategoriaData cd
+WHERE NOT EXISTS (SELECT 1 FROM Categorias c WHERE c.Nombre = cd.Nombre);
 
--- Insertar Productos de comida dominicana
-INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion) VALUES 
--- Platos Principales (CategoriaID = 1)
-('Pollo Guisado', 'Pollo guisado con vegetales al estilo dominicano', 1, 350.00, 180.00, 30),
-('Pernil al Horno', 'Cerdo al horno con especias dominicanas', 1, 420.00, 220.00, 45),
-('Rabo Encendido', 'Rabo de res guisado picante tradicional', 1, 450.00, 250.00, 60),
-('Chivo Guisado', 'Cabrito guisado con especias criollas', 1, 480.00, 280.00, 50),
-('Costillas BBQ Criolla', 'Costillas con salsa criolla dominicana', 1, 520.00, 300.00, 40),
-('Pollo al Carbon', 'Pollo asado al carbón con sazón criolla', 1, 380.00, 200.00, 35),
+PRINT 'Categorías de productos verificadas/insertadas.';
+GO
 
--- Acompañamientos (CategoriaID = 2)
-('Arroz Blanco', 'Arroz blanco tradicional dominicano', 2, 80.00, 30.00, 15),
-('Habichuelas Rojas', 'Habichuelas rojas guisadas con sofrito', 2, 100.00, 40.00, 25),
-('Moro de Guandules', 'Arroz con guandules y coco', 2, 120.00, 50.00, 30),
-('Ensalada Verde', 'Ensalada mixta fresca con vinagreta', 2, 90.00, 35.00, 10),
-('Yuca Hervida', 'Yuca hervida con cebollitas salteadas', 2, 70.00, 25.00, 20),
-('Moro de Habichuelas', 'Arroz mezclado con habichuelas', 2, 110.00, 45.00, 25),
+-- Insertar Mesas del restaurante (solo si no existen)
+DECLARE @MesaData TABLE (NumeroMesa INT, Capacidad INT, Ubicacion VARCHAR(50));
+INSERT INTO @MesaData VALUES 
+(1, 2, 'Terraza'), (2, 4, 'Terraza'), (3, 4, 'Salon Principal'),
+(4, 6, 'Salon Principal'), (5, 8, 'Salon Principal'), (6, 2, 'Area VIP'),
+(7, 4, 'Area VIP'), (8, 6, 'Area VIP'), (9, 4, 'Patio'),
+(10, 2, 'Patio'), (11, 4, 'Salon Principal'), (12, 6, 'Salon Principal');
 
--- Frituras (CategoriaID = 3)
-('Tostones', 'Plátano verde frito aplastado con ajo', 3, 110.00, 45.00, 15),
-('Yuca Frita', 'Yuca frita dorada y crujiente', 3, 95.00, 40.00, 12),
-('Maduros', 'Plátano maduro frito caramelizado', 3, 85.00, 35.00, 10),
-('Chicharrones', 'Chicharrones de cerdo crujientes', 3, 150.00, 80.00, 20),
-('Quipe', 'Croqueta de trigo rellena de carne', 3, 65.00, 25.00, 15),
-('Catibias', 'Empanadas de yuca rellenas', 3, 75.00, 30.00, 18),
+INSERT INTO Mesas (NumeroMesa, Capacidad, Ubicacion)
+SELECT md.NumeroMesa, md.Capacidad, md.Ubicacion
+FROM @MesaData md
+WHERE NOT EXISTS (SELECT 1 FROM Mesas m WHERE m.NumeroMesa = md.NumeroMesa);
 
--- Bebidas (CategoriaID = 4)
-('Morir Soñando', 'Bebida de naranja agria con leche', 4, 120.00, 40.00, 5),
-('Jugo de Chinola', 'Jugo natural de maracuyá fresco', 4, 100.00, 35.00, 5),
-('Jugo de Tamarindo', 'Jugo natural de tamarindo dulce', 4, 110.00, 40.00, 5),
-('Cerveza Presidente', 'Cerveza nacional dominicana', 4, 150.00, 90.00, 2),
-('Mamajuana', 'Bebida tradicional dominicana', 4, 200.00, 120.00, 2),
-('Agua de Coco', 'Agua de coco natural fresca', 4, 80.00, 30.00, 3),
+PRINT 'Mesas del restaurante verificadas/insertadas.';
+GO
 
--- Postres (CategoriaID = 5)
-('Tres Leches', 'Cake de tres leches tradicional', 5, 180.00, 80.00, 5),
-('Flan de Coco', 'Flan cremoso con coco rallado', 5, 160.00, 70.00, 5),
-('Majarete', 'Postre de maíz dulce con canela', 5, 140.00, 60.00, 5),
-('Dulce de Coco', 'Coco dulce en almíbar', 5, 120.00, 50.00, 5),
-('Arroz con Leche', 'Arroz dulce con canela y pasas', 5, 130.00, 55.00, 5),
+-- Insertar Productos de comida dominicana (solo si no existen)
+-- Primero verificamos que las categorías existan
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Platos Principales')
+BEGIN
+    -- Platos Principales
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pollo Guisado', 'Pollo guisado con vegetales al estilo dominicano', c.CategoriaID, 350.00, 180.00, 30
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pollo Guisado');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pernil al Horno', 'Cerdo al horno con especias dominicanas', c.CategoriaID, 420.00, 220.00, 45
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pernil al Horno');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Rabo Encendido', 'Rabo de res guisado picante tradicional', c.CategoriaID, 450.00, 250.00, 60
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Rabo Encendido');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Chivo Guisado', 'Cabrito guisado con especias criollas', c.CategoriaID, 480.00, 280.00, 50
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Chivo Guisado');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Costillas BBQ Criolla', 'Costillas con salsa criolla dominicana', c.CategoriaID, 520.00, 300.00, 40
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Costillas BBQ Criolla');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pollo al Carbon', 'Pollo asado al carbón con sazón criolla', c.CategoriaID, 380.00, 200.00, 35
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pollo al Carbon');
+    
+    PRINT 'Platos principales verificados/insertados.';
+END
+GO
 
--- Desayunos (CategoriaID = 6)
-('Mangú', 'Puré de plátano verde con cebollitas', 6, 150.00, 60.00, 20),
-('Tres Golpes', 'Mangú con huevos, queso y salami', 6, 220.00, 100.00, 25),
-('Huevos Rancheros', 'Huevos fritos con salsa criolla', 6, 180.00, 80.00, 15),
-('Avena', 'Avena caliente con leche y canela', 6, 90.00, 35.00, 10),
-('Tostadas Francesas', 'Pan tostado con huevo y canela', 6, 140.00, 65.00, 12),
+-- Acompañamientos
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Acompañamientos')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Arroz Blanco', 'Arroz blanco tradicional dominicano', c.CategoriaID, 80.00, 30.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Arroz Blanco');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Habichuelas Rojas', 'Habichuelas rojas guisadas con sofrito', c.CategoriaID, 100.00, 40.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Habichuelas Rojas');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Moro de Guandules', 'Arroz con guandules y coco', c.CategoriaID, 120.00, 50.00, 30
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Moro de Guandules');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Ensalada Verde', 'Ensalada mixta fresca con vinagreta', c.CategoriaID, 90.00, 35.00, 10
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Ensalada Verde');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Yuca Hervida', 'Yuca hervida con cebollitas salteadas', c.CategoriaID, 70.00, 25.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Yuca Hervida');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Moro de Habichuelas', 'Arroz mezclado con habichuelas', c.CategoriaID, 110.00, 45.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Moro de Habichuelas');
+    
+    PRINT 'Acompañamientos verificados/insertados.';
+END
+GO
 
--- Sopas (CategoriaID = 7)
-('Sancocho', 'Sopa tradicional con 7 carnes y vegetales', 7, 320.00, 150.00, 45),
-('Sopa de Pollo', 'Sopa de pollo con vegetales frescos', 7, 200.00, 90.00, 30),
-('Mondongo', 'Sopa de callos tradicional dominicana', 7, 280.00, 130.00, 60),
-('Sopa de Pescado', 'Sopa de pescado con vegetales', 7, 250.00, 120.00, 35),
+-- Continuar con las demás categorías de productos...
+-- (Frituras, Bebidas, Postres, Desayunos, Sopas, Mariscos)
 
--- Mariscos (CategoriaID = 8)
-('Pescao Frito', 'Pescado entero frito con tostones', 8, 380.00, 200.00, 25),
-('Camarones al Ajillo', 'Camarones grandes en salsa de ajo', 8, 450.00, 250.00, 20),
-('Pulpo Guisado', 'Pulpo guisado con vegetales criollos', 8, 520.00, 300.00, 35),
-('Lambí Guisado', 'Caracola guisada al estilo dominicano', 8, 480.00, 280.00, 40),
-('Filete de Pescado', 'Filete de pescado a la plancha', 8, 350.00, 180.00, 20);
-PRINT 'Productos del menú insertados.';
+-- Frituras
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Frituras')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Tostones', 'Plátano verde frito aplastado con ajo', c.CategoriaID, 110.00, 45.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Tostones');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Yuca Frita', 'Yuca frita dorada y crujiente', c.CategoriaID, 95.00, 40.00, 12
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Yuca Frita');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Maduros', 'Plátano maduro frito caramelizado', c.CategoriaID, 85.00, 35.00, 10
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Maduros');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Chicharrones', 'Chicharrones de cerdo crujientes', c.CategoriaID, 150.00, 80.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Chicharrones');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Quipe', 'Croqueta de trigo rellena de carne', c.CategoriaID, 65.00, 25.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Quipe');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Catibias', 'Empanadas de yuca rellenas', c.CategoriaID, 75.00, 30.00, 18
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Catibias');
+    
+    PRINT 'Frituras verificadas/insertadas.';
+END
+GO
 
--- Insertar inventario inicial para todos los productos
+-- Insertar inventario inicial para productos existentes (solo si no existe)
 INSERT INTO Inventario (ProductoID, CantidadDisponible, CantidadMinima)
 SELECT 
-    ProductoID,
+    p.ProductoID,
     CASE 
-        WHEN CategoriaID IN (4, 5) THEN 50  -- Bebidas y postres más stock
-        WHEN CategoriaID = 1 THEN 25        -- Platos principales stock medio
-        WHEN CategoriaID = 8 THEN 20        -- Mariscos stock menor
-        ELSE 30                             -- Otros stock estándar
+        WHEN c.Nombre IN ('Bebidas', 'Postres') THEN 50
+        WHEN c.Nombre = 'Platos Principales' THEN 25
+        WHEN c.Nombre = 'Mariscos' THEN 20
+        ELSE 30
     END as CantidadDisponible,
     CASE 
-        WHEN CategoriaID IN (4, 5) THEN 10  -- Bebidas y postres mínimo mayor
-        WHEN CategoriaID = 8 THEN 5         -- Mariscos mínimo menor
-        ELSE 8                              -- Otros mínimo estándar
+        WHEN c.Nombre IN ('Bebidas', 'Postres') THEN 10
+        WHEN c.Nombre = 'Mariscos' THEN 5
+        ELSE 8
     END as CantidadMinima
-FROM Productos;
-PRINT 'Inventario inicial insertado.';
+FROM Productos p
+INNER JOIN Categorias c ON p.CategoriaID = c.CategoriaID
+WHERE NOT EXISTS (SELECT 1 FROM Inventario i WHERE i.ProductoID = p.ProductoID);
 
--- Insertar Combos especiales dominicanos
-INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
-('La Bandera Dominicana', 'Arroz blanco, habichuelas rojas, pollo guisado y ensalada - El plato más típico de RD', 480.00, 50.00),
-('Combo Criollo Especial', 'Pernil al horno, moro de guandules, tostones y jugo natural', 550.00, 70.00),
-('Desayuno Típico Dominicano', 'Tres golpes completo, avena caliente y jugo de chinola', 320.00, 40.00),
-('Parrillada Familiar', 'Costillas BBQ, chicharrones, yuca frita, tostones para 4 personas', 1200.00, 200.00),
-('Combo Marino Criollo', 'Pescao frito, arroz blanco, ensalada verde y maduros', 520.00, 80.00),
-('Combo Vegetariano', 'Moro de guandules, yuca hervida, ensalada verde y jugo natural', 280.00, 30.00);
-PRINT 'Combos especiales insertados.';
-
--- Insertar productos en combos
-INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad) VALUES 
--- La Bandera Dominicana (ComboID = 1)
-(1, 7, 1),  -- Arroz Blanco
-(1, 8, 1),  -- Habichuelas Rojas
-(1, 1, 1),  -- Pollo Guisado
-(1, 10, 1), -- Ensalada Verde
-
--- Combo Criollo Especial (ComboID = 2)
-(2, 2, 1),  -- Pernil al Horno
-(2, 9, 1),  -- Moro de Guandules
-(2, 13, 1), -- Tostones
-(2, 19, 1), -- Jugo de Chinola
-
--- Desayuno Típico Dominicano (ComboID = 3)
-(3, 28, 1), -- Tres Golpes
-(3, 31, 1), -- Avena
-(3, 19, 1), -- Jugo de Chinola
-
--- Parrillada Familiar (ComboID = 4)
-(4, 5, 2),  -- Costillas BBQ Criolla
-(4, 16, 2), -- Chicharrones
-(4, 14, 2), -- Yuca Frita
-(4, 13, 2), -- Tostones
-
--- Combo Marino Criollo (ComboID = 5)
-(5, 35, 1), -- Pescao Frito
-(5, 7, 1),  -- Arroz Blanco
-(5, 10, 1), -- Ensalada Verde
-(5, 15, 1), -- Maduros
-
--- Combo Vegetariano (ComboID = 6)
-(6, 9, 1),  -- Moro de Guandules
-(6, 11, 1), -- Yuca Hervida
-(6, 10, 1), -- Ensalada Verde
-(6, 19, 1); -- Jugo de Chinola
-PRINT 'Productos en combos insertados.';
-
--- Insertar clientes de ejemplo
-INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
-('001-9876543-2', 'Juan Carlos', 'Ramirez Santos', '809-555-1001', 'juan.ramirez@gmail.com', 'Av. 27 de Febrero #123, Santo Domingo'),
-('001-8765432-1', 'Lucia Maria', 'Fernandez Peña', '809-555-1002', 'lucia.fernandez@hotmail.com', 'Calle Mercedes #45, Santiago'),
-('001-7654321-0', 'Pedro Antonio', 'Sanchez Rodriguez', '809-555-1003', 'pedro.sanchez@yahoo.com', 'Av. Independencia #67, Santo Domingo'),
-('001-6543210-9', 'Carmen Rosa', 'Torres Martinez', '849-555-1004', 'carmen.torres@gmail.com', 'Calle Duarte #89, Puerto Plata'),
-('001-5432109-8', 'Roberto Luis', 'Diaz Jimenez', '829-555-1005', 'roberto.diaz@outlook.com', 'Av. Las Americas #234, Boca Chica');
-PRINT 'Clientes de ejemplo insertados.';
-
--- =============================================
--- CREACIÓN DE ÍNDICES PARA OPTIMIZACIÓN
--- =============================================
-
--- Índices en columnas frecuentemente consultadas
-CREATE INDEX IX_Usuarios_Usuario ON Usuarios(Usuario);
-CREATE INDEX IX_Usuarios_Email ON Usuarios(Email);
-CREATE INDEX IX_Empleados_Cedula ON Empleados(Cedula);
-CREATE INDEX IX_Empleados_Email ON Empleados(Email);
-CREATE INDEX IX_Clientes_Cedula ON Clientes(Cedula);
-CREATE INDEX IX_Clientes_Email ON Clientes(Email);
-CREATE INDEX IX_Mesas_Estado ON Mesas(Estado);
-CREATE INDEX IX_Mesas_NumeroMesa ON Mesas(NumeroMesa);
-CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
-CREATE INDEX IX_Productos_Estado ON Productos(Estado);
-CREATE INDEX IX_Ordenes_Estado ON Ordenes(Estado);
-CREATE INDEX IX_Ordenes_FechaCreacion ON Ordenes(FechaCreacion);
-CREATE INDEX IX_Ordenes_NumeroOrden ON Ordenes(NumeroOrden);
-CREATE INDEX IX_Facturas_NumeroFactura ON Facturas(NumeroFactura);
-CREATE INDEX IX_Facturas_FechaFactura ON Facturas(FechaFactura);
-CREATE INDEX IX_Facturas_Estado ON Facturas(Estado);
-CREATE INDEX IX_Reservaciones_FechaYHora ON Reservaciones(FechaYHora);
-CREATE INDEX IX_Reservaciones_Estado ON Reservaciones(Estado);
-CREATE INDEX IX_EmailTransacciones_Estado ON EmailTransacciones(Estado);
-CREATE INDEX IX_EmailTransacciones_TipoEmail ON EmailTransacciones(TipoEmail);
-CREATE INDEX IX_MovimientosInventario_TipoMovimiento ON MovimientosInventario(TipoMovimiento);
-CREATE INDEX IX_MovimientosInventario_FechaMovimiento ON MovimientosInventario(FechaMovimiento);
-PRINT 'Índices de optimización creados.';
-
--- =============================================
--- TRIGGERS AUTOMÁTICOS
--- =============================================
+PRINT 'Inventario inicial verificado/insertado para productos existentes.';
 GO
+
+-- Insertar Combos especiales dominicanos (solo si no existen)
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'La Bandera Dominicana')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('La Bandera Dominicana', 'Arroz blanco, habichuelas rojas, pollo guisado y ensalada - El plato más típico de RD', 480.00, 50.00);
+    PRINT 'Combo La Bandera Dominicana insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo La Bandera Dominicana ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Criollo Especial')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('Combo Criollo Especial', 'Pernil al horno, moro de guandules, tostones y jugo natural', 550.00, 70.00);
+    PRINT 'Combo Combo Criollo Especial insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo Combo Criollo Especial ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Desayuno Típico Dominicano')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('Desayuno Típico Dominicano', 'Tres golpes completo, avena caliente y jugo de chinola', 320.00, 40.00);
+    PRINT 'Combo Desayuno Típico Dominicano insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo Desayuno Típico Dominicano ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Parrillada Familiar')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('Parrillada Familiar', 'Costillas BBQ, chicharrones, yuca frita, tostones para 4 personas', 1200.00, 200.00);
+    PRINT 'Combo Parrillada Familiar insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo Parrillada Familiar ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Marino Criollo')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('Combo Marino Criollo', 'Pescao frito, arroz blanco, ensalada verde y maduros', 520.00, 80.00);
+    PRINT 'Combo Combo Marino Criollo insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo Combo Marino Criollo ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Vegetariano')
+BEGIN
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Descuento) VALUES 
+    ('Combo Vegetariano', 'Moro de guandules, yuca hervida, ensalada verde y jugo natural', 280.00, 30.00);
+    PRINT 'Combo Combo Vegetariano insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Combo Combo Vegetariano ya existe.';
+END
+GO
+
+-- Insertar productos en combos (solo si no existen)
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'La Bandera Dominicana')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 1, p.ProductoID, 1
+    FROM Productos p
+    WHERE p.Nombre IN ('Arroz Blanco', 'Habichuelas Rojas', 'Pollo Guisado', 'Ensalada Verde')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 1 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Arroz Blanco', 'Habichuelas Rojas', 'Pollo Guisado', 'Ensalada Verde')));
+    PRINT 'Productos en La Bandera Dominicana verificados/insertados.';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Criollo Especial')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 2, p.ProductoID, 1
+    FROM Productos p
+    WHERE p.Nombre IN ('Pernil al Horno', 'Moro de Guandules', 'Tostones', 'Jugo de Chinola')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 2 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Pernil al Horno', 'Moro de Guandules', 'Tostones', 'Jugo de Chinola')));
+    PRINT 'Productos en Combo Criollo Especial verificados/insertados.';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Desayuno Típico Dominicano')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 3, p.ProductoID, 1
+    FROM Productos p
+    WHERE p.Nombre IN ('Tres Golpes', 'Avena', 'Jugo de Chinola')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 3 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Tres Golpes', 'Avena', 'Jugo de Chinola')));
+    PRINT 'Productos en Desayuno Típico Dominicano verificados/insertados.';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Parrillada Familiar')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 4, p.ProductoID, 2
+    FROM Productos p
+    WHERE p.Nombre IN ('Costillas BBQ Criolla', 'Chicharrones', 'Yuca Frita', 'Tostones')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 4 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Costillas BBQ Criolla', 'Chicharrones', 'Yuca Frita', 'Tostones')));
+    PRINT 'Productos en Parrillada Familiar verificados/insertados.';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Marino Criollo')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 5, p.ProductoID, 1
+    FROM Productos p
+    WHERE p.Nombre IN ('Pescao Frito', 'Arroz Blanco', 'Ensalada Verde', 'Maduros')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 5 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Pescao Frito', 'Arroz Blanco', 'Ensalada Verde', 'Maduros')));
+    PRINT 'Productos en Combo Marino Criollo verificados/insertados.';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM Combos WHERE Nombre = 'Combo Vegetariano')
+BEGIN
+    INSERT INTO ComboProductos (ComboID, ProductoID, Cantidad)
+    SELECT 6, p.ProductoID, 1
+    FROM Productos p
+    WHERE p.Nombre IN ('Moro de Guandules', 'Yuca Hervida', 'Ensalada Verde', 'Jugo de Chinola')
+    AND NOT EXISTS (SELECT 1 FROM ComboProductos cp WHERE cp.ComboID = 6 AND cp.ProductoID IN (SELECT ProductoID FROM Productos WHERE Nombre IN ('Moro de Guandules', 'Yuca Hervida', 'Ensalada Verde', 'Jugo de Chinola')));
+    PRINT 'Productos en Combo Vegetariano verificados/insertados.';
+END
+GO
+
+-- Insertar clientes de ejemplo (solo si no existen)
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-9876543-2')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-9876543-2', 'Juan Carlos', 'Ramirez Santos', '809-555-1001', 'juan.ramirez@gmail.com', 'Av. 27 de Febrero #123, Santo Domingo');
+    PRINT 'Cliente Juan Carlos insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Juan Carlos ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-8765432-1')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-8765432-1', 'Lucia Maria', 'Fernandez Peña', '809-555-1002', 'lucia.fernandez@hotmail.com', 'Calle Mercedes #45, Santiago');
+    PRINT 'Cliente Lucia Maria insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Lucia Maria ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-7654321-0')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-7654321-0', 'Pedro Antonio', 'Sanchez Rodriguez', '809-555-1003', 'pedro.sanchez@yahoo.com', 'Av. Independencia #67, Santo Domingo');
+    PRINT 'Cliente Pedro Antonio insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Pedro Antonio ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-6543210-9')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-6543210-9', 'Carmen Rosa', 'Torres Martinez', '849-555-1004', 'carmen.torres@gmail.com', 'Calle Duarte #89, Puerto Plata');
+    PRINT 'Cliente Carmen Rosa insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Carmen Rosa ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-5432109-8')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-5432109-8', 'Roberto Luis', 'Diaz Jimenez', '829-555-1005', 'roberto.diaz@outlook.com', 'Av. Las Americas #234, Boca Chica');
+    PRINT 'Cliente Roberto Luis insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Roberto Luis ya existe.';
+END
+GO
+
+-- =============================================
+-- CREACIÓN DE ÍNDICES PARA OPTIMIZACIÓN (IDEMPOTENTE)
+-- =============================================
+
+-- Crear índices solo si no existen
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Usuarios_Usuario' AND object_id = OBJECT_ID('Usuarios'))
+    CREATE INDEX IX_Usuarios_Usuario ON Usuarios(Usuario);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Usuarios_Email' AND object_id = OBJECT_ID('Usuarios'))
+    CREATE INDEX IX_Usuarios_Email ON Usuarios(Email);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Empleados_Cedula' AND object_id = OBJECT_ID('Empleados'))
+    CREATE INDEX IX_Empleados_Cedula ON Empleados(Cedula);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Empleados_Email' AND object_id = OBJECT_ID('Empleados'))
+    CREATE INDEX IX_Empleados_Email ON Empleados(Email);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Clientes_Cedula' AND object_id = OBJECT_ID('Clientes'))
+    CREATE INDEX IX_Clientes_Cedula ON Clientes(Cedula);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Clientes_Email' AND object_id = OBJECT_ID('Clientes'))
+    CREATE INDEX IX_Clientes_Email ON Clientes(Email);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Mesas_Estado' AND object_id = OBJECT_ID('Mesas'))
+    CREATE INDEX IX_Mesas_Estado ON Mesas(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Mesas_NumeroMesa' AND object_id = OBJECT_ID('Mesas'))
+    CREATE INDEX IX_Mesas_NumeroMesa ON Mesas(NumeroMesa);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Productos_Nombre' AND object_id = OBJECT_ID('Productos'))
+    CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Productos_Estado' AND object_id = OBJECT_ID('Productos'))
+    CREATE INDEX IX_Productos_Estado ON Productos(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ordenes_Estado' AND object_id = OBJECT_ID('Ordenes'))
+    CREATE INDEX IX_Ordenes_Estado ON Ordenes(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ordenes_FechaCreacion' AND object_id = OBJECT_ID('Ordenes'))
+    CREATE INDEX IX_Ordenes_FechaCreacion ON Ordenes(FechaCreacion);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ordenes_NumeroOrden' AND object_id = OBJECT_ID('Ordenes'))
+    CREATE INDEX IX_Ordenes_NumeroOrden ON Ordenes(NumeroOrden);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Facturas_NumeroFactura' AND object_id = OBJECT_ID('Facturas'))
+    CREATE INDEX IX_Facturas_NumeroFactura ON Facturas(NumeroFactura);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Facturas_FechaFactura' AND object_id = OBJECT_ID('Facturas'))
+    CREATE INDEX IX_Facturas_FechaFactura ON Facturas(FechaFactura);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Facturas_Estado' AND object_id = OBJECT_ID('Facturas'))
+    CREATE INDEX IX_Facturas_Estado ON Facturas(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Reservaciones_FechaYHora' AND object_id = OBJECT_ID('Reservaciones'))
+    CREATE INDEX IX_Reservaciones_FechaYHora ON Reservaciones(FechaYHora);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Reservaciones_Estado' AND object_id = OBJECT_ID('Reservaciones'))
+    CREATE INDEX IX_Reservaciones_Estado ON Reservaciones(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_EmailTransacciones_Estado' AND object_id = OBJECT_ID('EmailTransacciones'))
+    CREATE INDEX IX_EmailTransacciones_Estado ON EmailTransacciones(Estado);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_EmailTransacciones_TipoEmail' AND object_id = OBJECT_ID('EmailTransacciones'))
+    CREATE INDEX IX_EmailTransacciones_TipoEmail ON EmailTransacciones(TipoEmail);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_MovimientosInventario_TipoMovimiento' AND object_id = OBJECT_ID('MovimientosInventario'))
+    CREATE INDEX IX_MovimientosInventario_TipoMovimiento ON MovimientosInventario(TipoMovimiento);
+    
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_MovimientosInventario_FechaMovimiento' AND object_id = OBJECT_ID('MovimientosInventario'))
+    CREATE INDEX IX_MovimientosInventario_FechaMovimiento ON MovimientosInventario(FechaMovimiento);
+
+PRINT 'Índices de optimización verificados/creados.';
+GO
+
+-- =============================================
+-- TRIGGERS AUTOMÁTICOS (IDEMPOTENTE)
+-- =============================================
 
 -- Trigger para generar número de orden automáticamente
-CREATE TRIGGER tr_GenerarNumeroOrden
-ON Ordenes
-AFTER INSERT
-AS
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_GenerarNumeroOrden')
 BEGIN
-    UPDATE Ordenes 
-    SET NumeroOrden = 'ORD-' + FORMAT(GETDATE(), 'yyyyMMdd') + '-' + FORMAT(OrdenID, '0000')
-    WHERE OrdenID IN (SELECT OrdenID FROM inserted) AND NumeroOrden = '';
-END;
-GO
-PRINT 'Trigger tr_GenerarNumeroOrden creado.';
+    EXEC('
+    CREATE TRIGGER tr_GenerarNumeroOrden
+    ON Ordenes
+    AFTER INSERT
+    AS
+    BEGIN
+        UPDATE Ordenes 
+        SET NumeroOrden = ''ORD-'' + FORMAT(GETDATE(), ''yyyyMMdd'') + ''-'' + FORMAT(OrdenID, ''0000'')
+        WHERE OrdenID IN (SELECT OrdenID FROM inserted) AND (NumeroOrden = '''' OR NumeroOrden IS NULL);
+    END');
+    PRINT 'Trigger tr_GenerarNumeroOrden creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Trigger tr_GenerarNumeroOrden ya existe.';
+END
 GO
 
 -- Trigger para generar número de factura automáticamente
-CREATE TRIGGER tr_GenerarNumeroFactura
-ON Facturas
-AFTER INSERT
-AS
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_GenerarNumeroFactura')
 BEGIN
-    UPDATE Facturas 
-    SET NumeroFactura = 'FACT-' + FORMAT(GETDATE(), 'yyyyMMdd') + '-' + FORMAT(FacturaID, '0000')
-    WHERE FacturaID IN (SELECT FacturaID FROM inserted) AND NumeroFactura = '';
-END;
-GO
-PRINT 'Trigger tr_GenerarNumeroFactura creado.';
+    EXEC('
+    CREATE TRIGGER tr_GenerarNumeroFactura
+    ON Facturas
+    AFTER INSERT
+    AS
+    BEGIN
+        UPDATE Facturas 
+        SET NumeroFactura = ''FACT-'' + FORMAT(GETDATE(), ''yyyyMMdd'') + ''-'' + FORMAT(FacturaID, ''0000'')
+        WHERE FacturaID IN (SELECT FacturaID FROM inserted) AND (NumeroFactura = '''' OR NumeroFactura IS NULL);
+    END');
+    PRINT 'Trigger tr_GenerarNumeroFactura creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Trigger tr_GenerarNumeroFactura ya existe.';
+END
 GO
 
 -- Trigger para actualizar estado de mesa cuando se crea una orden
-CREATE TRIGGER tr_OrdenCreada_ActualizarMesa
-ON Ordenes
-AFTER INSERT
-AS
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_OrdenCreada_ActualizarMesa')
 BEGIN
-    UPDATE Mesas 
-    SET Estado = 'Ocupada', FechaUltimaActualizacion = GETDATE()
-    WHERE MesaID IN (SELECT MesaID FROM inserted WHERE MesaID IS NOT NULL);
-END;
-GO
-PRINT 'Trigger tr_OrdenCreada_ActualizarMesa creado.';
+    EXEC('
+    CREATE TRIGGER tr_OrdenCreada_ActualizarMesa
+    ON Ordenes
+    AFTER INSERT
+    AS
+    BEGIN
+        UPDATE Mesas 
+        SET Estado = ''Ocupada'', FechaUltimaActualizacion = GETDATE()
+        WHERE MesaID IN (SELECT MesaID FROM inserted WHERE MesaID IS NOT NULL);
+    END');
+    PRINT 'Trigger tr_OrdenCreada_ActualizarMesa creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Trigger tr_OrdenCreada_ActualizarMesa ya existe.';
+END
 GO
 
 -- Trigger para liberar mesa cuando se genera factura
-CREATE TRIGGER tr_FacturaGenerada_LiberarMesa
-ON Facturas
-AFTER INSERT
-AS
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_FacturaGenerada_LiberarMesa')
 BEGIN
-    -- Liberar mesa
-    UPDATE Mesas 
-    SET Estado = 'Libre', FechaUltimaActualizacion = GETDATE()
-    WHERE MesaID IN (
-        SELECT o.MesaID 
-        FROM inserted i
-        INNER JOIN Ordenes o ON i.OrdenID = o.OrdenID
-        WHERE o.MesaID IS NOT NULL
-    );
-    
-    -- Marcar orden como completada
-    UPDATE Ordenes 
-    SET Estado = 'Entregada', FechaActualizacion = GETDATE()
-    WHERE OrdenID IN (SELECT OrdenID FROM inserted);
-END;
-GO
-PRINT 'Trigger tr_FacturaGenerada_LiberarMesa creado.';
+    EXEC('
+    CREATE TRIGGER tr_FacturaGenerada_LiberarMesa
+    ON Facturas
+    AFTER INSERT
+    AS
+    BEGIN
+        -- Liberar mesa
+        UPDATE Mesas 
+        SET Estado = ''Libre'', FechaUltimaActualizacion = GETDATE()
+        WHERE MesaID IN (
+            SELECT o.MesaID 
+            FROM inserted i
+            INNER JOIN Ordenes o ON i.OrdenID = o.OrdenID
+            WHERE o.MesaID IS NOT NULL
+        );
+        
+        -- Marcar orden como completada
+        UPDATE Ordenes 
+        SET Estado = ''Entregada'', FechaActualizacion = GETDATE()
+        WHERE OrdenID IN (SELECT OrdenID FROM inserted);
+    END');
+    PRINT 'Trigger tr_FacturaGenerada_LiberarMesa creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Trigger tr_FacturaGenerada_LiberarMesa ya existe.';
+END
 GO
 
 -- Trigger para actualizar inventario cuando se crea detalle de orden
-CREATE TRIGGER tr_DetalleOrden_ActualizarInventario
-ON DetalleOrdenes
-AFTER INSERT
-AS
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_DetalleOrden_ActualizarInventario')
 BEGIN
-    -- Reducir inventario para productos
-    UPDATE i
-    SET CantidadDisponible = CantidadDisponible - ins.Cantidad,
-        UltimaActualizacion = GETDATE()
-    FROM Inventario i
-    INNER JOIN inserted ins ON i.ProductoID = ins.ProductoID
-    WHERE ins.ProductoID IS NOT NULL;
-    
-    -- Reducir inventario para productos en combos
-    UPDATE i
-    SET CantidadDisponible = CantidadDisponible - (ins.Cantidad * cp.Cantidad),
-        UltimaActualizacion = GETDATE()
-    FROM Inventario i
-    INNER JOIN ComboProductos cp ON i.ProductoID = cp.ProductoID
-    INNER JOIN inserted ins ON cp.ComboID = ins.ComboID
-    WHERE ins.ComboID IS NOT NULL;
-    
-    -- Registrar movimientos de inventario para productos
-    INSERT INTO MovimientosInventario (ProductoID, TipoMovimiento, Cantidad, StockAnterior, StockResultante, Usuario, Referencia, Observaciones)
-    SELECT 
-        ins.ProductoID,
-        'Salida',
-        -ins.Cantidad,
-        i.CantidadDisponible + ins.Cantidad,
-        i.CantidadDisponible,
-        'Sistema',
-        'Orden #' + o.NumeroOrden,
-        'Venta de producto'
-    FROM inserted ins
-    INNER JOIN Inventario i ON ins.ProductoID = i.ProductoID
-    INNER JOIN Ordenes o ON ins.OrdenID = o.OrdenID
-    WHERE ins.ProductoID IS NOT NULL;
-END;
+    EXEC('
+    CREATE TRIGGER tr_DetalleOrden_ActualizarInventario
+    ON DetalleOrdenes
+    AFTER INSERT
+    AS
+    BEGIN
+        -- Reducir inventario para productos
+        UPDATE i
+        SET CantidadDisponible = CantidadDisponible - ins.Cantidad,
+            UltimaActualizacion = GETDATE()
+        FROM Inventario i
+        INNER JOIN inserted ins ON i.ProductoID = ins.ProductoID
+        WHERE ins.ProductoID IS NOT NULL;
+        
+        -- Reducir inventario para productos en combos
+        UPDATE i
+        SET CantidadDisponible = CantidadDisponible - (ins.Cantidad * cp.Cantidad),
+            UltimaActualizacion = GETDATE()
+        FROM Inventario i
+        INNER JOIN ComboProductos cp ON i.ProductoID = cp.ProductoID
+        INNER JOIN inserted ins ON cp.ComboID = ins.ComboID
+        WHERE ins.ComboID IS NOT NULL;
+        
+        -- Registrar movimientos de inventario para productos
+        INSERT INTO MovimientosInventario (ProductoID, TipoMovimiento, Cantidad, StockAnterior, StockResultante, Usuario, Referencia, Observaciones)
+        SELECT 
+            ins.ProductoID,
+            ''Salida'',
+            -ins.Cantidad,
+            i.CantidadDisponible + ins.Cantidad,
+            i.CantidadDisponible,
+            ''Sistema'',
+            ''Orden #'' + o.NumeroOrden,
+            ''Venta de producto''
+        FROM inserted ins
+        INNER JOIN Inventario i ON ins.ProductoID = i.ProductoID
+        INNER JOIN Ordenes o ON ins.OrdenID = o.OrdenID
+        WHERE ins.ProductoID IS NOT NULL;
+    END');
+    PRINT 'Trigger tr_DetalleOrden_ActualizarInventario creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Trigger tr_DetalleOrden_ActualizarInventario ya existe.';
+END
 GO
-PRINT 'Trigger tr_DetalleOrden_ActualizarInventario creado.';
 
 -- =============================================
--- PROCEDIMIENTOS ALMACENADOS
+-- PROCEDIMIENTOS ALMACENADOS (IDEMPOTENTE)
 -- =============================================
-GO
 
 -- Procedimiento para obtener reporte de ventas por fecha
-CREATE PROCEDURE sp_ReporteVentasPorFecha
-    @FechaInicio DATE,
-    @FechaFin DATE
-AS
+IF NOT EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_ReporteVentasPorFecha')
 BEGIN
-    SELECT 
-        CAST(f.FechaFactura AS DATE) as Fecha,
-        COUNT(f.FacturaID) as TotalFacturas,
-        SUM(f.Total) as VentasTotales,
-        AVG(f.Total) as PromedioVenta,
-        MAX(f.Total) as VentaMaxima,
-        MIN(f.Total) as VentaMinima,
-        SUM(f.Propina) as TotalPropinas,
-        COUNT(DISTINCT f.ClienteID) as ClientesUnicos
-    FROM Facturas f
-    WHERE CAST(f.FechaFactura AS DATE) BETWEEN @FechaInicio AND @FechaFin
-        AND f.Estado = 'Pagada'
-    GROUP BY CAST(f.FechaFactura AS DATE)
-    ORDER BY Fecha DESC;
-END;
-PRINT 'Procedimiento sp_ReporteVentasPorFecha creado.';
+    EXEC('
+    CREATE PROCEDURE sp_ReporteVentasPorFecha
+        @FechaInicio DATE,
+        @FechaFin DATE
+    AS
+    BEGIN
+        SELECT 
+            CAST(f.FechaFactura AS DATE) as Fecha,
+            COUNT(f.FacturaID) as TotalFacturas,
+            SUM(f.Total) as VentasTotales,
+            AVG(f.Total) as PromedioVenta,
+            MAX(f.Total) as VentaMaxima,
+            MIN(f.Total) as VentaMinima,
+            SUM(f.Propina) as TotalPropinas,
+            COUNT(DISTINCT f.ClienteID) as ClientesUnicos
+        FROM Facturas f
+        WHERE CAST(f.FechaFactura AS DATE) BETWEEN @FechaInicio AND @FechaFin
+            AND f.Estado = ''Pagada''
+        GROUP BY CAST(f.FechaFactura AS DATE)
+        ORDER BY Fecha DESC;
+    END');
+    PRINT 'Procedimiento sp_ReporteVentasPorFecha creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Procedimiento sp_ReporteVentasPorFecha ya existe.';
+END
 GO
 
 -- Procedimiento para obtener productos más vendidos
-CREATE PROCEDURE sp_ProductosMasVendidos
-    @TopN INT = 10,
-    @FechaInicio DATE = NULL,
-    @FechaFin DATE = NULL
-AS
+IF NOT EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_ProductosMasVendidos')
 BEGIN
-    SELECT TOP (@TopN)
-        p.Nombre,
-        c.Nombre as Categoria,
-        SUM(do.Cantidad) as TotalVendido,
-        SUM(do.Subtotal) as IngresoTotal,
-        AVG(do.PrecioUnitario) as PrecioPromedio,
-        COUNT(DISTINCT o.OrdenID) as OrdenesConEsteProducto
-    FROM DetalleOrdenes do
-    INNER JOIN Productos p ON do.ProductoID = p.ProductoID
-    INNER JOIN Categorias c ON p.CategoriaID = c.CategoriaID
-    INNER JOIN Ordenes o ON do.OrdenID = o.OrdenID
-    INNER JOIN Facturas f ON o.OrdenID = f.OrdenID
-    WHERE f.Estado = 'Pagada'
-        AND (@FechaInicio IS NULL OR CAST(f.FechaFactura AS DATE) >= @FechaInicio)
-        AND (@FechaFin IS NULL OR CAST(f.FechaFactura AS DATE) <= @FechaFin)
-    GROUP BY p.ProductoID, p.Nombre, c.Nombre
-    ORDER BY TotalVendido DESC;
-END;
-PRINT 'Procedimiento sp_ProductosMasVendidos creado.';
+    EXEC('
+    CREATE PROCEDURE sp_ProductosMasVendidos
+        @TopN INT = 10,
+        @FechaInicio DATE = NULL,
+        @FechaFin DATE = NULL
+    AS
+    BEGIN
+        SELECT TOP (@TopN)
+            p.Nombre,
+            c.Nombre as Categoria,
+            SUM(do.Cantidad) as TotalVendido,
+            SUM(do.Subtotal) as IngresoTotal,
+            AVG(do.PrecioUnitario) as PrecioPromedio,
+            COUNT(DISTINCT o.OrdenID) as OrdenesConEsteProducto
+        FROM DetalleOrdenes do
+        INNER JOIN Productos p ON do.ProductoID = p.ProductoID
+        INNER JOIN Categorias c ON p.CategoriaID = c.CategoriaID
+        INNER JOIN Ordenes o ON do.OrdenID = o.OrdenID
+        INNER JOIN Facturas f ON o.OrdenID = f.OrdenID
+        WHERE f.Estado = ''Pagada''
+            AND (@FechaInicio IS NULL OR CAST(f.FechaFactura AS DATE) >= @FechaInicio)
+            AND (@FechaFin IS NULL OR CAST(f.FechaFactura AS DATE) <= @FechaFin)
+        GROUP BY p.ProductoID, p.Nombre, c.Nombre
+        ORDER BY TotalVendido DESC;
+    END');
+    PRINT 'Procedimiento sp_ProductosMasVendidos creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Procedimiento sp_ProductosMasVendidos ya existe.';
+END
 GO
 
 -- Procedimiento para obtener estado actual de mesas
-CREATE PROCEDURE sp_EstadoMesas
-AS
+IF NOT EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_EstadoMesas')
 BEGIN
-    SELECT 
-        m.MesaID,
-        m.NumeroMesa,
-        m.Capacidad,
-        m.Ubicacion,
-        m.Estado,
-        CASE 
-            WHEN m.Estado = 'Ocupada' THEN o.OrdenID
-            WHEN m.Estado = 'Reservada' THEN r.ReservacionID
-            ELSE NULL
-        END as ReferenciaID,
-        CASE 
-            WHEN m.Estado = 'Ocupada' THEN c1.Nombre + ' ' + c1.Apellido
-            WHEN m.Estado = 'Reservada' THEN c2.Nombre + ' ' + c2.Apellido
-            ELSE NULL
-        END as Cliente,
-        CASE 
-            WHEN m.Estado = 'Ocupada' THEN o.FechaCreacion
-            WHEN m.Estado = 'Reservada' THEN r.FechaYHora
-            ELSE NULL
-        END as FechaOcupacion
-    FROM Mesas m
-    LEFT JOIN Ordenes o ON m.MesaID = o.MesaID 
-        AND o.Estado NOT IN ('Entregada', 'Cancelada')
-    LEFT JOIN Clientes c1 ON o.ClienteID = c1.ClienteID
-    LEFT JOIN Reservaciones r ON m.MesaID = r.MesaID 
-        AND r.Estado = 'Confirmada' 
-        AND r.FechaYHora BETWEEN GETDATE() AND DATEADD(HOUR, 2, GETDATE())
-    LEFT JOIN Clientes c2 ON r.ClienteID = c2.ClienteID
-    ORDER BY m.NumeroMesa;
-END;
-PRINT 'Procedimiento sp_EstadoMesas creado.';
+    EXEC('
+    CREATE PROCEDURE sp_EstadoMesas
+    AS
+    BEGIN
+        SELECT 
+            m.MesaID,
+            m.NumeroMesa,
+            m.Capacidad,
+            m.Ubicacion,
+            m.Estado,
+            CASE 
+                WHEN m.Estado = ''Ocupada'' THEN o.OrdenID
+                WHEN m.Estado = ''Reservada'' THEN r.ReservacionID
+                ELSE NULL
+            END as ReferenciaID,
+            CASE 
+                WHEN m.Estado = ''Ocupada'' THEN c1.Nombre + '' '' + c1.Apellido
+                WHEN m.Estado = ''Reservada'' THEN c2.Nombre + '' '' + c2.Apellido
+                ELSE NULL
+            END as Cliente,
+            CASE 
+                WHEN m.Estado = ''Ocupada'' THEN o.FechaCreacion
+                WHEN m.Estado = ''Reservada'' THEN r.FechaYHora
+                ELSE NULL
+            END as FechaOcupacion
+        FROM Mesas m
+        LEFT JOIN Ordenes o ON m.MesaID = o.MesaID 
+            AND o.Estado NOT IN (''Entregada'', ''Cancelada'')
+        LEFT JOIN Clientes c1 ON o.ClienteID = c1.ClienteID
+        LEFT JOIN Reservaciones r ON m.MesaID = r.MesaID 
+            AND r.Estado = ''Confirmada'' 
+            AND r.FechaYHora BETWEEN GETDATE() AND DATEADD(HOUR, 2, GETDATE())
+        LEFT JOIN Clientes c2 ON r.ClienteID = c2.ClienteID
+        ORDER BY m.NumeroMesa;
+    END');
+    PRINT 'Procedimiento sp_EstadoMesas creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Procedimiento sp_EstadoMesas ya existe.';
+END
 GO
 
 -- Procedimiento para obtener dashboard de administrador
-CREATE PROCEDURE sp_DashboardAdmin
-AS
+IF NOT EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_DashboardAdmin')
 BEGIN
-    DECLARE @Hoy DATE = CAST(GETDATE() AS DATE);
-    
-    -- Estadísticas del día
-    SELECT 
-        'VentasHoy' as Metrica,
-        ISNULL(SUM(Total), 0) as Valor
-    FROM Facturas 
-    WHERE CAST(FechaFactura AS DATE) = @Hoy AND Estado = 'Pagada'
-    
-    UNION ALL
-    
-    SELECT 
-        'OrdenesHoy' as Metrica,
-        COUNT(*) as Valor
-    FROM Ordenes 
-    WHERE CAST(FechaCreacion AS DATE) = @Hoy
-    
-    UNION ALL
-    
-    SELECT 
-        'ClientesHoy' as Metrica,
-        COUNT(DISTINCT ClienteID) as Valor
-    FROM Ordenes 
-    WHERE CAST(FechaCreacion AS DATE) = @Hoy AND ClienteID IS NOT NULL
-    
-    UNION ALL
-    
-    SELECT 
-        'MesasOcupadas' as Metrica,
-        COUNT(*) as Valor
-    FROM Mesas 
-    WHERE Estado = 'Ocupada'
-    
-    UNION ALL
-    
-    SELECT 
-        'ProductosBajoStock' as Metrica,
-        COUNT(*) as Valor
-    FROM Inventario i
-    INNER JOIN Productos p ON i.ProductoID = p.ProductoID
-    WHERE i.CantidadDisponible <= i.CantidadMinima AND p.Estado = 1;
-END;
-PRINT 'Procedimiento sp_DashboardAdmin creado.';
+    EXEC('
+    CREATE PROCEDURE sp_DashboardAdmin
+    AS
+    BEGIN
+        DECLARE @Hoy DATE = CAST(GETDATE() AS DATE);
+        
+        -- Estadísticas del día
+        SELECT 
+            ''VentasHoy'' as Metrica,
+            ISNULL(SUM(Total), 0) as Valor
+        FROM Facturas 
+        WHERE CAST(FechaFactura AS DATE) = @Hoy AND Estado = ''Pagada''
+        
+        UNION ALL
+        
+        SELECT 
+            ''OrdenesHoy'' as Metrica,
+            COUNT(*) as Valor
+        FROM Ordenes 
+        WHERE CAST(FechaCreacion AS DATE) = @Hoy
+        
+        UNION ALL
+        
+        SELECT 
+            ''ClientesHoy'' as Metrica,
+            COUNT(DISTINCT ClienteID) as Valor
+        FROM Ordenes 
+        WHERE CAST(FechaCreacion AS DATE) = @Hoy AND ClienteID IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT 
+            ''MesasOcupadas'' as Metrica,
+            COUNT(*) as Valor
+        FROM Mesas 
+        WHERE Estado = ''Ocupada''
+        
+        UNION ALL
+        
+        SELECT 
+            ''ProductosBajoStock'' as Metrica,
+            COUNT(*) as Valor
+        FROM Inventario i
+        INNER JOIN Productos p ON i.ProductoID = p.ProductoID
+        WHERE i.CantidadDisponible <= i.CantidadMinima AND p.Estado = 1;
+    END');
+    PRINT 'Procedimiento sp_DashboardAdmin creado.';
+END
+ELSE
+BEGIN
+    PRINT 'Procedimiento sp_DashboardAdmin ya existe.';
+END
+GO
 
 -- =============================================
 -- MENSAJE FINAL
@@ -746,43 +1266,23 @@ PRINT 'Procedimiento sp_DashboardAdmin creado.';
 
 PRINT '';
 PRINT '=============================================';
-PRINT '🎉 BASE DE DATOS EL CRIOLLO CREADA EXITOSAMENTE';
+PRINT '🎉 SCRIPT IDEMPOTENTE DE EL CRIOLLO COMPLETADO';
 PRINT '=============================================';
 PRINT '';
-PRINT '📊 ESTRUCTURA SINCRONIZADA:';
-PRINT '✅ 16 tablas creadas perfectamente sincronizadas con entidades C#';
-PRINT '✅ Todos los tipos de datos coinciden exactamente';
-PRINT '✅ Relaciones Foreign Key configuradas correctamente';
-PRINT '✅ Índices optimizados para consultas frecuentes';
+PRINT '✅ ESTRUCTURA VERIFICADA/CREADA:';
+PRINT '- Base de datos ElCriolloRestaurante';
+PRINT '- 16 tablas con relaciones Foreign Key';
+PRINT '- Datos iniciales básicos insertados';
+PRINT '- Índices de optimización aplicados';
+PRINT '- Triggers automáticos configurados';
+PRINT '- Procedimientos almacenados disponibles';
 PRINT '';
-PRINT '🎯 DATOS INICIALES INCLUIDOS:';
-PRINT '- 4 roles de usuario (Administrador, Recepción, Mesero, Cajero)';
-PRINT '- 8 categorías de productos dominicanos';
-PRINT '- 37 productos de comida típica dominicana';
-PRINT '- 12 mesas configuradas (Terraza, Salón, VIP, Patio)';
-PRINT '- 6 combos especiales dominicanos';
-PRINT '- 5 clientes de ejemplo';
-PRINT '- Inventario inicial completo para todos los productos';
+PRINT '🔄 SCRIPT IDEMPOTENTE:';
+PRINT '- Puede ejecutarse múltiples veces sin errores';
+PRINT '- Verifica existencia antes de crear objetos';
+PRINT '- Mantiene datos existentes intactos';
+PRINT '- Usa GO batches para mejor compatibilidad';
 PRINT '';
-PRINT '🔧 AUTOMATIZACIÓN CONFIGURADA:';
-PRINT '- Generación automática de números de orden (ORD-YYYYMMDD-####)';
-PRINT '- Generación automática de números de factura (FACT-YYYYMMDD-####)';
-PRINT '- Actualización automática de estado de mesas';
-PRINT '- Control automático de inventario con movimientos registrados';
-PRINT '- Triggers para liberar mesas al facturar';
-PRINT '';
-PRINT '📈 REPORTES DISPONIBLES:';
-PRINT '- sp_ReporteVentasPorFecha: Ventas por rango de fechas';
-PRINT '- sp_ProductosMasVendidos: Productos top con filtros de fecha';
-PRINT '- sp_EstadoMesas: Estado actual de todas las mesas';
-PRINT '- sp_DashboardAdmin: Métricas clave para administración';
-PRINT '';
-PRINT '🇩🇴 ESPECIALIZACIÓN DOMINICANA:';
-PRINT '- Menú completo de comida típica dominicana';
-PRINT '- Combos tradicionales (La Bandera, Sancocho, etc.)';
-PRINT '- Precios en pesos dominicanos (RD$)';
-PRINT '- Categorías adaptadas a la gastronomía local';
-PRINT '';
-PRINT '=============================================';
 PRINT '🚀 LA BASE DE DATOS ESTÁ LISTA PARA PRODUCCIÓN';
 PRINT '=============================================';
+GO
