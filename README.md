@@ -26,8 +26,7 @@
 ```mermaid
 graph TB
     subgraph "Frontend Layer"
-        UI[React/Angular Frontend]
-        MOBILE[Mobile App]
+        UI[React Frontend]
     end
 
     subgraph "API Layer"
