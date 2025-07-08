@@ -684,29 +684,6 @@ elcriollo-restaurant/
 
 - Tres Leches, Flan de Coco, Majarete
 
-## 🔮 Roadmap y Futuras Mejoras
-
-### 📅 Versión 2.0 (Q1 2025)
-
-- 📱 **App Móvil**: React Native para meseros
-- 🌐 **Frontend Web**: Dashboard administrativo completo
-- 💳 **Pagos Digitales**: Integración con pasarelas dominicanas
-- 📊 **BI Avanzado**: Reportes predictivos con ML
-
-### 📅 Versión 2.5 (Q2 2025)
-
-- 🛒 **Delivery Online**: Plataforma de pedidos
-- 📧 **Marketing**: Email marketing automatizado
-- 👥 **CRM Avanzado**: Programa de fidelización
-- 🔔 **Notificaciones**: Push notifications en tiempo real
-
-### 📅 Versión 3.0 (Q3 2025)
-
-- 🤖 **IA Predictiva**: Predicción de demanda
-- 🌍 **Multi-tenant**: Soporte para múltiples restaurantes
-- 📦 **Integración ERP**: Conexión con sistemas contables
-- 🔊 **Comandas por Voz**: Integración con asistentes de voz
-
 ## 🤝 Contribución
 
 ### 📋 Cómo Contribuir
@@ -745,13 +722,6 @@ Para obtener soporte técnico, por favor incluye:
 ## 📜 Licencia
 
 Este proyecto está licenciado bajo la **MIT License** - ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## 🙏 Reconocimientos
-
-### 👨‍💻 Desarrolladores
-
-- **José Joga** - Desarrollador Principal
-- **El Criollo Team** - Consultoría gastronómica dominicana
 
 ### 🛠️ Tecnologías Utilizadas
 

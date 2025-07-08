@@ -149,17 +149,6 @@ try
             Title = "El Criollo API",
             Version = "v1.0",
             Description = "API REST para el Sistema POS del Restaurante El Criollo - Comida Dominicana Auténtica",
-            Contact = new OpenApiContact
-            {
-                Name = "Equipo de Desarrollo El Criollo",
-                Email = "desarrollo@elcriollo.com",
-                Url = new Uri("https://github.com/elcriollo/api")
-            },
-            License = new OpenApiLicense
-            {
-                Name = "MIT License",
-                Url = new Uri("https://opensource.org/licenses/MIT")
-            }
         });
 
         // JWT Security Definition
@@ -274,18 +263,15 @@ try
     app.UseErrorHandling();
 
 
-    // Swagger (solo en desarrollo)
-    if (app.Environment.IsDevelopment())
+    // Swagger
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "El Criollo API v1");
-            c.RoutePrefix = string.Empty; // Swagger en la raíz
-            c.DocumentTitle = "El Criollo API - Documentación";
-            c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
-        });
-    }
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "El Criollo API v1");
+        c.RoutePrefix = string.Empty; // Swagger en la raíz
+        c.DocumentTitle = "El Criollo API - Documentación";
+        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+    });
 
     // HTTPS Redirection
     app.UseHttpsRedirection();
