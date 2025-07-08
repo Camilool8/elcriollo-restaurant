@@ -75,40 +75,6 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
-          livenessProbe:
-            exec:
-              command:
-                - /opt/mssql-tools18/bin/sqlcmd
-                - -S
-                - localhost
-                - -U
-                - sa
-                - -P
-                - $(SA_PASSWORD)
-                - -C
-                - -Q
-                - "SELECT 1"
-            initialDelaySeconds: 60
-            periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 3
-          readinessProbe:
-            exec:
-              command:
-                - /opt/mssql-tools18/bin/sqlcmd
-                - -S
-                - localhost
-                - -U
-                - sa
-                - -P
-                - $(SA_PASSWORD)
-                - -C
-                - -Q
-                - "SELECT 1"
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
       volumes:
         - name: sqlserver-data
           persistentVolumeClaim:

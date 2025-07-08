@@ -33,7 +33,7 @@ data:
   EMAIL_SMTP_SERVER: "smtp.gmail.com"
   EMAIL_SMTP_PORT: "587"
   EMAIL_ENABLE_SSL: "true"
-  EMAIL_FROM_EMAIL: "elcriollo.restaurant@gmail.com"
+  EMAIL_FROM_EMAIL: "josejoga.opx@gmail.com"
   EMAIL_FROM_NAME: "Restaurante El Criollo"
   EMAIL_ENABLE_SENDING: "true"
   EMAIL_SAVE_TO_FILE: "false"
