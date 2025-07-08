@@ -216,8 +216,11 @@ namespace ElCriollo.API.Controllers
         {
             try
             {
-                var fechaConsulta = fecha ?? DateTime.Today;
-                _logger.LogInformation("📅 Consultando reservaciones para {Fecha}", fechaConsulta);
+                // Usar fecha dominicana si no se especifica
+                var dominicanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Atlantic Standard Time");
+                var fechaConsulta = fecha ?? TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, dominicanTimeZone).Date;
+                
+                _logger.LogInformation("📅 Consultando reservaciones para {Fecha} (zona horaria dominicana)", fechaConsulta);
 
                 var reservaciones = await _reservacionService.GetReservasPorFechaAsync(fechaConsulta);
                 
@@ -327,7 +330,64 @@ namespace ElCriollo.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al cancelar reservación {ReservacionId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al procesar la cancelación",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Confirma una reservación
+        /// </summary>
+        /// <param name="id">ID de la reservación a confirmar</param>
+        /// <returns>Resultado de la operación</returns>
+        /// <response code="200">Reservación confirmada exitosamente</response>
+        /// <response code="400">La reservación no se pudo confirmar</response>
+        /// <response code="404">Reservación no encontrada</response>
+        [HttpPost("{id:int}/confirmar")]
+        [Authorize(Roles = "Administrador,Recepcion")]
+        [SwaggerOperation(
+            Summary = "Confirmar reservación",
+            Description = "Confirma una reservación que estaba en estado pendiente.",
+            OperationId = "Reservacion.Confirmar",
+            Tags = new[] { "Operaciones de Reservación" }
+        )]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse>> ConfirmarReservacion(int id)
+        {
+            try
+            {
+                _logger.LogInformation("✅ Confirmando reservación ID: {ReservacionId}", id);
+
+                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var exito = await _reservacionService.ConfirmarReservaAsync(id, usuarioId);
+
+                if (!exito)
+                {
+                    return BadRequest(new ValidationProblemDetails
+                    {
+                        Title = "No se pudo confirmar la reservación",
+                        Detail = "La reservación podría no existir o ya estar en un estado final (cancelada, completada).",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                return Ok(new ApiResponse { Success = true, Message = "Reservación confirmada exitosamente." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al confirmar reservación {ReservacionId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al procesar la confirmación.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
             }
         }
 

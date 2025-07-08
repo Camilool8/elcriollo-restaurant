@@ -328,5 +328,31 @@ namespace ElCriollo.API.Repositories
                 throw;
             }
         }
+
+        /// <summary>
+        /// Busca un cliente por cédula
+        /// </summary>
+        public async Task<Cliente?> BuscarPorCedulaAsync(string cedula)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(cedula))
+                    return null;
+
+                _logger.LogDebug("Buscando cliente por cédula: {Cedula}", cedula);
+
+                var cliente = await _dbSet
+                    .FirstOrDefaultAsync(c => c.Cedula == cedula && c.Estado == "Activo");
+
+                _logger.LogDebug("Cliente encontrado: {Encontrado}", cliente != null);
+
+                return cliente;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar cliente por cédula: {Cedula}", cedula);
+                throw;
+            }
+        }
     }
 } 

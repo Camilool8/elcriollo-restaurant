@@ -51,5 +51,10 @@ namespace ElCriollo.API.Interfaces
         /// Obtiene clientes que cumplen años en el mes especificado
         /// </summary>
         Task<IEnumerable<dynamic>> GetClientesCumpleanosAsync(int mes);
+
+        /// <summary>
+        /// Busca un cliente por cédula
+        /// </summary>
+        Task<Cliente?> BuscarPorCedulaAsync(string cedula);
     }
 } 

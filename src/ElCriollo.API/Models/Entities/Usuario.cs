@@ -98,16 +98,6 @@ public class Usuario
     /// </summary>
     public virtual Empleado? Empleado { get; set; }
 
-    /// <summary>
-    /// Órdenes creadas por este usuario
-    /// </summary>
-    public virtual ICollection<Orden> Ordenes { get; set; } = new List<Orden>();
-
-    /// <summary>
-    /// Facturas generadas por este usuario
-    /// </summary>
-    public virtual ICollection<Factura> Facturas { get; set; } = new List<Factura>();
-
     // ============================================================================
     // PROPIEDADES ALIAS PARA COMPATIBILIDAD
     // ============================================================================

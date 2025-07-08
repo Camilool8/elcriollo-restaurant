@@ -80,11 +80,11 @@ namespace ElCriollo.API.Services
                     NumeroOrden = numeroOrden,
                     MesaID = crearOrdenRequest.MesaId,
                     ClienteID = crearOrdenRequest.ClienteId,
-                    UsuarioID = usuarioId,
+                    EmpleadoID = usuarioId,
                     TipoOrden = crearOrdenRequest.TipoOrden ?? "Mesa",
                     FechaCreacion = DateTime.Now,
                     Estado = "Pendiente",
-                    ObservacionesEspeciales = crearOrdenRequest.Observaciones
+                    Observaciones = crearOrdenRequest.Observaciones
                 };
 
                 // Guardar orden
@@ -219,10 +219,12 @@ namespace ElCriollo.API.Services
                     return false;
                 }
 
+                var estadoAnterior = orden.Estado;
+
                 // Validar transición de estado básica
-                if (!ValidarTransicionEstado(orden.Estado, nuevoEstado))
+                if (!ValidarTransicionEstado(estadoAnterior, nuevoEstado))
                 {
-                    _logger.LogWarning("⚠️ Transición inválida de {EstadoActual} a {NuevoEstado}", orden.Estado, nuevoEstado);
+                    _logger.LogWarning("⚠️ Transición inválida de {EstadoActual} a {NuevoEstado}", estadoAnterior, nuevoEstado);
                     return false;
                 }
 
@@ -232,7 +234,7 @@ namespace ElCriollo.API.Services
                 await _ordenRepository.UpdateAsync(orden);
 
                 _logger.LogInformation("✅ Orden {OrdenId} cambió de {EstadoAnterior} a {NuevoEstado}", 
-                    ordenId, orden.Estado, nuevoEstado);
+                    ordenId, estadoAnterior, nuevoEstado);
 
                 return true;
             }

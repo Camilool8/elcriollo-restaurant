@@ -750,30 +750,13 @@ namespace ElCriollo.API.Controllers
             public decimal? StockMaximo { get; set; }
         }
 
-        public class InventarioResponse
-        {
-            public int InventarioID { get; set; }
-            public int ProductoID { get; set; }
-            public string NombreProducto { get; set; } = string.Empty;
-            public string Categoria { get; set; } = string.Empty;
-            public decimal CantidadDisponible { get; set; }
-            public decimal StockMinimo { get; set; }
-            public decimal StockMaximo { get; set; }
-            public string UnidadMedida { get; set; } = string.Empty;
-            public decimal UltimoCosto { get; set; }
-            public decimal ValorTotal { get; set; }
-            public DateTime FechaUltimaActualizacion { get; set; }
-            public string Estado { get; set; } = string.Empty;
-            public bool RequiereReabastecimiento { get; set; }
-        }
-
         public class AlertaInventarioResponse
         {
             public int ProductoId { get; set; }
             public string NombreProducto { get; set; } = string.Empty;
-            public decimal StockActual { get; set; }
-            public decimal StockMinimo { get; set; }
-            public decimal CantidadFaltante { get; set; }
+            public int StockActual { get; set; }
+            public int StockMinimo { get; set; }
+            public int CantidadFaltante { get; set; }
             public string Urgencia { get; set; } = string.Empty; // Alta, Media, Baja
             public int DiasParaAgotarse { get; set; }
         }
@@ -794,9 +777,9 @@ namespace ElCriollo.API.Controllers
             public string TipoMovimiento { get; set; } = string.Empty;
             public int ProductoId { get; set; }
             public string NombreProducto { get; set; } = string.Empty;
-            public decimal CantidadMovimiento { get; set; }
-            public decimal StockAnterior { get; set; }
-            public decimal StockActual { get; set; }
+            public int CantidadMovimiento { get; set; }
+            public int StockAnterior { get; set; }
+            public int StockActual { get; set; }
             public DateTime FechaMovimiento { get; set; }
             public string Usuario { get; set; } = string.Empty;
             public bool RequiereReabastecimiento { get; set; }
@@ -808,8 +791,8 @@ namespace ElCriollo.API.Controllers
             public DateTime Fecha { get; set; }
             public string TipoMovimiento { get; set; } = string.Empty;
             public string Producto { get; set; } = string.Empty;
-            public decimal Cantidad { get; set; }
-            public decimal StockResultante { get; set; }
+            public int Cantidad { get; set; }
+            public int StockResultante { get; set; }
             public decimal? CostoUnitario { get; set; }
             public string? Referencia { get; set; }
             public string Usuario { get; set; } = string.Empty;
@@ -829,10 +812,10 @@ namespace ElCriollo.API.Controllers
             public int ProductoId { get; set; }
             public string NombreProducto { get; set; } = string.Empty;
             public string Categoria { get; set; } = string.Empty;
-            public decimal StockActual { get; set; }
-            public decimal StockMinimo { get; set; }
-            public decimal StockMaximo { get; set; }
-            public decimal CantidadSugerida { get; set; }
+            public int StockActual { get; set; }
+            public int StockMinimo { get; set; }
+            public int StockMaximo { get; set; }
+            public int CantidadSugerida { get; set; }
             public decimal UltimoCosto { get; set; }
             public decimal CostoEstimado { get; set; }
             public string? ProveedorSugerido { get; set; }
@@ -853,7 +836,7 @@ namespace ElCriollo.API.Controllers
         {
             public int ProductoId { get; set; }
             public string NombreProducto { get; set; } = string.Empty;
-            public decimal CantidadDisponible { get; set; }
+            public int CantidadDisponible { get; set; }
             public decimal CostoUnitario { get; set; }
             public decimal ValorTotal { get; set; }
             public decimal PorcentajeDelTotal { get; set; }

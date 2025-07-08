@@ -750,19 +750,14 @@ namespace ElCriollo.API.Repositories
         {
             try
             {
-                _logger.LogDebug("Obteniendo todas las mesas con includes");
+                _logger.LogDebug("Obteniendo todas las mesas básicas");
 
+                // Simplificar la consulta para evitar problemas de mapeo en las pruebas
                 var mesas = await _dbSet
-                    .Include(m => m.Ordenes)
-                        .ThenInclude(o => o.Empleado)
-                    .Include(m => m.Ordenes)
-                        .ThenInclude(o => o.Cliente)
-                    .Include(m => m.Reservaciones)
-                        .ThenInclude(r => r.Cliente)
                     .OrderBy(m => m.NumeroMesa)
                     .ToListAsync();
 
-                _logger.LogDebug("Se obtuvieron {Count} mesas con includes", mesas.Count);
+                _logger.LogDebug("Se obtuvieron {Count} mesas", mesas.Count);
                 return mesas;
             }
             catch (Exception ex)

@@ -41,31 +41,51 @@ namespace ElCriollo.API.Tests.Integration
 
     public class MesaResponse
     {
-        public int MesaId { get; set; }
+        public int MesaID { get; set; }
         public int NumeroMesa { get; set; }
-        public string Estado { get; set; } = string.Empty;
         public int Capacidad { get; set; }
         public string? Ubicacion { get; set; }
-        public string? Descripcion { get; set; }
-        public DateTime? FechaUltimoCambio { get; set; }
-        public List<OrdenBasicaResponse> OrdenesActivas { get; set; } = new();
-        public ReservacionBasicaResponse? ReservacionActiva { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public ClienteBasicoResponse? ClienteActual { get; set; }
+        public OrdenBasicaResponse? OrdenActual { get; set; }
+        public ReservacionBasicaResponse? ReservacionActual { get; set; }
+        public string? TiempoOcupada { get; set; }
+        public bool NecesitaLimpieza { get; set; }
+        public DateTime? FechaUltimaLimpieza { get; set; }
+        public bool RequiereAtencion { get; set; }
+        public string? TiempoHastaReserva { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int MesaId => MesaID;
     }
 
     public class OrdenBasicaResponse
     {
-        public int OrdenId { get; set; }
+        public int OrdenID { get; set; }
         public string NumeroOrden { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
-        public decimal Total { get; set; }
+        public string Total { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+        public string TiempoTranscurrido { get; set; } = string.Empty;
+        
+        // Alias para compatibilidad con tests existentes
+        public int OrdenId => OrdenID;
     }
 
     public class ReservacionBasicaResponse
     {
-        public int ReservacionId { get; set; }
-        public DateTime FechaHora { get; set; }
+        public int ReservacionID { get; set; }
+        public string ClienteNombre { get; set; } = string.Empty;
         public int CantidadPersonas { get; set; }
-        public string NombreCliente { get; set; } = string.Empty;
+        public string Horario { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string? TiempoHastaReservacion { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int ReservacionId => ReservacionID;
+        public DateTime FechaHora => DateTime.TryParse(Horario, out var fecha) ? fecha : DateTime.MinValue;
+        public string NombreCliente => ClienteNombre;
     }
 
     public class InventarioResponse
@@ -82,111 +102,180 @@ namespace ElCriollo.API.Tests.Integration
 
     public class MovimientoInventarioResponse
     {
-        public int MovimientoId { get; set; }
+        public bool Success { get; set; }
+        public string TipoMovimiento { get; set; } = string.Empty;
         public int ProductoId { get; set; }
         public string NombreProducto { get; set; } = string.Empty;
-        public int Cantidad { get; set; }
-        public string TipoMovimiento { get; set; } = string.Empty;
-        public string? Motivo { get; set; }
-        public decimal? CostoUnitario { get; set; }
+        public int CantidadMovimiento { get; set; }
         public int StockAnterior { get; set; }
-        public int StockNuevo { get; set; }
+        public int StockActual { get; set; }
         public DateTime FechaMovimiento { get; set; }
-        public string UsuarioResponsable { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
+        public bool RequiereReabastecimiento { get; set; }
     }
 
     public class ClienteResponse
     {
-        public int ClienteId { get; set; }
+        public int ClienteID { get; set; }
         public string NombreCompleto { get; set; } = string.Empty;
-        public string? Cedula { get; set; }
-        public string Telefono { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+        public string? Email { get; set; }
         public string? Direccion { get; set; }
-        public DateTime? FechaNacimiento { get; set; }
-        public string? PreferenciasComida { get; set; }
         public DateTime FechaRegistro { get; set; }
-        public string Estado { get; set; } = string.Empty;
-        public int TotalVisitas { get; set; }
-        public decimal TotalGastado { get; set; }
-    }
-
-    public class OrdenResponse
-    {
-        public int OrdenId { get; set; }
-        public string NumeroOrden { get; set; } = string.Empty;
-        public int? MesaId { get; set; }
-        public int? ClienteId { get; set; }
-        public string TipoOrden { get; set; } = string.Empty;
-        public string Estado { get; set; } = string.Empty;
-        public decimal Subtotal { get; set; }
-        public decimal Total { get; set; }
-        public DateTime FechaCreacion { get; set; }
-        public string? Observaciones { get; set; }
-        public List<ItemOrdenResponse> Items { get; set; } = new();
-        public ClienteBasicoResponse? Cliente { get; set; }
-        public MesaBasicaResponse? Mesa { get; set; }
-    }
-
-    public class ItemOrdenResponse
-    {
-        public int ItemId { get; set; }
-        public int ProductoId { get; set; }
-        public string NombreProducto { get; set; } = string.Empty;
-        public int Cantidad { get; set; }
-        public decimal PrecioUnitario { get; set; }
-        public decimal Subtotal { get; set; }
-        public string? NotasEspeciales { get; set; }
-        public string Estado { get; set; } = string.Empty;
+        public string CategoriaCliente { get; set; } = string.Empty;
+        public int TotalOrdenes { get; set; }
+        public int TotalReservaciones { get; set; }
+        public int TotalFacturas { get; set; }
+        public string PromedioConsumo { get; set; } = string.Empty;
+        public DateTime? UltimaVisita { get; set; }
+        public bool Estado { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int ClienteId => ClienteID;
     }
 
     public class ClienteBasicoResponse
     {
-        public int ClienteId { get; set; }
+        public int ClienteID { get; set; }
         public string NombreCompleto { get; set; } = string.Empty;
         public string? Telefono { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int ClienteId => ClienteID;
     }
 
     public class MesaBasicaResponse
     {
-        public int MesaId { get; set; }
+        public int MesaID { get; set; }
         public int NumeroMesa { get; set; }
         public string? Ubicacion { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int MesaId => MesaID;
+    }
+
+    public class OrdenResponse
+    {
+        public int OrdenID { get; set; }
+        public string NumeroOrden { get; set; } = string.Empty;
+        public MesaBasicaResponse? Mesa { get; set; }
+        public ClienteBasicoResponse? Cliente { get; set; }
+        public EmpleadoBasicoResponse Empleado { get; set; } = null!;
+        public DateTime FechaCreacion { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public string TipoOrden { get; set; } = string.Empty;
+        public string? Observaciones { get; set; }
+        public List<DetalleOrdenResponse> Detalles { get; set; } = new();
+        public int TotalItems { get; set; }
+        public string Subtotal { get; set; } = string.Empty;
+        public string Total { get; set; } = string.Empty;
+        public string TiempoTranscurrido { get; set; } = string.Empty;
+        public string TiempoPreparacionEstimado { get; set; } = string.Empty;
+        public DateTime HoraEstimadaFinalizacion { get; set; }
+        public bool EstaRetrasada { get; set; }
+        public bool EstaFacturada { get; set; }
+        public List<string> CategoriasProductos { get; set; } = new();
+        
+        // Alias para compatibilidad con tests existentes
+        public List<DetalleOrdenResponse> Items => Detalles;
+        public int OrdenId => OrdenID;
+        public int? MesaId => Mesa?.MesaID;
+        public int? ClienteId => Cliente?.ClienteID;
+    }
+
+    public class DetalleOrdenResponse
+    {
+        public int DetalleOrdenID { get; set; }
+        public string TipoItem { get; set; } = string.Empty;
+        public string NombreItem { get; set; } = string.Empty;
+        public string? DescripcionItem { get; set; }
+        public string? CategoriaItem { get; set; }
+        public int Cantidad { get; set; }
+        public string PrecioUnitario { get; set; } = string.Empty;
+        public string Descuento { get; set; } = string.Empty;
+        public string Subtotal { get; set; } = string.Empty;
+        public string? Observaciones { get; set; }
+        public bool EstaDisponible { get; set; }
+        public string TiempoPreparacion { get; set; } = string.Empty;
+        public string NombreCompleto { get; set; } = string.Empty;
+        
+        // Alias para compatibilidad con tests existentes
+        public int ItemId => DetalleOrdenID;
+        public int ProductoId => 0; // Se puede obtener del contexto si es necesario
+        public string NombreProducto => NombreItem;
+        public string? NotasEspeciales => Observaciones;
+        public string Estado => EstaDisponible ? "Disponible" : "No disponible";
     }
 
     public class ReservacionResponse
     {
-        public int ReservacionId { get; set; }
-        public int MesaId { get; set; }
-        public int ClienteId { get; set; }
-        public DateTime FechaHora { get; set; }
-        public int CantidadPersonas { get; set; }
-        public int? DuracionMinutos { get; set; }
-        public string Estado { get; set; } = string.Empty;
-        public string? NotasEspeciales { get; set; }
-        public DateTime FechaCreacion { get; set; }
+        public int ReservacionID { get; set; }
         public ClienteBasicoResponse Cliente { get; set; } = null!;
         public MesaBasicaResponse Mesa { get; set; } = null!;
+        public DateTime FechaYHora { get; set; }
+        public int CantidadPersonas { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public string? Observaciones { get; set; }
+        public string Horario { get; set; } = string.Empty;
+        public string? TiempoHastaReservacion { get; set; }
+        public bool PuedeModificar { get; set; }
+        public bool PuedeCancelar { get; set; }
+        public int? TiempoParaLlegar { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public int DuracionMinutos { get; set; } = 120;
+        
+        // Alias para compatibilidad con tests existentes
+        public int ReservacionId => ReservacionID;
+        public int MesaId => Mesa?.MesaID ?? 0;
+        public int ClienteId => Cliente?.ClienteID ?? 0;
+        public DateTime FechaHora => FechaYHora;
+        public string? NotasEspeciales => Observaciones;
     }
 
     public class FacturaResponse
     {
-        public int FacturaId { get; set; }
+        // Propiedades que coinciden exactamente con la clase real FacturaResponse
+        public int FacturaID { get; set; }
         public string NumeroFactura { get; set; } = string.Empty;
-        public int OrdenId { get; set; }
-        public int? ClienteId { get; set; }
-        public decimal Subtotal { get; set; }
-        public decimal Impuesto { get; set; }
-        public decimal Descuento { get; set; }
-        public decimal Propina { get; set; }
-        public decimal Total { get; set; }
+        public int OrdenID { get; set; }
+        public ClienteBasicoResponse Cliente { get; set; } = null!;
+        public EmpleadoBasicoResponse Empleado { get; set; } = null!;
+        public MesaBasicaResponse? Mesa { get; set; }
+        public DateTime FechaFactura { get; set; }
+        public string Subtotal { get; set; } = string.Empty;
+        public string Impuesto { get; set; } = string.Empty; 
+        public string Descuento { get; set; } = string.Empty; 
+        public string Propina { get; set; } = string.Empty; 
+        public string Total { get; set; } = string.Empty; 
         public string MetodoPago { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
-        public DateTime FechaCreacion { get; set; }
+        public decimal PorcentajeImpuesto { get; set; }
+        public decimal PorcentajeDescuento { get; set; }
+        public decimal PorcentajePropina { get; set; }
+        public string? ObservacionesPago { get; set; }
         public DateTime? FechaPago { get; set; }
-        public string? Observaciones { get; set; }
-        public OrdenBasicaResponse Orden { get; set; } = null!;
-        public ClienteBasicoResponse? Cliente { get; set; }
+        
+        // Alias para compatibilidad con tests existentes
+        public int FacturaId => FacturaID;
+        public int OrdenId => OrdenID;
+        public int? ClienteId => Cliente?.ClienteID;
+        public DateTime FechaCreacion => FechaFactura;
+        public string? Observaciones => ObservacionesPago;
+        
+        // Propiedades numéricas para cálculos (derivadas de los strings)
+        public decimal SubtotalNumerico => ParseCurrency(Subtotal);
+        public decimal ImpuestoNumerico => ParseCurrency(Impuesto);
+        public decimal DescuentoNumerico => ParseCurrency(Descuento);
+        public decimal PropinaNumerico => ParseCurrency(Propina);
+        public decimal TotalNumerico => ParseCurrency(Total);
+        
+        private static decimal ParseCurrency(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return 0;
+            // Remover "RD$ " y cualquier formato de moneda
+            var cleanValue = value.Replace("RD$ ", "").Replace("RD$", "").Replace(",", "").Trim();
+            return decimal.TryParse(cleanValue, out var result) ? result : 0;
+        }
     }
 
     public class ReporteVentasDiariasResponse
@@ -286,7 +375,7 @@ namespace ElCriollo.API.Tests.Integration
     public class EntradaInventarioRequest
     {
         public int ProductoId { get; set; }
-        public int Cantidad { get; set; }
+        public decimal Cantidad { get; set; }
         public string Motivo { get; set; } = string.Empty;
         public decimal CostoUnitario { get; set; }
     }
@@ -296,8 +385,27 @@ namespace ElCriollo.API.Tests.Integration
         public string? Observaciones { get; set; }
     }
 
-    // AgregarItemsOrdenRequest usa ItemOrdenRequest del proyecto principal
-    // using ElCriollo.API.Models.DTOs.Request;
+    // Classes that need to be added for orders
+    public class ItemOrdenRequest
+    {
+        public int ProductoId { get; set; }
+        public int Cantidad { get; set; }
+        public string? NotasEspeciales { get; set; }
+    }
+
+    public class CreateOrdenRequest
+    {
+        public int? MesaId { get; set; }
+        public int? ClienteId { get; set; }
+        public string TipoOrden { get; set; } = "Mesa";
+        public string? Observaciones { get; set; }
+        public List<ItemOrdenRequest> Items { get; set; } = new();
+    }
+
+    public class AgregarItemsOrdenRequest
+    {
+        public List<ItemOrdenRequest> Items { get; set; } = new();
+    }
 
     public class ActualizarEstadoOrdenRequest
     {
@@ -311,19 +419,14 @@ namespace ElCriollo.API.Tests.Integration
         public string? Observaciones { get; set; }
     }
 
-    // ItemOrdenRequest se usa del proyecto principal
-    // using ElCriollo.API.Models.DTOs.Request;
-
-    // CrearOrdenRequest se usa del proyecto principal
-    // using ElCriollo.API.Models.DTOs.Request;
-
-    public class CrearReservacionRequest
+    // Classes that need to be added for reservations
+    public class CreateReservacionRequest
     {
-        public int MesaId { get; set; }
-        public int ClienteId { get; set; }
+        public int? MesaId { get; set; }
+        public int? ClienteId { get; set; }
         public DateTime FechaHora { get; set; }
         public int CantidadPersonas { get; set; }
-        public int DuracionMinutos { get; set; }
+        public int? DuracionMinutos { get; set; }
         public string? NotasEspeciales { get; set; }
     }
 
@@ -344,6 +447,14 @@ namespace ElCriollo.API.Tests.Integration
         public string? Observaciones { get; set; }
     }
 
+    public class ApiResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public object? Data { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+    
     public class ApiResponse<T>
     {
         public bool Success { get; set; }

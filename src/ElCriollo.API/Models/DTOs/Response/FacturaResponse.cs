@@ -96,4 +96,9 @@ public class FacturaResponse
     /// Observaciones de pago
     /// </summary>
     public string? ObservacionesPago { get; set; }
+
+    /// <summary>
+    /// Fecha y hora del pago (cuando se completó el pago)
+    /// </summary>
+    public DateTime? FechaPago { get; set; }
 } 

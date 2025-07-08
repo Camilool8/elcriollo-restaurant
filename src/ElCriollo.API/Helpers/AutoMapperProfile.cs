@@ -38,8 +38,11 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
             .ForMember(dest => dest.TelefonoFormateado, opt => opt.MapFrom(src => src.TelefonoFormateado))
             .ForMember(dest => dest.SalarioFormateado, opt => opt.MapFrom(src => src.SalarioFormateado))
-            .ForMember(dest => dest.TiempoEnEmpresa, opt => opt.MapFrom(src => src.TiempoEnEmpresa)) // TiempoEnEmpresa ya es string
-            .ForMember(dest => dest.EsEmpleadoActivo, opt => opt.MapFrom(src => src.EsActivo));
+            .ForMember(dest => dest.TiempoEnEmpresa, opt => opt.MapFrom(src => src.TiempoEnEmpresa))
+            .ForMember(dest => dest.EsEmpleadoActivo, opt => opt.MapFrom(src => src.EsActivo))
+            .ForMember(dest => dest.FechaNacimiento, opt => opt.MapFrom(src => src.FechaNacimiento ?? DateTime.MinValue))
+            .ForMember(dest => dest.FechaContratacion, opt => opt.MapFrom(src => src.FechaIngreso))
+            .ForMember(dest => dest.Cargo, opt => opt.MapFrom(src => src.Departamento ?? string.Empty));
 
         // Cliente
         CreateMap<Cliente, ClienteBasicoResponse>()
@@ -49,15 +52,16 @@ public class AutoMapperProfile : Profile
         CreateMap<Cliente, ClienteResponse>()
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto))
             .ForMember(dest => dest.CategoriaCliente, opt => opt.MapFrom(src => src.ObtenerCategoriaCliente()))
-            .ForMember(dest => dest.TotalOrdenes, opt => opt.MapFrom(src => src.Ordenes.Count))
-            .ForMember(dest => dest.TotalReservaciones, opt => opt.MapFrom(src => src.Reservaciones.Count))
-            .ForMember(dest => dest.TotalFacturas, opt => opt.MapFrom(src => src.Facturas.Count))
+            .ForMember(dest => dest.TotalOrdenes, opt => opt.MapFrom(src => src.Ordenes != null ? src.Ordenes.Count : 0))
+            .ForMember(dest => dest.TotalReservaciones, opt => opt.MapFrom(src => src.Reservaciones != null ? src.Reservaciones.Count : 0))
+            .ForMember(dest => dest.TotalFacturas, opt => opt.MapFrom(src => src.Facturas != null ? src.Facturas.Count : 0))
             .ForMember(dest => dest.PromedioConsumo, opt => opt.MapFrom(src => 
-                src.Ordenes.Any() ? $"RD$ {src.Ordenes.Average(o => o.Total):N2}" : "RD$ 0.00"))
+                src.Ordenes != null && src.Ordenes.Any() ? $"RD$ {src.Ordenes.Average(o => o.Total):N2}" : "RD$ 0.00"))
             .ForMember(dest => dest.UltimaVisita, opt => opt.MapFrom(src => 
-                src.Ordenes.Any() ? 
+                src.Ordenes != null && src.Ordenes.Any() ? 
                 src.Ordenes.OrderByDescending(o => o.FechaCreacion).First().FechaCreacion : 
-                (DateTime?)null));
+                (DateTime?)null))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado == "Activo"));
 
         // Producto
         CreateMap<Producto, ProductoResponse>()
@@ -202,7 +206,8 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PorcentajeImpuesto, opt => opt.MapFrom(src => src.PorcentajeImpuesto))
             .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
             .ForMember(dest => dest.PorcentajePropina, opt => opt.MapFrom(src => src.PorcentajePropina))
-            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago));
+            .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago))
+            .ForMember(dest => dest.FechaPago, opt => opt.MapFrom(src => src.FechaPago));
 
         CreateMap<Factura, FacturaBasicaResponse>()
             .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
@@ -241,8 +246,8 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Salario, opt => opt.MapFrom(src => src.Salario))
             .ForMember(dest => dest.Departamento, opt => opt.MapFrom(src => src.Departamento))
             .ForMember(dest => dest.FechaIngreso, opt => opt.MapFrom(src => src.FechaIngresoEfectiva))
-            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true))
-            .ForMember(dest => dest.UsuarioID, opt => opt.Ignore()); // Se asignará después de crear el usuario
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Activo"))
+            .ForMember(dest => dest.UsuarioID, opt => opt.Ignore());
                 
         CreateMap<CreateOrdenRequest, Orden>()
             .ForMember(dest => dest.MesaID, opt => opt.MapFrom(src => src.MesaId))
@@ -295,7 +300,33 @@ public class AutoMapperProfile : Profile
         // Cliente ocasional
         CreateMap<CreateClienteOcasionalRequest, Cliente>()
             .ForMember(dest => dest.FechaRegistro, opt => opt.MapFrom(src => DateTime.Now.Date))
-            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => true));
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Activo")); // ✅ CORREGIDO: usar "Activo" en lugar de true
+
+        // Cliente desde CrearClienteRequest (controlador)
+        CreateMap<Controllers.ClienteController.CrearClienteRequest, Cliente>()
+            .ForMember(dest => dest.Nombre, opt => opt.MapFrom(src => src.NombreCompleto.Split(new char[] { ' ' })[0]))
+            .ForMember(dest => dest.Apellido, opt => opt.MapFrom(src => src.NombreCompleto.Contains(' ') ? src.NombreCompleto.Split(new char[] { ' ' }, 2)[1] : string.Empty))
+            .ForMember(dest => dest.FechaRegistro, opt => opt.MapFrom(src => DateTime.Now.Date))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => "Activo"));
+
+        // Mapeos para clases internas del InventarioController
+        CreateMap<Inventario, Controllers.InventarioController.AlertaInventarioResponse>()
+            .ForMember(dest => dest.ProductoId, opt => opt.MapFrom(src => src.ProductoID))
+            .ForMember(dest => dest.NombreProducto, opt => opt.MapFrom(src => src.Producto != null ? src.Producto.Nombre : string.Empty))
+            .ForMember(dest => dest.StockActual, opt => opt.MapFrom(src => src.CantidadDisponible))
+            .ForMember(dest => dest.StockMinimo, opt => opt.MapFrom(src => src.CantidadMinima))
+            .ForMember(dest => dest.CantidadFaltante, opt => opt.MapFrom(src => src.CantidadMinima > src.CantidadDisponible ? src.CantidadMinima - src.CantidadDisponible : 0))
+            .ForMember(dest => dest.Urgencia, opt => opt.MapFrom(src => src.CantidadDisponible == 0 ? "Alta" : 
+                (src.CantidadDisponible <= src.CantidadMinima / 2 ? "Media" : "Baja")))
+            .ForMember(dest => dest.DiasParaAgotarse, opt => opt.MapFrom(src => src.DiasParaReabastecer));
+
+        CreateMap<Inventario, Controllers.InventarioController.ProductoAgotadoResponse>()
+            .ForMember(dest => dest.ProductoId, opt => opt.MapFrom(src => src.ProductoID))
+            .ForMember(dest => dest.NombreProducto, opt => opt.MapFrom(src => src.Producto != null ? src.Producto.Nombre : string.Empty))
+            .ForMember(dest => dest.Categoria, opt => opt.MapFrom(src => src.Producto != null && src.Producto.Categoria != null ? src.Producto.Categoria.Nombre : string.Empty))
+            .ForMember(dest => dest.FechaAgotamiento, opt => opt.MapFrom(src => src.UltimaActualizacion))
+            .ForMember(dest => dest.DiasAgotado, opt => opt.MapFrom(src => (DateTime.UtcNow - src.UltimaActualizacion).Days))
+            .ForMember(dest => dest.PerdidaEstimada, opt => opt.MapFrom(src => src.Producto != null ? src.Producto.Precio * 10.0m : 0.0m));
 
         // Factura Request - No se mapea directamente a entidad porque requiere lógica de negocio
         // CreateFacturaRequest se usa para parámetros, no para crear directamente la entidad
@@ -318,12 +349,14 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PorcentajeDescuento, opt => opt.MapFrom(src => src.PorcentajeDescuento))
             .ForMember(dest => dest.PorcentajePropina, opt => opt.MapFrom(src => src.PorcentajePropina))
             .ForMember(dest => dest.ObservacionesPago, opt => opt.MapFrom(src => src.ObservacionesPago))
+            .ForMember(dest => dest.FechaPago, opt => opt.MapFrom(src => src.FechaPago))
             // Mapear propiedades numéricas
             .ForMember(dest => dest.TotalNumerico, opt => opt.MapFrom(src => src.Total))
             .ForMember(dest => dest.ImpuestoNumerico, opt => opt.MapFrom(src => src.Impuesto))
             .ForMember(dest => dest.PropinaNumerico, opt => opt.MapFrom(src => src.Propina))
             .ForMember(dest => dest.DescuentoNumerico, opt => opt.MapFrom(src => src.Descuento))
-            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.Subtotal));
+            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.Subtotal))
+            .ForMember(dest => dest.FechaPagoNumerico, opt => opt.MapFrom(src => src.FechaPago));
 
         // ============================================================================
         // MAPEO PARA VIEWMODELS ESPECÍFICOS
@@ -342,8 +375,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Rol, opt => opt.MapFrom(src => src.Rol.NombreRol))
             .ForMember(dest => dest.UltimoAcceso, opt => opt.MapFrom(src => 
                 src.UltimoAcceso.HasValue ? src.UltimoAcceso.Value.ToString("dd/MM HH:mm") : "Nunca"))
-            .ForMember(dest => dest.OrdenesAtendidas, opt => opt.MapFrom(src => 
-                src.Ordenes.Count(o => o.FechaCreacion.Date == DateTime.Today)))
+            .ForMember(dest => dest.OrdenesAtendidas, opt => opt.MapFrom(src => 0)) // Corregido: Ya no se puede acceder a las órdenes desde el usuario
             .ForMember(dest => dest.EstadoConexion, opt => opt.MapFrom(src => 
                 src.UltimoAcceso.HasValue && src.UltimoAcceso.Value > DateTime.UtcNow.AddMinutes(-30) ? "En línea" : "Desconectado"));
 

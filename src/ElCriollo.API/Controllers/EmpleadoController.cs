@@ -643,21 +643,7 @@ namespace ElCriollo.API.Controllers
             public string? Termino { get; set; }
         }
 
-        public class EmpleadoResponse
-        {
-            public int EmpleadoID { get; set; }
-            public string NombreCompleto { get; set; } = string.Empty;
-            public string? Cedula { get; set; }
-            public string Telefono { get; set; } = string.Empty;
-            public string Email { get; set; } = string.Empty;
-            public string? Direccion { get; set; }
-            public DateTime? FechaNacimiento { get; set; }
-            public string? PreferenciasComida { get; set; }
-            public DateTime FechaIngreso { get; set; }
-            public string Estado { get; set; } = string.Empty;
-            public int TotalVisitas { get; set; }
-            public decimal TotalGastado { get; set; }
-        }
+
 
 
 

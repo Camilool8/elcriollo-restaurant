@@ -335,6 +335,69 @@ namespace ElCriollo.API.Controllers
         }
 
         /// <summary>
+        /// Marcar una factura como pagada
+        /// </summary>
+        /// <param name="id">ID de la factura</param>
+        /// <param name="request">Método de pago utilizado</param>
+        /// <returns>Confirmación de pago</returns>
+        /// <response code="200">Factura marcada como pagada exitosamente</response>
+        /// <response code="400">Factura ya está pagada o no se puede marcar como pagada</response>
+        /// <response code="404">Factura no encontrada</response>
+        [HttpPost("{id:int}/marcar-pagada")]
+        [Authorize(Roles = "Administrador,Cajero")]
+        [SwaggerOperation(
+            Summary = "Marcar factura como pagada",
+            Description = "Marca una factura como pagada y registra el método de pago utilizado",
+            OperationId = "Factura.MarcarPagada",
+            Tags = new[] { "Operaciones de Factura" }
+        )]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse>> MarcarFacturaPagada(int id, [FromBody] MarcarFacturaPagadaRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("💳 Marcando factura {FacturaId} como pagada con método: {MetodoPago}", id, request.MetodoPago);
+
+                var resultado = await _facturaService.MarcarFacturaPagadaAsync(id, request.MetodoPago);
+
+                if (!resultado)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Factura no encontrada o ya está pagada",
+                        Detail = $"No se pudo marcar la factura con ID {id} como pagada. Verifique que la factura exista y esté en estado pendiente.",
+                        Status = StatusCodes.Status404NotFound
+                    });
+                }
+
+                _logger.LogInformation("✅ Factura {FacturaId} marcada como pagada exitosamente", id);
+                return Ok(new ApiResponse
+                {
+                    Success = true,
+                    Message = "Factura marcada como pagada exitosamente",
+                    Data = new { FacturaId = id, Estado = "Pagada", MetodoPago = request.MetodoPago }
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("⚠️ Error al marcar factura como pagada: {Mensaje}", ex.Message);
+                return BadRequest(new ValidationProblemDetails
+                {
+                    Title = "Error al marcar factura como pagada",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al marcar factura {FacturaId} como pagada", id);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        /// <summary>
         /// Enviar factura por email
         /// </summary>
         /// <param name="id">ID de la factura</param>
@@ -514,6 +577,17 @@ namespace ElCriollo.API.Controllers
             /// Email del destinatario
             /// </summary>
             public string Email { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Request para marcar factura como pagada
+        /// </summary>
+        public class MarcarFacturaPagadaRequest
+        {
+            /// <summary>
+            /// Método de pago utilizado
+            /// </summary>
+            public string MetodoPago { get; set; } = string.Empty;
         }
 
         /// <summary>

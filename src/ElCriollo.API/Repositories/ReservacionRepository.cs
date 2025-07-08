@@ -901,8 +901,8 @@ namespace ElCriollo.API.Repositories
                 var diasEnPeriodo = (fechaFin - fechaInicio).TotalDays + 1;
                 var totalMesas = await _context.Mesas.CountAsync();
                 
-                // Asumiendo 12 horas de operación por día (720 minutos)
-                var totalMinutosDisponibles = diasEnPeriodo * 720 * totalMesas;
+                // Restaurante 24 horas (1440 minutos por día)
+                var totalMinutosDisponibles = diasEnPeriodo * 1440 * totalMesas;
                 
                 var tasaOcupacion = (totalMinutosReservados / totalMinutosDisponibles) * 100;
                 

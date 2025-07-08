@@ -21,6 +21,9 @@ namespace ElCriollo.API.Services
         private const int DURACION_DEFAULT_MINUTOS = 120; // 2 horas por defecto
         private const int TOLERANCIA_DEFAULT_MINUTOS = 15; // 15 minutos de tolerancia
         private const int RECORDATORIO_DEFAULT_MINUTOS = 60; // 1 hora antes
+        
+        // Zona horaria de República Dominicana (UTC-4)
+        private static readonly TimeZoneInfo DominicanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Atlantic Standard Time");
 
         public ReservacionService(
             IReservacionRepository reservacionRepository,
@@ -34,6 +37,30 @@ namespace ElCriollo.API.Services
             _clienteRepository = clienteRepository;
             _mapper = mapper;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtiene la fecha/hora actual en zona horaria dominicana
+        /// </summary>
+        private DateTime GetDominicanNow()
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, DominicanTimeZone);
+        }
+
+        /// <summary>
+        /// Obtiene la fecha actual en zona horaria dominicana
+        /// </summary>
+        private DateTime GetDominicanToday()
+        {
+            return GetDominicanNow().Date;
+        }
+
+        /// <summary>
+        /// Convierte una fecha local dominicana a UTC
+        /// </summary>
+        private DateTime ConvertToUtc(DateTime dominicanTime)
+        {
+            return TimeZoneInfo.ConvertTimeToUtc(dominicanTime, DominicanTimeZone);
         }
 
         // ============================================================================
@@ -143,10 +170,15 @@ namespace ElCriollo.API.Services
             {
                 _logger.LogDebug("Obteniendo reservas para fecha: {Fecha}", fecha.ToString("yyyy-MM-dd"));
 
-                var reservas = await _reservacionRepository.GetReservasPorFechaAsync(fecha);
+                // Convertir la fecha a UTC para consultar correctamente
+                var fechaUtcInicio = ConvertToUtc(fecha.Date);
+                var fechaUtcFin = ConvertToUtc(fecha.Date.AddDays(1));
+
+                var reservas = await _reservacionRepository.GetReservacionesPorRangoFechasAsync(fechaUtcInicio, fechaUtcFin);
                 var reservasResponse = _mapper.Map<List<ReservacionResponse>>(reservas);
 
-                _logger.LogDebug("Encontradas {Count} reservas para {Fecha}", reservasResponse.Count, fecha.ToString("yyyy-MM-dd"));
+                _logger.LogDebug("Encontradas {Count} reservas para {Fecha} (UTC: {FechaUtcInicio} - {FechaUtcFin})", 
+                    reservasResponse.Count, fecha.ToString("yyyy-MM-dd"), fechaUtcInicio, fechaUtcFin);
 
                 return reservasResponse;
             }
@@ -417,13 +449,6 @@ namespace ElCriollo.API.Services
                     resultado.Errores.Add("La cantidad máxima de personas por reserva es 12");
                 }
 
-                // Validar horario de operación (ejemplo: 10:00 AM - 10:00 PM)
-                var hora = request.FechaHora.Hour;
-                if (hora < 10 || hora > 22)
-                {
-                    resultado.Errores.Add("Las reservas solo están disponibles de 10:00 AM a 10:00 PM");
-                }
-
                 // Validar cliente si se especifica
                 if (request.ClienteId.HasValue)
                 {
@@ -434,21 +459,51 @@ namespace ElCriollo.API.Services
                     }
                 }
 
-                // Buscar mesas disponibles
+                // Validar disponibilidad
                 if (!resultado.Errores.Any())
                 {
-                    var mesasDisponibles = await BuscarMesasDisponiblesParaReservaAsync(
-                        request.FechaHora, 
-                        request.CantidadPersonas, 
-                        request.DuracionMinutos ?? DURACION_DEFAULT_MINUTOS);
-
-                    if (!mesasDisponibles.Any())
+                    if (request.MesaId.HasValue)
                     {
-                        resultado.Errores.Add("No hay mesas disponibles para la fecha y hora solicitada");
-                        
-                        // Buscar alternativas en horas cercanas
-                        var alternativas = await BuscarMesasAlternativasAsync(request.FechaHora, request.CantidadPersonas);
-                        resultado.MesasAlternativas = alternativas.ToList();
+                        // Si se especifica una mesa, validar solo esa
+                        var mesa = await _mesaRepository.GetByIdAsync(request.MesaId.Value);
+                        if (mesa == null)
+                        {
+                            resultado.Errores.Add("La mesa especificada no existe.");
+                        }
+                        else if (mesa.Capacidad < request.CantidadPersonas)
+                        {
+                            resultado.Errores.Add($"La mesa {mesa.NumeroMesa} no tiene capacidad para {request.CantidadPersonas} personas.");
+                        }
+                        else
+                        {
+                            var disponible = await VerificarDisponibilidadMesaAsync(
+                                request.MesaId.Value,
+                                request.FechaHora,
+                                request.DuracionMinutos ?? DURACION_DEFAULT_MINUTOS
+                            );
+
+                            if (!disponible)
+                            {
+                                resultado.Errores.Add($"La mesa {mesa.NumeroMesa} no está disponible en el horario solicitado.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Si no se especifica mesa, buscar una disponible
+                        var mesasDisponibles = await BuscarMesasDisponiblesParaReservaAsync(
+                            request.FechaHora,
+                            request.CantidadPersonas,
+                            request.DuracionMinutos ?? DURACION_DEFAULT_MINUTOS);
+
+                        if (!mesasDisponibles.Any())
+                        {
+                            resultado.Errores.Add("No hay mesas disponibles para la fecha y hora solicitada");
+
+                            // Buscar alternativas en horas cercanas
+                            var alternativas = await BuscarMesasAlternativasAsync(request.FechaHora, request.CantidadPersonas);
+                            resultado.MesasAlternativas = alternativas.ToList();
+                        }
                     }
                 }
 

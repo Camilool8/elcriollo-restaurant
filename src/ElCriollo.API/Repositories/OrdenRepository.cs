@@ -1008,28 +1008,28 @@ namespace ElCriollo.API.Repositories
             {
                 _logger.LogDebug("Obteniendo orden con includes ID: {OrdenId}", ordenId);
 
-                var orden = await _dbSet
+                var orden = await _context.Ordenes
+                    .AsNoTracking()
                     .Include(o => o.Mesa)
                     .Include(o => o.Cliente)
                     .Include(o => o.Empleado)
-                    .Include(o => o.DetalleOrdenes)
-                        .ThenInclude(d => d.Producto)
+                    .Include(o => o.DetalleOrdenes)!
+                        .ThenInclude(d => d.Producto)!
                             .ThenInclude(p => p!.Categoria)
-                    .Include(o => o.DetalleOrdenes)
+                    .Include(o => o.DetalleOrdenes)!
                         .ThenInclude(d => d.Combo)
-                    .Include(o => o.Facturas)
                     .FirstOrDefaultAsync(o => o.OrdenID == ordenId);
 
                 if (orden == null)
                 {
-                    _logger.LogWarning("No se encontró orden con ID: {OrdenId}", ordenId);
+                    _logger.LogWarning($"No se encontró la orden con ID: {ordenId}");
                 }
-
+                
                 return orden;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener orden con includes ID: {OrdenId}", ordenId);
+                _logger.LogError(ex, $"Error al obtener orden con includes ID: {ordenId}");
                 throw;
             }
         }

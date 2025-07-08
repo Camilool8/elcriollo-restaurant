@@ -96,11 +96,6 @@ public class Cliente
     // ============================================================================
 
     /// <summary>
-    /// Mesas asignadas al cliente (historial)
-    /// </summary>
-    public virtual ICollection<Mesa> Mesas { get; set; } = new List<Mesa>();
-
-    /// <summary>
     /// Reservaciones realizadas por el cliente
     /// </summary>
     public virtual ICollection<Reservacion> Reservaciones { get; set; } = new List<Reservacion>();

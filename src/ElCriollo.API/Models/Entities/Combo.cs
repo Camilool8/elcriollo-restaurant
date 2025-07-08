@@ -64,11 +64,6 @@ public class Combo
     /// </summary>
     public virtual ICollection<DetalleOrden> DetalleOrdenes { get; set; } = new List<DetalleOrden>();
 
-    /// <summary>
-    /// Facturas que incluyen este combo
-    /// </summary>
-    public virtual ICollection<Factura> Facturas { get; set; } = new List<Factura>();
-
     // ============================================================================
     // PROPIEDADES CALCULADAS
     // ============================================================================

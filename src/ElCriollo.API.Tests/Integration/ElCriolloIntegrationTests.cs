@@ -17,9 +17,9 @@ namespace ElCriollo.API.Tests.Integration
     /// Pruebas de integración completas para El Criollo - Simulación del flujo cotidiano
     /// </summary>
     [Collection("Integration Tests")]
-    public class ElCriolloIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class ElCriolloIntegrationTests : IClassFixture<TestWebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly TestWebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
         private readonly ITestOutputHelper _output;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -39,8 +39,10 @@ namespace ElCriollo.API.Tests.Integration
         private int _ordenId = 0;
         private int _reservacionId = 0;
         private int _facturaId = 0;
+        
 
-        public ElCriolloIntegrationTests(WebApplicationFactory<Program> factory, ITestOutputHelper output)
+
+        public ElCriolloIntegrationTests(TestWebApplicationFactory<Program> factory, ITestOutputHelper output)
         {
             _factory = factory;
             _output = output;
@@ -142,10 +144,12 @@ namespace ElCriollo.API.Tests.Integration
         {
             _output.WriteLine("\n🏥 TEST 2: Verificación del Estado del Sistema");
             
-            var healthResponse = await GetAsync<object>("/health");
+            var healthResponse = await GetAsync<HealthCheckResponse>("/health");
             Assert.NotNull(healthResponse);
+            Assert.Equal("Healthy", healthResponse.Status);
             
-            _output.WriteLine("✅ Sistema operativo y saludable");
+            _output.WriteLine($"✅ Sistema operativo y saludable - Status: {healthResponse.Status}");
+            _output.WriteLine($"   Duración total: {healthResponse.TotalDuration:F2} ms");
         }
 
         private async Task Test03_CrearUsuarios_DebeCrearDiferentesRoles()
@@ -168,9 +172,9 @@ namespace ElCriollo.API.Tests.Integration
                 Departamento = "Servicio"
             };
             
-            var meseroResponse = await PostAsync<dynamic>("/api/auth/register", meseroRequest);
+            var meseroResponse = await PostAsync<UsuarioResponse>("/api/auth/register", meseroRequest);
             Assert.NotNull(meseroResponse);
-            _nuevoUsuarioMeseroId = (int)meseroResponse.GetProperty("usuarioId").GetInt32();
+            _nuevoUsuarioMeseroId = meseroResponse.UsuarioId;
             
             // Crear Cajero
             var cajeroRequest = new CreateUsuarioRequest
@@ -188,9 +192,9 @@ namespace ElCriollo.API.Tests.Integration
                 Departamento = "Caja"
             };
             
-            var cajeroResponse = await PostAsync<dynamic>("/api/auth/register", cajeroRequest);
+            var cajeroResponse = await PostAsync<UsuarioResponse>("/api/auth/register", cajeroRequest);
             Assert.NotNull(cajeroResponse);
-            _nuevoUsuarioCajeroId = (int)cajeroResponse.GetProperty("usuarioId").GetInt32();
+            _nuevoUsuarioCajeroId = cajeroResponse.UsuarioId;
             
             // Crear Recepcionista
             var recepcionRequest = new CreateUsuarioRequest
@@ -208,9 +212,9 @@ namespace ElCriollo.API.Tests.Integration
                 Departamento = "Recepción"
             };
             
-            var recepcionResponse = await PostAsync<dynamic>("/api/auth/register", recepcionRequest);
+            var recepcionResponse = await PostAsync<UsuarioResponse>("/api/auth/register", recepcionRequest);
             Assert.NotNull(recepcionResponse);
-            _nuevoUsuarioRecepcionId = (int)recepcionResponse.GetProperty("usuarioId").GetInt32();
+            _nuevoUsuarioRecepcionId = recepcionResponse.UsuarioId;
             
             _output.WriteLine($"✅ Usuarios creados exitosamente:");
             _output.WriteLine($"   - Mesero ID: {_nuevoUsuarioMeseroId}");
@@ -222,15 +226,27 @@ namespace ElCriollo.API.Tests.Integration
         {
             _output.WriteLine("\n🔑 TEST 4: Cambio de Contraseñas");
             
-            var cambioRequest = new CambiarContrasenaRequest
+            // Primero autenticar al mesero antes de cambiar su contraseña
+            var loginMesero = new LoginRequest
             {
-                UsuarioId = _nuevoUsuarioMeseroId,
-                ContrasenaActual = "MeseroTest123!",
-                NuevaContrasena = "MeseroNueva123!",
-                ConfirmarContrasena = "MeseroNueva123!"
+                Username = "mesero_test",
+                Password = "MeseroTest123!"
             };
             
-            var response = await PostAsync<ApiResponse>("/api/auth/cambiar-contrasena", cambioRequest);
+            var loginResponse = await PostAsync<LoginResponse>("/api/auth/login", loginMesero);
+            Assert.NotNull(loginResponse);
+            _meseroToken = loginResponse.Token;
+            
+            // Cambiar al token del mesero para el cambio de contraseña
+            SetAuthorizationHeader(_meseroToken);
+            
+            var cambioRequest = new CambiarContrasenaRequest
+            {
+                CurrentPassword = "MeseroTest123!",
+                NewPassword = "MeseroNueva123!"
+            };
+            
+            var response = await PostAsync<ApiResponse>("/api/auth/change-password", cambioRequest);
             Assert.NotNull(response);
             Assert.True(response.Success);
             
@@ -241,7 +257,8 @@ namespace ElCriollo.API.Tests.Integration
         {
             _output.WriteLine("\n🔓 TEST 5: Autenticación de Nuevos Usuarios");
             
-            // Login del Mesero con nueva contraseña
+            // El mesero ya fue autenticado en Test04, solo verificamos que el token funciona
+            // con la nueva contraseña
             var meseroLogin = new LoginRequest
             {
                 Username = "mesero_test",
@@ -250,7 +267,7 @@ namespace ElCriollo.API.Tests.Integration
             
             var meseroResponse = await PostAsync<LoginResponse>("/api/auth/login", meseroLogin);
             Assert.NotNull(meseroResponse);
-            _meseroToken = meseroResponse.Token;
+            _meseroToken = meseroResponse.Token; // Actualizar con el nuevo token
             
             // Login del Cajero
             var cajeroLogin = new LoginRequest
@@ -274,7 +291,7 @@ namespace ElCriollo.API.Tests.Integration
             Assert.NotNull(recepcionResponse);
             _recepcionToken = recepcionResponse.Token;
             
-            _output.WriteLine("✅ Todos los usuarios autenticados exitosamente");
+            _output.WriteLine("✅ Todos los usuarios autenticados exitosamente con nuevas credenciales");
         }
 
         private async Task Test06_VerificarInformacionEmpleados_DebeObtenerDatos()
@@ -284,6 +301,10 @@ namespace ElCriollo.API.Tests.Integration
             SetAuthorizationHeader(_adminToken);
             
             var empleados = await GetAsync<List<EmpleadoResponse>>("/api/empleado");
+            foreach (var empleado in empleados)
+            {
+                _output.WriteLine($"Empleado: {empleado.NombreCompleto}");
+            }
             Assert.NotNull(empleados);
             Assert.True(empleados.Count >= 3);
             
@@ -341,7 +362,7 @@ namespace ElCriollo.API.Tests.Integration
             var response = await PostAsync<MovimientoInventarioResponse>("/api/inventario/entrada", entradaRequest);
             Assert.NotNull(response);
             
-            _output.WriteLine($"✅ Entrada de inventario registrada: {response.Cantidad} unidades");
+            _output.WriteLine($"✅ Entrada de inventario registrada: {response.CantidadMovimiento} unidades");
         }
 
         private async Task Test10_CrearCliente_DebeRegistrarNuevoCliente()
@@ -378,7 +399,7 @@ namespace ElCriollo.API.Tests.Integration
                 MesaId = _mesaId,
                 ClienteId = _clienteId,
                 CantidadPersonas = 4,
-                FechaHora = DateTime.Now.AddHours(2),
+                FechaHora = DateTime.Now.AddHours(2), // 2 horas desde ahora
                 DuracionMinutos = 120,
                 NotasEspeciales = "Reservación de prueba - Mesa cerca de la ventana"
             };
@@ -406,20 +427,21 @@ namespace ElCriollo.API.Tests.Integration
 
         private async Task Test13_ConfirmarReservacion_DebeActualizarEstado()
         {
-            _output.WriteLine("\n✅ TEST 13: Confirmación de Reservación");
+            _output.WriteLine("\n✅ TEST 13: Estado de Reservación");
             
             SetAuthorizationHeader(_recepcionToken);
             
-            var confirmarRequest = new ConfirmarReservacionRequest
-            {
-                Observaciones = "Reservación confirmada por teléfono"
-            };
+            // Confirmar la reservación usando el nuevo endpoint
+            var confirmResponse = await PostAsync<ApiResponse>($"/api/reservacion/{_reservacionId}/confirmar", new { });
+            Assert.NotNull(confirmResponse);
+            Assert.True(confirmResponse.Success);
             
-            var response = await PostAsync<ApiResponse>($"/api/reservacion/{_reservacionId}/confirmar", confirmarRequest);
-            Assert.NotNull(response);
-            Assert.True(response.Success);
+            // Verificar que el estado cambió
+            var reservacion = await GetAsync<ReservacionResponse>($"/api/reservacion/{_reservacionId}");
+            Assert.NotNull(reservacion);
+            Assert.Equal("Confirmada", reservacion.Estado);
             
-            _output.WriteLine("✅ Reservación confirmada exitosamente");
+            _output.WriteLine($"✅ Reservación confirmada exitosamente - Nuevo Estado: {reservacion.Estado}");
         }
 
         private async Task Test14_CrearOrden_DebeRegistrarNuevaOrden()
@@ -444,17 +466,17 @@ namespace ElCriollo.API.Tests.Integration
                     },
                     new ItemOrdenRequest
                     {
-                        ProductoId = 7, // Arroz Blanco
+                        ProductoId = 2, // Arroz Blanco
                         Cantidad = 2
                     },
                     new ItemOrdenRequest
                     {
-                        ProductoId = 8, // Habichuelas Rojas
+                        ProductoId = 7, // Habichuelas Rojas
                         Cantidad = 2
                     },
                     new ItemOrdenRequest
                     {
-                        ProductoId = 19, // Tostones
+                        ProductoId = 8, // Tostones
                         Cantidad = 1
                     }
                 }
@@ -466,7 +488,7 @@ namespace ElCriollo.API.Tests.Integration
             
             _output.WriteLine($"✅ Orden creada exitosamente: {response.NumeroOrden}");
             _output.WriteLine($"   ID: {_ordenId}, Mesa: {response.MesaId}");
-            _output.WriteLine($"   Items: {response.Items.Count}, Total: RD$ {response.Total:F2}");
+            _output.WriteLine($"   Items: {response.TotalItems}, Total: {response.Total}");
         }
 
         private async Task Test15_ConsultarOrdenes_DebeObtenerOrdenesActivas()
@@ -494,7 +516,7 @@ namespace ElCriollo.API.Tests.Integration
                 {
                     new ItemOrdenRequest
                     {
-                        ProductoId = 25, // Morir Soñando
+                        ProductoId = 9, // Morir Soñando
                         Cantidad = 2,
                         NotasEspeciales = "Bien frío"
                     }
@@ -503,9 +525,9 @@ namespace ElCriollo.API.Tests.Integration
             
             var response = await PostAsync<OrdenResponse>($"/api/orden/{_ordenId}/items", agregarRequest);
             Assert.NotNull(response);
-            Assert.True(response.Items.Count > 4); // Más items que antes
+            Assert.True(response.TotalItems> 4); // Más items que antes
             
-            _output.WriteLine($"✅ Items agregados exitosamente. Total items: {response.Items.Count}");
+            _output.WriteLine($"✅ Items agregados exitosamente. Total items: {response.TotalItems}");
         }
 
         private async Task Test17_ActualizarEstadoOrden_DebeProgresarEstado()
@@ -520,9 +542,10 @@ namespace ElCriollo.API.Tests.Integration
                 Observaciones = "Orden enviada a cocina"
             };
             
-            var response = await PostAsync<ApiResponse>($"/api/orden/{_ordenId}/estado", actualizarRequest);
+            var response = await PutAsync<OrdenResponse>($"/api/orden/{_ordenId}/estado", actualizarRequest);
+            
             Assert.NotNull(response);
-            Assert.True(response.Success);
+            Assert.Equal("EnPreparacion", response.Estado);
             
             _output.WriteLine("✅ Estado de orden actualizado a: EnPreparacion");
         }
@@ -531,18 +554,27 @@ namespace ElCriollo.API.Tests.Integration
         {
             _output.WriteLine("\n💰 TEST 18: Creación de Factura con ITBIS");
             
-            SetAuthorizationHeader(_cajeroToken);
-            
-            // Primero marcar la orden como Lista
-            var estadoRequest = new ActualizarEstadoOrdenRequest
+            // El mesero o cocina marca la orden como lista
+            SetAuthorizationHeader(_meseroToken);
+            var estadoListaRequest = new ActualizarEstadoOrdenRequest
             {
                 NuevoEstado = "Lista",
                 Observaciones = "Orden lista para entrega"
             };
+            await PutAsync<OrdenResponse>($"/api/orden/{_ordenId}/estado", estadoListaRequest);
+
+            // El mesero marca la orden como entregada
+            var estadoEntregadaRequest = new ActualizarEstadoOrdenRequest
+            {
+                NuevoEstado = "Entregada",
+                Observaciones = "Orden entregada al cliente"
+            };
+            await PutAsync<OrdenResponse>($"/api/orden/{_ordenId}/estado", estadoEntregadaRequest);
+
+            // El cajero procede a facturar
+            SetAuthorizationHeader(_cajeroToken);
             
-            await PostAsync<ApiResponse>($"/api/orden/{_ordenId}/estado", estadoRequest);
-            
-            // Luego crear la factura
+            // Luego crear la factura (que ya viene pagada)
             var facturaRequest = new CrearFacturaRequest
             {
                 OrdenId = _ordenId,
@@ -556,14 +588,22 @@ namespace ElCriollo.API.Tests.Integration
             Assert.NotNull(response);
             _facturaId = response.FacturaId;
             
-            // Verificar cálculo de ITBIS (18%)
-            Assert.True(response.Impuesto > 0);
-            Assert.Equal(response.Subtotal * 0.18m, response.Impuesto, 2);
+            // Verificar cálculo de ITBIS (18% sobre subtotal después del descuento)
+            var impuestoDecimal = decimal.Parse(response.Impuesto.Replace("RD$ ", "").Replace(",", ""));
+            var subtotalDecimal = decimal.Parse(response.Subtotal.Replace("RD$ ", "").Replace(",", ""));
+            var descuentoDecimal = decimal.Parse(response.Descuento.Replace("RD$ ", "").Replace(",", ""));
+            
+            // El ITBIS se calcula sobre el subtotal después del descuento (base gravable)
+            var baseGravable = subtotalDecimal - descuentoDecimal;
+            var itbisEsperado = Math.Round(baseGravable * 0.18m, 2);
+            
+            Assert.True(impuestoDecimal > 0);
+            Assert.Equal(itbisEsperado, Math.Round(impuestoDecimal, 2));
             
             _output.WriteLine($"✅ Factura creada exitosamente: {response.NumeroFactura}");
-            _output.WriteLine($"   Subtotal: RD$ {response.Subtotal:F2}");
-            _output.WriteLine($"   ITBIS (18%): RD$ {response.Impuesto:F2}");
-            _output.WriteLine($"   Total: RD$ {response.Total:F2}");
+            _output.WriteLine($"   Subtotal: {response.Subtotal}");
+            _output.WriteLine($"   ITBIS (18%): {response.Impuesto}");
+            _output.WriteLine($"   Total: {response.Total}");
         }
 
         private async Task Test19_ConsultarFactura_DebeObtenerDetallesFactura()
@@ -586,15 +626,20 @@ namespace ElCriollo.API.Tests.Integration
             
             SetAuthorizationHeader(_cajeroToken);
             
-            var pagarRequest = new PagarFacturaRequest
+            // Marcar la factura como pagada usando el nuevo endpoint
+            var marcarPagadaRequest = new MarcarFacturaPagadaRequest
             {
-                MetodoPago = "Tarjeta",
-                Observaciones = "Pago procesado exitosamente"
+                MetodoPago = "Tarjeta"
             };
             
-            var response = await PostAsync<ApiResponse>($"/api/factura/{_facturaId}/pagar", pagarRequest);
-            Assert.NotNull(response);
-            Assert.True(response.Success);
+            var resultadoPago = await PostAsync<ApiResponse>($"/api/factura/{_facturaId}/marcar-pagada", marcarPagadaRequest);
+            Assert.NotNull(resultadoPago);
+            Assert.True(resultadoPago.Success);
+            
+            // Verificar que el estado cambió a Pagada
+            var factura = await GetAsync<FacturaResponse>($"/api/factura/{_facturaId}");
+            Assert.NotNull(factura);
+            Assert.Equal("Pagada", factura.Estado);
             
             _output.WriteLine("✅ Factura marcada como pagada exitosamente");
         }
@@ -671,6 +716,18 @@ namespace ElCriollo.API.Tests.Integration
             return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions)!;
         }
 
+        private async Task<T> PutAsync<T>(string endpoint, object data)
+        {
+            var json = JsonSerializer.Serialize(data, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            
+            var response = await _client.PutAsync(endpoint, content);
+            response.EnsureSuccessStatusCode();
+            
+            var responseJson = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions)!;
+        }
+
         private void SetAuthorizationHeader(string token)
         {
             _client.DefaultRequestHeaders.Authorization = 
@@ -683,17 +740,18 @@ namespace ElCriollo.API.Tests.Integration
 
         public class CambiarContrasenaRequest
         {
-            public int UsuarioId { get; set; }
-            public string ContrasenaActual { get; set; } = string.Empty;
-            public string NuevaContrasena { get; set; } = string.Empty;
-            public string ConfirmarContrasena { get; set; } = string.Empty;
+            public string CurrentPassword { get; set; } = string.Empty;
+            public string NewPassword { get; set; } = string.Empty;
         }
 
-        // CrearClienteRequest y EntradaInventarioRequest se usan desde TestResponseModels.cs
-
-        public class ConfirmarReservacionRequest
+        public class CrearClienteRequest
         {
-            public string? Observaciones { get; set; }
+            public string NombreCompleto { get; set; } = string.Empty;
+            public string? Cedula { get; set; }
+            public string? Telefono { get; set; }
+            public string? Email { get; set; }
+            public string? Direccion { get; set; }
+            public string? PreferenciasComida { get; set; }
         }
 
         public class AgregarItemsOrdenRequest
@@ -707,14 +765,26 @@ namespace ElCriollo.API.Tests.Integration
             public string? Observaciones { get; set; }
         }
 
-        public class PagarFacturaRequest
+        public class HealthCheckResponse
         {
-            public string MetodoPago { get; set; } = string.Empty;
-            public string? Observaciones { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public List<HealthCheckItem> Checks { get; set; } = new();
+            public double TotalDuration { get; set; }
         }
 
-        // Response classes se usan desde TestResponseModels.cs - evitar duplicación
+        public class HealthCheckItem
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Status { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public double Duration { get; set; }
+        }
 
-        // Todas las clases Response se usan desde TestResponseModels.cs para evitar duplicación
+        public class MarcarFacturaPagadaRequest
+        {
+            public string MetodoPago { get; set; } = string.Empty;
+        }
+
+        // Response classes se usan desde TestResponseModels.cs para evitar duplicación
     }
 } 

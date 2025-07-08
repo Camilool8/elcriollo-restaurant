@@ -62,41 +62,50 @@ namespace ElCriollo.API.Controllers
         {
             try
             {
-                _logger.LogInformation("👤 Registrando nuevo cliente: {Email}", request.Email);
+                _logger.LogInformation("👤 Registrando nuevo cliente: {Nombre}", request.NombreCompleto);
 
-                // Verificar si el cliente ya existe
-                var clienteExistente = await _clienteRepository.GetByEmailAsync(request.Email);
-                if (clienteExistente != null)
+                // Validaciones básicas
+                if (string.IsNullOrEmpty(request.NombreCompleto))
                 {
                     return BadRequest(new ValidationProblemDetails
                     {
-                        Title = "Cliente ya existe",
-                        Detail = "Ya existe un cliente registrado con este email",
-                        Status = StatusCodes.Status400BadRequest
+                        Title = "Datos inválidos",
+                        Detail = "El nombre del cliente es requerido"
                     });
                 }
 
-                // Crear cliente manualmente para manejar NombreCompleto
-                var cliente = new Models.Entities.Cliente();
-                
-                // Dividir NombreCompleto en Nombre y Apellido
-                var partes = request.NombreCompleto.Split(' ', 2);
-                cliente.Nombre = partes[0];
-                cliente.Apellido = partes.Length > 1 ? partes[1] : string.Empty;
-                
-                // Mapear resto de propiedades
-                cliente.Cedula = request.Cedula;
-                cliente.Telefono = request.Telefono;
-                cliente.Email = request.Email;
-                cliente.Direccion = request.Direccion;
-                cliente.FechaNacimiento = request.FechaNacimiento;
-                cliente.PreferenciasComida = request.PreferenciasComida;
-                cliente.FechaRegistro = DateTime.Now;
-                cliente.Estado = "Activo";
+                // Verificar si ya existe un cliente con la misma cédula
+                if (!string.IsNullOrEmpty(request.Cedula))
+                {
+                    var clienteExistente = await _clienteRepository.BuscarPorCedulaAsync(request.Cedula);
+                    if (clienteExistente != null)
+                    {
+                        return BadRequest(new ValidationProblemDetails
+                        {
+                            Title = "Cliente ya existe",
+                            Detail = $"Ya existe un cliente registrado con la cédula {request.Cedula}"
+                        });
+                    }
+                }
+
+                // Crear el cliente
+                var cliente = new Models.Entities.Cliente
+                {
+                    Nombre = request.NombreCompleto.Split(' ')[0],
+                    Apellido = request.NombreCompleto.Contains(' ') ? request.NombreCompleto.Split(' ', 2)[1] : string.Empty,
+                    Cedula = request.Cedula,
+                    Telefono = request.Telefono,
+                    Email = request.Email,
+                    Direccion = request.Direccion,
+                    FechaNacimiento = request.FechaNacimiento,
+                    PreferenciasComida = request.PreferenciasComida,
+                    FechaRegistro = DateTime.Now.Date,
+                    Estado = "Activo"
+                };
 
                 var clienteCreado = await _clienteRepository.CreateAsync(cliente);
-                
-                // Enviar email de bienvenida
+
+                // Enviar email de bienvenida (opcional)
                 try
                 {
                     await _emailService.EnviarConfirmacionRegistroAsync(clienteCreado);
@@ -583,7 +592,7 @@ namespace ElCriollo.API.Controllers
         }
 
         // ============================================================================
-        // REQUESTS Y RESPONSES ESPECÍFICOS
+        // REQUESTS ESPECÍFICOS (solo los que no existen en DTOs)
         // ============================================================================
 
         public class CrearClienteRequest
@@ -612,23 +621,9 @@ namespace ElCriollo.API.Controllers
             public string? Termino { get; set; }
         }
 
-        public class ClienteResponse
-        {
-            public int ClienteID { get; set; }
-            public string NombreCompleto { get; set; } = string.Empty;
-            public string? Cedula { get; set; }
-            public string Telefono { get; set; } = string.Empty;
-            public string Email { get; set; } = string.Empty;
-            public string? Direccion { get; set; }
-            public DateTime? FechaNacimiento { get; set; }
-            public string? PreferenciasComida { get; set; }
-            public DateTime FechaRegistro { get; set; }
-            public string Estado { get; set; } = string.Empty;
-            public int TotalVisitas { get; set; }
-            public decimal TotalGastado { get; set; }
-        }
-
-
+        // ============================================================================
+        // RESPONSES ESPECÍFICOS (solo los que no existen en DTOs)
+        // ============================================================================
 
         public class EstadisticasClienteResponse
         {

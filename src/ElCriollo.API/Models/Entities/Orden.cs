@@ -256,16 +256,6 @@ public class Orden
     // ============================================================================
 
     /// <summary>
-    /// Alias para UsuarioID (mapea a EmpleadoID para compatibilidad)
-    /// </summary>
-    [NotMapped]
-    public int UsuarioID 
-    { 
-        get => EmpleadoID;
-        set => EmpleadoID = value;
-    }
-
-    /// <summary>
     /// Alias para ObservacionesEspeciales (compatibilidad con servicios)
     /// </summary>
     [NotMapped]

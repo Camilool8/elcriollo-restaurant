@@ -82,7 +82,8 @@ namespace ElCriollo.API.Services
                 {
                     NumeroFactura = numeroFactura,
                     OrdenID = crearFacturaRequest.OrdenId,
-                    ClienteID = orden.ClienteID ?? 1, // Cliente por defecto si no hay
+                    ClienteID = orden.ClienteID ?? 1,
+                    EmpleadoID = orden.EmpleadoID,
                     FechaFactura = DateTime.Now,
                     Subtotal = totales.Subtotal,
                     Descuento = totales.Descuento,
@@ -167,6 +168,7 @@ namespace ElCriollo.API.Services
                     NumeroFactura = numeroFactura,
                     OrdenID = primeraOrden.OrdenID, // Orden principal
                     ClienteID = primeraOrden.ClienteID ?? 1,
+                    EmpleadoID = primeraOrden.EmpleadoID, // CORREGIDO: Asignar EmpleadoID desde la orden
                     FechaFactura = DateTime.Now,
                     Subtotal = subtotalTotal,
                     Descuento = descuento,
@@ -234,7 +236,7 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                var factura = await _facturaRepository.GetByIdAsync(facturaId);
+                var factura = await _facturaRepository.GetByIdWithIncludesAsync(facturaId);
                 if (factura == null)
                 {
                     _logger.LogWarning("⚠️ Factura {FacturaId} no encontrada", facturaId);
@@ -252,6 +254,21 @@ namespace ElCriollo.API.Services
                 factura.FechaPago = DateTime.Now;
 
                 await _facturaRepository.UpdateAsync(factura);
+
+                // Enviar comprobante de pago por email automáticamente si el cliente tiene email
+                if (!string.IsNullOrEmpty(factura.Cliente?.Email))
+                {
+                    try
+                    {
+                        await _emailService.EnviarComprobantePagoAsync(factura);
+                        _logger.LogInformation("📧 Comprobante de pago enviado automáticamente a {Email}", factura.Cliente.Email);
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogWarning(emailEx, "⚠️ Error al enviar comprobante de pago automático para factura {FacturaId}", facturaId);
+                        // No falla la operación principal si hay error en el email
+                    }
+                }
 
                 _logger.LogInformation("✅ Factura {FacturaId} marcada como pagada", facturaId);
                 return true;
@@ -452,8 +469,9 @@ namespace ElCriollo.API.Services
                 }
 
                 // Verificar si ya tiene factura
-                var facturaExistente = await _facturaRepository.GetAllAsync();
-                if (facturaExistente.Any(f => f.OrdenID == ordenId && f.Estado != "Anulada"))
+                var facturasExistentes = await _facturaRepository.GetByOrdenAsync(ordenId);
+                var facturaActiva = facturasExistentes.FirstOrDefault(f => f.Estado != "Anulada");
+                if (facturaActiva != null)
                 {
                     resultado.Errores.Add("La orden ya tiene una factura asociada");
                 }

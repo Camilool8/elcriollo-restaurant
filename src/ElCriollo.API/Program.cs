@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json;
 using Serilog;
 using AutoMapper;
 using FluentValidation;
@@ -12,10 +13,11 @@ using ElCriollo.API.Middleware;
 using ElCriollo.API.Helpers;
 using System.Reflection;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 // Configuración inicial de Serilog
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
     .CreateBootstrapLogger();
 
 try
@@ -30,9 +32,7 @@ try
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.File("logs/elcriollo-.log", rollingInterval: RollingInterval.Day));
+        .Enrich.FromLogContext());
 
     // ============================================================================
     // CONFIGURACIÓN DE SERVICIOS
@@ -52,13 +52,17 @@ try
 
     // Entity Framework
     builder.Services.AddDbContext<ElCriolloDbContext>(options =>
-        options.UseSqlServer(
-            builder.Configuration.GetConnectionString("DefaultConnection"),
-            sqlOptions => sqlOptions.EnableRetryOnFailure(
+    {
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        options.UseSqlServer(connectionString, sqlServerOptions =>
+        {
+            sqlServerOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null)
-        ));
+                errorNumbersToAdd: null);
+            sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); // Correcta ubicación
+        });
+    });
 
     // AutoMapper
     builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
@@ -77,10 +81,19 @@ try
         options.AddPolicy("ElCriolloCorsPolicy", policy =>
         {
             var corsSettings = builder.Configuration.GetSection("Cors");
-            policy.WithOrigins(corsSettings.GetSection("AllowedOrigins").Get<string[]>() ?? new[] { "*" })
-                  .WithMethods(corsSettings.GetSection("AllowedMethods").Get<string[]>() ?? new[] { "*" })
-                  .WithHeaders(corsSettings.GetSection("AllowedHeaders").Get<string[]>() ?? new[] { "*" })
-                  .AllowCredentials();
+            var allowedOrigins = corsSettings.GetSection("AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:3000", "https://localhost:3000" };
+            var allowedMethods = corsSettings.GetSection("AllowedMethods").Get<string[]>() ?? new[] { "GET", "POST", "PUT", "DELETE", "OPTIONS" };
+            var allowedHeaders = corsSettings.GetSection("AllowedHeaders").Get<string[]>() ?? new[] { "Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin" };
+            var allowCredentials = corsSettings.GetValue<bool>("AllowCredentials");
+            
+            policy.WithOrigins(allowedOrigins)
+                  .WithMethods(allowedMethods)
+                  .WithHeaders(allowedHeaders);
+            
+            if (allowCredentials)
+            {
+                policy.AllowCredentials();
+            }
         });
     });
 
@@ -297,7 +310,32 @@ try
     app.MapControllers();
 
     // Health Checks
-    app.MapHealthChecks("/health");
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+            
+            var result = new
+            {
+                Status = report.Status.ToString(),
+                Checks = report.Entries.Select(entry => new
+                {
+                    Name = entry.Key,
+                    Status = entry.Value.Status.ToString(),
+                    Description = entry.Value.Description,
+                    Duration = entry.Value.Duration.TotalMilliseconds
+                }),
+                TotalDuration = report.TotalDuration.TotalMilliseconds
+            };
+            
+            await context.Response.WriteAsync(JsonSerializer.Serialize(result, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            }));
+        }
+    });
 
     // Endpoint de bienvenida
     app.MapGet("/", () => new
@@ -324,12 +362,26 @@ try
             await context.Database.CanConnectAsync();
             Log.Information("✅ Conexión a base de datos establecida correctamente");
 
-            // Auto-migración en desarrollo (si está habilitada)
-            if (app.Environment.IsDevelopment() && 
-                configuration.GetValue<bool>("DeveloperSettings:EnableAutoMigration"))
+            // Auto-migración (si está habilitada)
+            if (configuration.GetValue<bool>("DeveloperSettings:EnableAutoMigration"))
             {
-                Log.Information("🔄 Aplicando migraciones automáticas...");
-                await context.Database.MigrateAsync();
+                Log.Information("🔄 Inicializando estructura de base de datos en {Environment}...", app.Environment.EnvironmentName);
+                
+                // Verificar si existen migraciones pendientes
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    Log.Information("📋 Aplicando {Count} migraciones pendientes...", pendingMigrations.Count());
+                    await context.Database.MigrateAsync();
+                }
+                else
+                {
+                    // Si no hay migraciones, crear la base de datos usando el modelo actual
+                    Log.Information("🏗️ Creando base de datos usando Code First...");
+                    await context.Database.EnsureCreatedAsync();
+                }
+                
+                Log.Information("✅ Estructura de base de datos inicializada exitosamente");
             }
 
             // Seed data (si está habilitado)
@@ -375,3 +427,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Hacer la clase Program pública para pruebas de integración
+public partial class Program { }

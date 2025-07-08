@@ -33,4 +33,9 @@ public class FacturaDto : FacturaResponse
     /// Subtotal numérico para cálculos
     /// </summary>
     public decimal SubtotalNumerico { get; set; }
+
+    /// <summary>
+    /// Fecha y hora del pago (cuando se completó el pago) - numérico para cálculos
+    /// </summary>
+    public DateTime? FechaPagoNumerico { get; set; }
 } 

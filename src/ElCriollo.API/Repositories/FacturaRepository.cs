@@ -149,6 +149,8 @@ namespace ElCriollo.API.Repositories
                     {
                         NumeroFactura = await GenerarNumeroFacturaAsync(),
                         OrdenID = ordenId,
+                        ClienteID = orden.ClienteID ?? 1,
+                        EmpleadoID = orden.EmpleadoID,
                         FechaFactura = DateTime.UtcNow,
                         Subtotal = subtotal,
                         Impuesto = montoImpuesto,

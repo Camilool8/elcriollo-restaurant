@@ -10,6 +10,11 @@
     <UserSecretsId>elcriollo-api-secrets</UserSecretsId>
   </PropertyGroup>
 
+  <!-- Permitir acceso a tipos internos desde el proyecto de pruebas -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ElCriollo.API.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Entity Framework Core para SQL Server -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />

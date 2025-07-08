@@ -183,7 +183,7 @@ La prueba `FlujoCotidiano_SimulacionCompleta_DebeCompletarExitosamente` ejecuta 
 ✅ Verificación de disponibilidad de mesas
 ✅ Confirmación de reservas
 ✅ Consulta de reservas por fecha
-✅ Validación de horarios de operación (11:00 AM - 11:00 PM)
+✅ Restaurante 24 horas - sin restricciones de horario
 ```
 
 ### 🍽️ **Gestión de Órdenes**
@@ -345,7 +345,7 @@ Antes de ejecutar las pruebas, verificar:
 - Órdenes sin mesa (Llevar/Delivery)
 - Clientes ocasionales vs registrados
 - Productos agotados
-- Reservas fuera de horario
+- Reservas con más de 30 días de anticipación
 - Cambios de estado inválidos
 - Facturación de órdenes ya facturadas
 

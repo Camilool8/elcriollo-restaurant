@@ -51,8 +51,12 @@ public class CreateReservacionRequest
     {
         var errors = new List<ValidationResult>();
 
+        // Usar zona horaria dominicana para validaciones
+        var dominicanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Atlantic Standard Time");
+        var ahoraDominicana = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, dominicanTimeZone);
+
         // Validar que la fecha sea futura
-        if (FechaHora <= DateTime.Now.AddMinutes(30))
+        if (FechaHora <= ahoraDominicana.AddMinutes(30))
         {
             errors.Add(new ValidationResult(
                 "La reservación debe ser con al menos 30 minutos de anticipación",
@@ -60,19 +64,10 @@ public class CreateReservacionRequest
         }
 
         // Validar que no sea muy lejana
-        if (FechaHora > DateTime.Now.AddDays(30))
+        if (FechaHora > ahoraDominicana.AddDays(30))
         {
             errors.Add(new ValidationResult(
                 "No se pueden hacer reservaciones con más de 30 días de anticipación",
-                new[] { nameof(FechaHora) }));
-        }
-
-        // Validar horario de operación (11:00 AM - 11:00 PM)
-        var hora = FechaHora.TimeOfDay;
-        if (hora < TimeSpan.FromHours(11) || hora > TimeSpan.FromHours(23))
-        {
-            errors.Add(new ValidationResult(
-                "Las reservaciones solo se pueden hacer entre 11:00 AM y 11:00 PM",
                 new[] { nameof(FechaHora) }));
         }
 

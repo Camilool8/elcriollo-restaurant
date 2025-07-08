@@ -20,7 +20,7 @@ namespace ElCriollo.API.Services
 
         // Constantes para el restaurante dominicano
         private const decimal META_DIARIA_DEFAULT = 15000m; // RD$ 15,000
-        private const int HORAS_LABORALES_DIA = 12; // 12 horas de operación
+        private const int HORAS_LABORALES_DIA = 24; // Restaurante 24 horas
 
         public ReporteService(
             IReporteRepository reporteRepository,

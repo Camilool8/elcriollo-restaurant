@@ -386,6 +386,8 @@ public class ElCriolloDbContext : DbContext
             entity.Property(e => e.Total).IsRequired().HasColumnType("decimal(10,2)");
             entity.Property(e => e.MetodoPago).IsRequired().HasMaxLength(20).HasDefaultValue("Efectivo");
             entity.Property(e => e.Estado).IsRequired().HasMaxLength(20).HasDefaultValue("Pagada");
+            entity.Property(e => e.ObservacionesPago).HasMaxLength(500);
+            entity.Property(e => e.FechaPago);
 
             // Relaciones
             entity.HasOne(e => e.Orden)

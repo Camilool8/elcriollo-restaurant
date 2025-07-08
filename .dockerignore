@@ -1,0 +1,62 @@
+# .dockerignore para El Criollo API
+# Excluir archivos innecesarios del contexto de Docker
+
+# Directorios de build y output
+**/bin/
+**/obj/
+**/publish/
+**/out/
+
+# Archivos de pruebas
+src/ElCriollo.API.Tests/
+**/*Tests*/
+**/*.Tests/
+
+# Logs y archivos temporales
+**/logs/
+**/*.log
+**/*.tmp
+**/*.temp
+
+# Archivos de configuración local
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.cache
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+.git/
+.gitignore
+.gitattributes
+
+# Documentación y archivos no necesarios para el runtime
+README.md
+*.md
+LICENSE
+CHANGELOG.md
+
+# Archivos de despliegue
+k8s/
+docker-compose*.yml
+Dockerfile*
+
+# Archivos de configuración de desarrollo
+appsettings.Development.json
+appsettings.Test.json
+
+# Node modules si existen
+node_modules/
+npm-debug.log*
+
+# Archivos de base de datos
+*.sql
+*.db
+*.sqlite
+
+# Archivos de backup
+*.bak
+*.backup 
