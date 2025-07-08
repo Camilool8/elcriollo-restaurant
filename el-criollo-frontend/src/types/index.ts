@@ -395,8 +395,16 @@ export interface AppConfig {
   requestTimeout: number;
 }
 
+export interface ActionMenuItem {
+  label: string;
+  icon?: React.ReactNode;
+  onClick: () => void;
+  variant?: 'default' | 'danger' | 'warning';
+  disabled?: boolean;
+}
+
 // ====================================
-// TIPOS DE NOTIFICACIONES
+// TIPOS DE UI - NOTIFICACIONES
 // ====================================
 
 export interface Notification {

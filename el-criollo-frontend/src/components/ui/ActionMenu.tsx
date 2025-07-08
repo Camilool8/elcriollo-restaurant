@@ -1,14 +1,7 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from './Button';
-
-interface ActionMenuItem {
-  label: string;
-  icon?: ReactNode;
-  onClick: () => void;
-  variant?: 'default' | 'danger' | 'warning';
-  disabled?: boolean;
-}
+import type { ActionMenuItem } from '@/types';
 
 interface ActionMenuProps {
   items: ActionMenuItem[];
