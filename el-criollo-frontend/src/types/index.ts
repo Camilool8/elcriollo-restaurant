@@ -3,15 +3,17 @@
 // ====================================
 
 export interface User {
-  usuarioID: number;
-  usuario: string;
+  usuarioId: number;
+  usuario?: string;
+  username?: string;
   email: string;
-  rolID: number;
-  nombreRol: string;
+  rolID?: number;
+  nombreRol?: string;
+  rol?: string;
   empleadoID?: number;
   empleado?: Empleado;
-  estado: boolean;
-  fechaCreacion: string;
+  estado?: boolean;
+  fechaCreacion?: string;
   ultimoAcceso?: string;
 }
 

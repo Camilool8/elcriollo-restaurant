@@ -194,7 +194,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // Mostrar notificación de bienvenida
-      toast.success(`¡Bienvenido, ${response.user.usuario}! 🇩🇴`, {
+      const userName = response.user.usuario || response.user.username || 'Usuario';
+      toast.success(`¡Bienvenido, ${userName}! 🇩🇴`, {
         position: 'top-right',
         autoClose: 3000,
       });
@@ -314,12 +315,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const hasRole = (role: UserRole): boolean => {
     if (!state.user) return false;
-    return state.user.nombreRol === role;
+    // Handle both nombreRol and rol properties for compatibility
+    const userRole = state.user.nombreRol || state.user.rol;
+    return userRole === role;
   };
 
   const hasAnyRole = (roles: UserRole[]): boolean => {
     if (!state.user) return false;
-    return roles.includes(state.user.nombreRol as UserRole);
+    // Handle both nombreRol and rol properties for compatibility
+    const userRole = state.user.nombreRol || state.user.rol;
+    return roles.includes(userRole as UserRole);
   };
 
   const isAdmin = (): boolean => hasRole('Administrador');

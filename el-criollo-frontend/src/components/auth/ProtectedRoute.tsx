@@ -144,10 +144,14 @@ const UnauthorizedAccess: React.FC<UnauthorizedAccessProps> = ({ requiredRole, r
         {/* Información del usuario actual */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <p className="text-sm text-stone-gray">
-            Usuario actual: <span className="font-medium">{state.user?.usuario}</span>
+            Usuario actual:{' '}
+            <span className="font-medium">{state.user?.usuario || state.user?.username}</span>
           </p>
           <p className="text-sm text-stone-gray">
-            Rol: <span className="font-medium text-dominican-blue">{state.user?.nombreRol}</span>
+            Rol:{' '}
+            <span className="font-medium text-dominican-blue">
+              {state.user?.nombreRol || state.user?.rol}
+            </span>
           </p>
         </div>
 
@@ -209,7 +213,7 @@ export const usePermissions = () => {
     isMesero,
     isRecepcion,
     isCocina,
-    userRole: state.user?.nombreRol as UserRole,
+    userRole: (state.user?.nombreRol || state.user?.rol) as UserRole,
   };
 };
 

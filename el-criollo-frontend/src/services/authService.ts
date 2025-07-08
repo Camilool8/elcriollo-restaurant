@@ -128,12 +128,12 @@ class AuthService {
   // ====================================
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await api.get<{ success: boolean; data: User }>('/auth/me');
+      const response = await api.get<User>('/auth/me');
 
-      if (response.success) {
+      if (response) {
         // Actualizar usuario en localStorage
-        localStorage.setItem('user', JSON.stringify(response.data));
-        return response.data;
+        localStorage.setItem('user', JSON.stringify(response));
+        return response;
       }
 
       return null;
@@ -190,12 +190,18 @@ class AuthService {
   // ====================================
   hasRole(requiredRole: string): boolean {
     const user = this.getStoredUser();
-    return user?.nombreRol === requiredRole;
+    if (!user) return false;
+    // Handle both nombreRol and rol properties for compatibility
+    const userRole = user.nombreRol || user.rol;
+    return userRole === requiredRole;
   }
 
   hasAnyRole(requiredRoles: string[]): boolean {
     const user = this.getStoredUser();
-    return user ? requiredRoles.includes(user.nombreRol) : false;
+    if (!user) return false;
+    // Handle both nombreRol and rol properties for compatibility
+    const userRole = user.nombreRol || user.rol;
+    return userRole ? requiredRoles.includes(userRole) : false;
   }
 
   isAdmin(): boolean {

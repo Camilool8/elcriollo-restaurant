@@ -84,8 +84,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="absolute bottom-0 w-64 p-4 border-t bg-gray-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">{state.user?.usuario}</p>
-              <p className="text-xs text-dominican-red">{state.user?.nombreRol}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {state.user?.usuario || state.user?.username}
+              </p>
+              <p className="text-xs text-dominican-red">
+                {state.user?.nombreRol || state.user?.rol}
+              </p>
             </div>
 
             <Button variant="ghost" size="sm" onClick={handleLogout}>
