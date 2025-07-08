@@ -1,0 +1,178 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO Meta Tags -->
+  <title>El Criollo - Sistema POS | Restaurante Dominicano</title>
+  <meta name="description"
+    content="Sistema de Punto de Venta para Restaurante Dominicano El Criollo. Gestión completa de órdenes, facturación, inventario y reservaciones." />
+  <meta name="keywords" content="POS, restaurante, dominicano, sistema, gestión, órdenes, facturación" />
+  <meta name="author" content="El Criollo Team" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="El Criollo - Sistema POS" />
+  <meta property="og:description"
+    content="Sistema de gestión para restaurante dominicano con auténtico sabor caribeño" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="es_DO" />
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#CF142B" />
+  <meta name="msapplication-TileColor" content="#CF142B" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- Preconnect for faster font loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Prevent FOUC (Flash of Unstyled Content) -->
+  <style>
+    /* Minimal CSS to prevent FOUC */
+    html {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background-color: #F5F5DC;
+      overflow-x: hidden;
+    }
+
+    /* Loading spinner inicial */
+    .initial-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #CF142B 0%, #002D62 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease-out;
+    }
+
+    .initial-loading.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-content {
+      text-align: center;
+      color: white;
+    }
+
+    .loading-logo {
+      width: 64px;
+      height: 64px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 24px;
+      animation: pulse 2s infinite;
+    }
+
+    .loading-text {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .loading-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 16px auto 0;
+    }
+  </style>
+</head>
+
+<body class="h-full bg-warm-beige">
+  <!-- Loading screen inicial -->
+  <div id="initial-loading" class="initial-loading">
+    <div class="loading-content">
+      <div class="loading-logo">☕</div>
+      <div class="loading-text">El Criollo</div>
+      <div class="loading-subtitle">🇩🇴 Cargando sistema POS...</div>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Root de React -->
+  <div id="root" class="h-full"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Script para ocultar loading -->
+  <script>
+    // Ocultar loading screen cuando la app esté lista
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        const loading = document.getElementById('initial-loading');
+        if (loading) {
+          loading.classList.add('fade-out');
+          setTimeout(() => loading.remove(), 300);
+        }
+      }, 500); // Mostrar loading mínimo 500ms
+    });
+
+    // Fallback: ocultar loading después de 10 segundos máximo
+    setTimeout(function () {
+      const loading = document.getElementById('initial-loading');
+      if (loading) {
+        loading.remove();
+      }
+    }, 10000);
+  </script>
+</body>
+
+</html>
