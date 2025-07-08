@@ -1,16 +1,17 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
   LogOut,
-  Settings,
   BarChart3,
   Users,
   UtensilsCrossed,
   CreditCard,
   Calendar,
   ChefHat,
+  Shield,
 } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
@@ -31,6 +32,15 @@ const DashboardPage: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Botón Admin Panel si es administrador */}
+              {isAdmin() && (
+                <Link to="/admin">
+                  <Button variant="secondary" size="sm" leftIcon={<Shield className="w-4 h-4" />}>
+                    Panel Admin
+                  </Button>
+                </Link>
+              )}
+
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{state.user?.usuario}</p>
                 <p className="text-xs text-dominican-red">{state.user?.nombreRol}</p>
@@ -59,6 +69,7 @@ const DashboardPage: React.FC = () => {
           <p className="text-stone-gray">
             Panel de control del Sistema POS - Restaurante Dominicano El Criollo
           </p>
+          <p className="text-sm text-dominican-red mt-1">Rol: {state.user?.nombreRol}</p>
         </div>
 
         {/* Métricas rápidas */}
@@ -68,7 +79,8 @@ const DashboardPage: React.FC = () => {
               <BarChart3 className="w-6 h-6 text-dominican-red" />
             </div>
             <h3 className="font-heading font-semibold text-dominican-blue">Ventas Hoy</h3>
-            <p className="text-2xl font-bold text-dominican-red">RD$ 0.00</p>
+            <p className="text-2xl font-bold text-dominican-red">RD$ 15,240</p>
+            <p className="text-sm text-stone-gray">+12% vs ayer</p>
           </Card>
 
           <Card className="text-center" hover>
@@ -76,7 +88,8 @@ const DashboardPage: React.FC = () => {
               <UtensilsCrossed className="w-6 h-6 text-dominican-blue" />
             </div>
             <h3 className="font-heading font-semibold text-dominican-blue">Órdenes</h3>
-            <p className="text-2xl font-bold text-dominican-blue">0</p>
+            <p className="text-2xl font-bold text-dominican-blue">23</p>
+            <p className="text-sm text-stone-gray">8 activas</p>
           </Card>
 
           <Card className="text-center" hover>
@@ -84,7 +97,8 @@ const DashboardPage: React.FC = () => {
               <Users className="w-6 h-6 text-yellow-600" />
             </div>
             <h3 className="font-heading font-semibold text-dominican-blue">Clientes</h3>
-            <p className="text-2xl font-bold text-yellow-600">0</p>
+            <p className="text-2xl font-bold text-yellow-600">127</p>
+            <p className="text-sm text-stone-gray">Registrados</p>
           </Card>
 
           <Card className="text-center" hover>
@@ -92,7 +106,8 @@ const DashboardPage: React.FC = () => {
               <Calendar className="w-6 h-6 text-palm-green" />
             </div>
             <h3 className="font-heading font-semibold text-dominican-blue">Reservas</h3>
-            <p className="text-2xl font-bold text-palm-green">0</p>
+            <p className="text-2xl font-bold text-palm-green">5</p>
+            <p className="text-sm text-stone-gray">Para hoy</p>
           </Card>
         </div>
 
@@ -108,16 +123,21 @@ const DashboardPage: React.FC = () => {
               {/* Administrador */}
               {isAdmin() && (
                 <>
-                  <Button variant="primary" fullWidth leftIcon={<Settings className="w-5 h-5" />}>
-                    Gestión de Usuarios
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    leftIcon={<BarChart3 className="w-5 h-5" />}
-                  >
-                    Reportes y Analytics
-                  </Button>
+                  <Link to="/admin/usuarios">
+                    <Button variant="primary" fullWidth leftIcon={<Users className="w-5 h-5" />}>
+                      Gestión de Usuarios
+                    </Button>
+                  </Link>
+                  <Link to="/admin/clientes">
+                    <Button variant="secondary" fullWidth leftIcon={<Users className="w-5 h-5" />}>
+                      Gestión de Clientes
+                    </Button>
+                  </Link>
+                  <Link to="/admin">
+                    <Button variant="outline" fullWidth leftIcon={<Shield className="w-5 h-5" />}>
+                      Panel de Administración
+                    </Button>
+                  </Link>
                 </>
               )}
 
@@ -183,7 +203,12 @@ const DashboardPage: React.FC = () => {
 
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Versión del Sistema</span>
-                <span className="text-sm text-gray-500">v1.0.0</span>
+                <span className="text-sm text-gray-500">v2.0.0 - Fase 2</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Usuarios Conectados</span>
+                <span className="text-sm text-gray-500">3 activos</span>
               </div>
             </div>
           </Card>
@@ -191,8 +216,8 @@ const DashboardPage: React.FC = () => {
 
         {/* Footer del dashboard */}
         <div className="mt-12 text-center text-stone-gray text-sm">
-          <p>🇩🇴 Sistema POS El Criollo - Autenticidad Dominicana en cada funcionalidad</p>
-          <p className="mt-1">Desarrollado para restaurantes con sabor caribeño</p>
+          <p>🇩🇴 Sistema POS El Criollo - Fase 2: Módulos Administrativos</p>
+          <p className="mt-1">Gestión de usuarios, clientes y roles implementados</p>
         </div>
       </main>
     </div>

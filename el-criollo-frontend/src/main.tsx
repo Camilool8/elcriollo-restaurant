@@ -1,7 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './styles/globals.css';
 import App from './App';
+
+// Estilos globales
+import './styles/globals.css';
+import './styles/components.css';
 
 // Verificar que el elemento root existe
 const rootElement = document.getElementById('root');

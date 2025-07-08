@@ -1,0 +1,157 @@
+* Estilos específicos para componentes dominicanos */
+
+/* Toast notifications con tema dominicano */
+.dominican-toast {
+  @apply font-sans;
+}
+
+.dominican-toast .Toastify__toast--success {
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+}
+
+.dominican-toast .Toastify__toast--error {
+  background: linear-gradient(135deg, #cf142b 0%, #ff6b6b 100%);
+}
+
+.dominican-toast .Toastify__toast--warning {
+  background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+  color: #1f2937;
+}
+
+.dominican-toast .Toastify__toast--info {
+  background: linear-gradient(135deg, #002d62 0%, #4a90e2 100%);
+}
+
+/* DataTable estilos específicos */
+.data-table-row:hover {
+  background-color: rgba(207, 20, 43, 0.02);
+}
+
+.data-table-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Form field estilos dominicanos */
+.form-field-dominican:focus {
+  border-color: #cf142b;
+  box-shadow: 0 0 0 3px rgba(207, 20, 43, 0.1);
+}
+
+/* Badge variantes dominicanas */
+.badge-dominican-primary {
+  @apply bg-dominican-red text-white;
+}
+
+.badge-dominican-secondary {
+  @apply bg-dominican-blue text-white;
+}
+
+.badge-dominican-success {
+  @apply bg-palm-green text-white;
+}
+
+.badge-dominican-warning {
+  @apply bg-caribbean-gold text-gray-900;
+}
+
+/* Action menu estilos */
+.action-menu-item:hover {
+  background-color: rgba(207, 20, 43, 0.05);
+}
+
+/* Card hover effects dominicanos */
+.card-dominican-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(207, 20, 43, 0.15);
+}
+
+/* Dashboard specific styles */
+.dashboard-metric-card {
+  @apply bg-white rounded-lg p-6 shadow-sm border border-gray-100;
+  transition: all 0.2s ease-in-out;
+}
+
+.dashboard-metric-card:hover {
+  @apply shadow-md border-dominican-red border-opacity-20;
+  transform: translateY(-1px);
+}
+
+/* Admin layout específico */
+.admin-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.admin-sidebar-link.active {
+  background: linear-gradient(135deg, #cf142b 0%, #b71c1c 100%);
+  color: white;
+}
+
+.admin-sidebar-link:hover:not(.active) {
+  background: rgba(207, 20, 43, 0.05);
+  color: #cf142b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .data-table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .dashboard-metric-card {
+    @apply p-4;
+  }
+
+  .admin-sidebar {
+    @apply shadow-lg;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Accessibility improvements */
+.focus-visible {
+  @apply outline-none ring-2 ring-dominican-blue ring-offset-2;
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Error states */
+.error-state {
+  @apply bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg;
+}
+
+.error-state .error-icon {
+  @apply text-red-500;
+}
+
+/* Success states */
+.success-state {
+  @apply bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg;
+}
+
+.success-state .success-icon {
+  @apply text-green-500;
+}
