@@ -2,19 +2,12 @@
 // TIPOS DE AUTENTICACIÓN
 // ====================================
 
-export interface User {
+export interface UsuarioResponse {
   usuarioId: number;
-  usuario?: string;
-  username?: string;
+  usuario: string;
   email: string;
-  rolID?: number;
-  nombreRol?: string;
-  rol?: string;
-  empleadoID?: number;
-  empleado?: Empleado;
-  estado?: boolean;
-  fechaCreacion?: string;
-  ultimoAcceso?: string;
+  rol: string;
+  empleado: Empleado;
 }
 
 export interface LoginRequest {
@@ -24,12 +17,10 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  success: boolean;
-  message: string;
-  user: User;
   token: string;
   refreshToken: string;
-  expiresIn: number;
+  expiresAt: string;
+  usuario: UsuarioResponse;
 }
 
 export interface RefreshTokenRequest {
@@ -44,18 +35,18 @@ export type UserRole = 'Administrador' | 'Cajero' | 'Mesero' | 'Recepcion' | 'Co
 
 export interface Empleado {
   empleadoID: number;
+  nombreCompleto: string;
   cedula: string;
-  nombre: string;
-  apellido: string;
-  sexo?: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
-  fechaNacimiento?: string;
-  salario?: number;
-  departamento?: string;
-  fechaIngreso: string;
-  estado: string;
+  email: string;
+  telefono: string;
+  telefonoFormateado: string;
+  direccion: string;
+  fechaNacimiento: string;
+  fechaContratacion: string;
+  cargo: string;
+  salarioFormateado: string;
+  tiempoEnEmpresa: string;
+  esEmpleadoActivo: boolean;
   usuarioID?: number;
 }
 
@@ -65,16 +56,21 @@ export interface Empleado {
 
 export interface Cliente {
   clienteID: number;
+  nombreCompleto: string;
   cedula?: string;
-  nombre: string;
-  apellido: string;
   telefono?: string;
   email?: string;
   direccion?: string;
   fechaNacimiento?: string;
   preferenciasComida?: string;
-  estado: string;
+  estado: boolean;
   fechaRegistro: string;
+  categoriaCliente: string;
+  totalOrdenes: number;
+  totalReservaciones: number;
+  totalFacturas: number;
+  promedioConsumo: string;
+  ultimaVisita?: string;
 }
 
 // ====================================
@@ -365,7 +361,7 @@ export interface FormState {
 // ====================================
 
 export interface AuthState {
-  user: User | null;
+  user: UsuarioResponse | null;
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
@@ -444,221 +440,31 @@ export type FilterOption = {
 };
 
 // ====================================
-// REQUESTS DE USUARIO Y EMPLEADO
+// TIPOS DE RESPUESTAS GENÉRICAS
 // ====================================
 
-export interface CreateUsuarioRequest {
-  // Datos del usuario
-  usuario: string;
-  email: string;
-  contrasena: string;
-  rolID: number;
-
-  // Datos del empleado (se crea automáticamente)
-  cedula: string;
-  nombre: string;
-  apellido: string;
-  sexo?: string;
-  direccion?: string;
-  telefono?: string;
-  fechaNacimiento?: string;
-  salario?: number;
-  departamento?: string;
-}
-
-export interface UpdateUsuarioRequest {
-  usuario?: string;
-  email?: string;
-  rolID?: number;
-  estado?: boolean;
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface ResetPasswordRequest {
-  newPassword: string;
-}
-
-// ====================================
-// REQUESTS DE CLIENTE
-// ====================================
-
-export interface CreateClienteRequest {
-  cedula?: string;
-  nombre: string;
-  apellido: string;
-  telefono?: string;
-  email?: string;
-  direccion?: string;
-  fechaNacimiento?: string;
-  preferenciasComida?: string;
-}
-
-export interface UpdateClienteRequest {
-  cedula?: string;
-  nombre?: string;
-  apellido?: string;
-  telefono?: string;
-  email?: string;
-  direccion?: string;
-  fechaNacimiento?: string;
-  preferenciasComida?: string;
-  estado?: string;
-}
-
-// ====================================
-// REQUESTS DE EMPLEADO
-// ====================================
-
-export interface CreateEmpleadoRequest {
-  cedula: string;
-  nombre: string;
-  apellido: string;
-  sexo?: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
-  fechaNacimiento?: string;
-  salario?: number;
-  departamento?: string;
-}
-
-export interface UpdateEmpleadoRequest {
-  cedula?: string;
-  nombre?: string;
-  apellido?: string;
-  sexo?: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
-  fechaNacimiento?: string;
-  salario?: number;
-  departamento?: string;
-  estado?: string;
-}
-
-// ====================================
-// REQUESTS DE PRODUCTO
-// ====================================
-
-export interface CreateProductoRequest {
-  nombre: string;
-  descripcion?: string;
-  categoriaId: number;
-  precio: number;
-  tiempoPreparacion?: number;
-  imagen?: string;
-  costoPreparacion?: number;
-}
-
-export interface UpdateProductoRequest {
-  nombre?: string;
-  descripcion?: string;
-  categoriaId?: number;
-  precio?: number;
-  tiempoPreparacion?: number;
-  imagen?: string;
-  costoPreparacion?: number;
-  estado?: boolean;
-}
-
-// ====================================
-// REQUESTS DE MESA
-// ====================================
-
-export interface CreateMesaRequest {
-  numeroMesa: number;
-  capacidad: number;
-  ubicacion?: string;
-  observaciones?: string;
-}
-
-export interface UpdateMesaRequest {
-  numeroMesa?: number;
-  capacidad?: number;
-  ubicacion?: string;
-  observaciones?: string;
-}
-
-export interface CambiarEstadoMesaRequest {
-  estado: MesaEstado;
-  observaciones?: string;
-}
-
-// ====================================
-// RESPONSES ESPECÍFICOS
-// ====================================
-
-export interface UsuarioResponse {
+export interface UsuarioResponseWrapper {
   success: boolean;
   message: string;
-  data: User;
+  data: UsuarioResponse;
 }
 
-export interface ClienteResponse {
+export interface ClienteResponseWrapper {
   success: boolean;
   message: string;
   data: Cliente;
 }
 
-export interface EmpleadoResponse {
+export interface EmpleadoResponseWrapper {
   success: boolean;
   message: string;
   data: Empleado;
 }
 
-export interface ProductoResponse {
+export interface ProductoResponseWrapper {
   success: boolean;
   message: string;
   data: Producto;
-}
-
-// ====================================
-// TIPOS DE ROLES
-// ====================================
-
-export interface Rol {
-  rolID: number;
-  nombreRol: string;
-  descripcion?: string;
-  estado: boolean;
-}
-
-// ====================================
-// TIPOS DE BÚSQUEDA Y FILTROS
-// ====================================
-
-export interface SearchParams {
-  query?: string;
-  page?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  filters?: Record<string, any>;
-}
-
-export interface SearchClienteParams extends SearchParams {
-  estado?: string;
-  ciudad?: string;
-  fechaRegistroDesde?: string;
-  fechaRegistroHasta?: string;
-}
-
-export interface SearchEmpleadoParams extends SearchParams {
-  estado?: string;
-  departamento?: string;
-  fechaIngresoDesde?: string;
-  fechaIngresoHasta?: string;
-}
-
-export interface SearchUsuarioParams extends SearchParams {
-  rolID?: number;
-  estado?: boolean;
-  fechaCreacionDesde?: string;
-  fechaCreacionHasta?: string;
 }
 
 // ====================================

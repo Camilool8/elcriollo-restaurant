@@ -15,6 +15,17 @@ interface CreateClienteFormProps {
   onSuccess: (cliente: any) => void;
 }
 
+interface ClienteFormData {
+  cedula?: string;
+  nombre: string;
+  apellido: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  fechaNacimiento?: string;
+  preferenciasComida?: string;
+}
+
 const CreateClienteForm: React.FC<CreateClienteFormProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,21 +34,19 @@ const CreateClienteForm: React.FC<CreateClienteFormProps> = ({ isOpen, onClose, 
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<CreateClienteRequest>();
+  } = useForm<ClienteFormData>();
 
-  const onSubmit = async (data: CreateClienteRequest) => {
+  const onSubmit = async (data: ClienteFormData) => {
     setIsLoading(true);
 
     try {
       const createRequest: CreateClienteRequest = {
+        nombreCompleto: `${data.nombre.trim()} ${data.apellido.trim()}`,
         cedula: data.cedula?.trim() || undefined,
-        nombre: data.nombre.trim(),
-        apellido: data.apellido.trim(),
         telefono: data.telefono?.trim() || undefined,
         email: data.email?.trim() || undefined,
         direccion: data.direccion?.trim() || undefined,
         fechaNacimiento: data.fechaNacimiento || undefined,
-        preferenciasComida: data.preferenciasComida?.trim() || undefined,
       };
 
       const newCliente = await clienteService.createCliente(createRequest);
@@ -156,19 +165,6 @@ const CreateClienteForm: React.FC<CreateClienteFormProps> = ({ isOpen, onClose, 
             error={errors.fechaNacimiento?.message}
             fullWidth
           />
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Heart className="w-4 h-4 inline mr-1" />
-              Preferencias de Comida
-            </label>
-            <textarea
-              {...register('preferenciasComida')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dominican-blue focus:border-dominican-blue"
-              rows={3}
-              placeholder="Ej: Sin picante, vegetariano, alérgico a mariscos..."
-            />
-          </div>
         </div>
 
         {/* Botones */}

@@ -77,7 +77,7 @@ const App: React.FC = () => {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="light"
+            theme="colored"
             className="dominican-toast"
             toastClassName="font-sans"
             bodyClassName="text-sm"

@@ -1,75 +1,83 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import {
-  Plus,
-  Edit,
-  Eye,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Briefcase,
-  UserCheck,
-  UserX,
-  Download,
-} from 'lucide-react';
+import { Edit, Eye, Download, Mail, Phone, Calendar, MapPin } from 'lucide-react';
+import Papa from 'papaparse';
 import { useEmpleados } from '@/hooks/useEmpleados';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { SearchFilter } from '@/components/ui/SearchFilter';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { ActionMenu } from '@/components/ui/ActionMenu';
-import { CreateEmpleadoForm } from '@/components/admin/CreateEmpleadoForm';
-import {
-  formatearPrecio,
-  formatearFechaCorta,
-  formatearNombreCompleto,
-} from '@/utils/dominicanValidations';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { formatearFechaCorta } from '@/utils/dominicanValidations';
 import { Empleado } from '@/types';
+import { EmpleadoDetails } from '@/components/admin/EmpleadoDetails';
+import { EditEmpleadoForm } from '@/components/admin/EditEmpleadoForm';
+import { Input } from '@/components/ui/Input';
+import { Search } from 'lucide-react';
 
 const EmpleadosPage: React.FC = () => {
-  const { empleados, departamentos, isLoading, totalCount, searchEmpleados, refreshEmpleados } =
-    useEmpleados();
+  const { empleados, isLoading, searchEmpleados, refreshEmpleados } = useEmpleados();
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedDepartamento, setSelectedDepartamento] = useState('');
-  const [selectedEstado, setSelectedEstado] = useState('');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEmpleado, setSelectedEmpleado] = useState<Empleado | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // ====================================
   // FUNCIONES
   // ====================================
 
-  const handleSearch = (query: string) => {
-    searchEmpleados(query);
-  };
-
-  const handleFilterChange = () => {
-    // TODO: Implementar filtrado por departamento y estado
-    refreshEmpleados();
-  };
-
-  const handleEmpleadoCreated = () => {
-    refreshEmpleados();
+  const handleSearch = () => {
+    searchEmpleados(searchQuery);
   };
 
   const handleViewEmpleado = (empleado: Empleado) => {
-    // TODO: Abrir modal de detalles
-    toast.info(`Ver detalles de ${empleado.nombre} ${empleado.apellido}`);
+    setSelectedEmpleado(empleado);
+    setIsViewModalOpen(true);
   };
 
   const handleEditEmpleado = (empleado: Empleado) => {
-    // TODO: Abrir modal de edición
-    toast.info(`Editar ${empleado.nombre} ${empleado.apellido}`);
+    setSelectedEmpleado(empleado);
+    setIsEditModalOpen(true);
   };
 
-  const handleToggleStatus = (empleado: Empleado) => {
-    // TODO: Implementar cambio de estado
-    toast.info(`Cambiar estado de ${empleado.nombre} ${empleado.apellido}`);
+  const handleCloseModals = () => {
+    setIsViewModalOpen(false);
+    setIsEditModalOpen(false);
+    setSelectedEmpleado(null);
   };
 
   const handleExportEmpleados = () => {
-    // TODO: Implementar exportación
-    toast.info('Exportando lista de empleados...');
+    if (empleados.length === 0) {
+      toast.warn('No hay empleados para exportar.');
+      return;
+    }
+
+    const dataToExport = empleados.map((emp) => ({
+      Nombre: emp.nombreCompleto,
+      Cedula: emp.cedula,
+      Email: emp.email,
+      Telefono: emp.telefono,
+      Salario: emp.salarioFormateado,
+      'Fecha Contratacion': formatearFechaCorta(emp.fechaContratacion),
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `empleados-el-criollo-${new Date().toISOString().split('T')[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Lista de empleados exportada exitosamente.');
+  };
+
+  const handleUpdateSuccess = () => {
+    handleCloseModals();
+    refreshEmpleados();
   };
 
   // ====================================
@@ -78,13 +86,11 @@ const EmpleadosPage: React.FC = () => {
 
   const columns: Column<Empleado>[] = [
     {
-      key: 'nombre',
+      key: 'nombreCompleto',
       label: 'Empleado',
       render: (_, empleado) => (
         <div>
-          <div className="font-medium text-gray-900">
-            {formatearNombreCompleto(empleado.nombre, empleado.apellido)}
-          </div>
+          <div className="font-medium text-gray-900">{empleado.nombreCompleto}</div>
           <div className="text-sm text-stone-gray">{empleado.cedula || 'Sin cédula'}</div>
         </div>
       ),
@@ -94,10 +100,10 @@ const EmpleadosPage: React.FC = () => {
       label: 'Contacto',
       render: (_, empleado) => (
         <div className="space-y-1">
-          {empleado.telefono && (
+          {empleado.telefonoFormateado && (
             <div className="flex items-center text-sm text-gray-600">
               <Phone className="w-3 h-3 mr-1" />
-              {empleado.telefono}
+              {empleado.telefonoFormateado}
             </div>
           )}
           {empleado.email && (
@@ -106,54 +112,29 @@ const EmpleadosPage: React.FC = () => {
               {empleado.email}
             </div>
           )}
-          {empleado.direccion && (
-            <div className="flex items-center text-sm text-gray-600">
-              <MapPin className="w-3 h-3 mr-1" />
-              {empleado.direccion}
-            </div>
-          )}
         </div>
       ),
     },
     {
-      key: 'departamento',
-      label: 'Departamento',
-      render: (_, empleado) => (
-        <div className="flex items-center">
-          <Briefcase className="w-4 h-4 mr-2 text-dominican-blue" />
-          <span className="font-medium text-dominican-blue">
-            {empleado.departamento || 'Sin asignar'}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'salario',
-      label: 'Salario',
+      key: 'direccion',
+      label: 'Dirección',
       render: (_, empleado) =>
-        empleado.salario ? (
-          <div className="flex items-center font-medium text-green-600">
-            <DollarSign className="w-4 h-4 mr-1" />
-            {formatearPrecio(empleado.salario)}
+        empleado.direccion ? (
+          <div className="flex items-center text-sm text-gray-600">
+            <MapPin className="w-3 h-3 mr-1" />
+            {empleado.direccion}
           </div>
         ) : (
           <span className="text-stone-gray text-sm">No especificado</span>
         ),
-      align: 'right',
     },
     {
-      key: 'estado',
-      label: 'Estado',
-      render: (_, empleado) => <StatusBadge status={empleado.estado} type="employee" />,
-      align: 'center',
-    },
-    {
-      key: 'fechaIngreso',
-      label: 'Fecha Ingreso',
+      key: 'fechaContratacion',
+      label: 'Fecha Contratación',
       render: (_, empleado) => (
         <div className="flex items-center text-sm text-gray-600">
           <Calendar className="w-3 h-3 mr-1" />
-          {formatearFechaCorta(empleado.fechaIngreso)}
+          {formatearFechaCorta(empleado.fechaContratacion)}
         </div>
       ),
     },
@@ -161,31 +142,14 @@ const EmpleadosPage: React.FC = () => {
       key: 'acciones',
       label: 'Acciones',
       render: (_, empleado) => (
-        <ActionMenu
-          items={[
-            {
-              label: 'Ver Detalles',
-              icon: <Eye className="w-4 h-4" />,
-              onClick: () => handleViewEmpleado(empleado),
-            },
-            {
-              label: 'Editar',
-              icon: <Edit className="w-4 h-4" />,
-              onClick: () => handleEditEmpleado(empleado),
-            },
-            {
-              label: empleado.estado === 'Activo' ? 'Desactivar' : 'Activar',
-              icon:
-                empleado.estado === 'Activo' ? (
-                  <UserX className="w-4 h-4" />
-                ) : (
-                  <UserCheck className="w-4 h-4" />
-                ),
-              onClick: () => handleToggleStatus(empleado),
-              variant: empleado.estado === 'Activo' ? 'danger' : 'default',
-            },
-          ]}
-        />
+        <div className="flex items-center justify-center space-x-2">
+          <Button variant="ghost" size="sm" onClick={() => handleViewEmpleado(empleado)}>
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => handleEditEmpleado(empleado)}>
+            <Edit className="w-4 h-4" />
+          </Button>
+        </div>
       ),
       align: 'center',
     },
@@ -203,108 +167,81 @@ const EmpleadosPage: React.FC = () => {
           <h1 className="text-3xl font-heading font-bold text-dominican-blue">
             Gestión de Empleados
           </h1>
-          <p className="text-stone-gray mt-1">Personal y recursos humanos del restaurante</p>
+          <p className="text-stone-gray mt-1">
+            Visualización del personal registrado en el sistema.
+          </p>
         </div>
       </div>
 
-      {/* Métricas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-dominican-blue">{empleados.length}</p>
-              <p className="text-sm text-stone-gray">Total Empleados</p>
-            </div>
-            <Briefcase className="w-8 h-8 text-dominican-blue opacity-20" />
+      {/* Controles y Tabla */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex-1 flex gap-2">
+            <Input
+              placeholder="Buscar por nombre, cédula o email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              leftIcon={<Search className="w-4 h-4" />}
+              fullWidth
+            />
+            <Button variant="primary" onClick={handleSearch}>
+              Buscar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery('');
+                searchEmpleados('');
+              }}
+            >
+              Limpiar
+            </Button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleExportEmpleados}
+              className="px-4 py-2 text-sm text-dominican-blue border border-dominican-blue rounded-lg hover:bg-dominican-blue hover:text-white smooth-transition flex items-center"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-green-600">
-                {empleados.filter((e) => e.estado === 'Activo').length}
-              </p>
-              <p className="text-sm text-stone-gray">Activos</p>
-            </div>
-            <UserCheck className="w-8 h-8 text-green-600 opacity-20" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-yellow-600">{departamentos.length}</p>
-              <p className="text-sm text-stone-gray">Departamentos</p>
-            </div>
-            <Briefcase className="w-8 h-8 text-yellow-600 opacity-20" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-blue-600">
-                {empleados.filter((e) => e.salario).length}
-              </p>
-              <p className="text-sm text-stone-gray">Con Salario</p>
-            </div>
-            <DollarSign className="w-8 h-8 text-blue-600 opacity-20" />
-          </div>
-        </div>
+        <DataTable
+          columns={columns}
+          data={empleados}
+          loading={isLoading}
+          emptyMessage="No se encontraron empleados"
+        />
       </div>
 
-      {/* Búsqueda y filtros */}
-      <SearchFilter
-        placeholder="Buscar por nombre, cédula, teléfono o departamento..."
-        onSearch={handleSearch}
-        filters={[
-          {
-            label: 'Departamento',
-            options: departamentos.map((dep) => ({ label: dep, value: dep })),
-            value: selectedDepartamento,
-            onChange: setSelectedDepartamento,
-          },
-          {
-            label: 'Estado',
-            options: [
-              { label: 'Activo', value: 'Activo' },
-              { label: 'Inactivo', value: 'Inactivo' },
-            ],
-            value: selectedEstado,
-            onChange: setSelectedEstado,
-          },
-        ]}
-        actions={[
-          {
-            label: 'Agregar Empleado',
-            icon: <Plus className="w-4 h-4" />,
-            onClick: () => setShowCreateForm(true),
-            variant: 'primary',
-          },
-          {
-            label: 'Exportar',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExportEmpleados,
-            variant: 'outline',
-          },
-        ]}
-      />
+      {/* Modal de Vista */}
+      {selectedEmpleado && (
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={handleCloseModals}
+          title={`Detalles de ${selectedEmpleado.nombreCompleto}`}
+        >
+          <EmpleadoDetails empleado={selectedEmpleado} />
+        </Modal>
+      )}
 
-      {/* Tabla de empleados */}
-      <DataTable
-        data={empleados}
-        columns={columns}
-        loading={isLoading}
-        emptyMessage="No se encontraron empleados"
-      />
-
-      {/* Modal crear empleado */}
-      <CreateEmpleadoForm
-        isOpen={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
-        onSuccess={handleEmpleadoCreated}
-      />
+      {/* Modal de Edición */}
+      {selectedEmpleado && (
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseModals}
+          title={`Editar a ${selectedEmpleado.nombreCompleto}`}
+        >
+          <EditEmpleadoForm
+            empleado={selectedEmpleado}
+            onSuccess={handleUpdateSuccess}
+            onCancel={handleCloseModals}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

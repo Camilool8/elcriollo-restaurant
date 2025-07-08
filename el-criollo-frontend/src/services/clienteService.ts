@@ -1,18 +1,13 @@
-import {
-  CreateClienteRequest,
-  UpdateClienteRequest,
-  SearchClienteParams,
-  ClienteResponse,
-  Cliente,
-} from '@/types';
-import api, { getErrorMessage } from './api';
+import { CreateClienteRequest, UpdateClienteRequest, SearchClienteParams } from '@/types/requests';
+import { Cliente } from '@/types';
+import { api, getErrorMessage } from './api';
 
 class ClienteService {
   // Crear nuevo cliente
   async createCliente(clienteData: CreateClienteRequest): Promise<Cliente> {
     try {
-      const response = await api.post<ClienteResponse>('/cliente', clienteData);
-      return response.data.data;
+      const response = await api.post<Cliente>('/cliente', clienteData);
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error creando cliente: ${message}`);
@@ -20,10 +15,10 @@ class ClienteService {
   }
 
   // Obtener todos los clientes
-  async getClientes(params?: SearchClienteParams): Promise<any> {
+  async getClientes(params?: SearchClienteParams): Promise<Cliente[]> {
     try {
-      const response = await api.get<any>('/cliente', { params });
-      return response.data;
+      const response = await api.get<Cliente[]>('/cliente', { params });
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo clientes: ${message}`);
@@ -33,8 +28,8 @@ class ClienteService {
   // Obtener cliente por ID
   async getClienteById(clienteId: number): Promise<Cliente> {
     try {
-      const response = await api.get<{ success: boolean; data: Cliente }>(`/cliente/${clienteId}`);
-      return response.data.data;
+      const response = await api.get<Cliente>(`/cliente/${clienteId}`);
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo cliente: ${message}`);
@@ -44,10 +39,10 @@ class ClienteService {
   // Buscar clientes
   async searchClientes(query: string): Promise<Cliente[]> {
     try {
-      const response = await api.get<{ success: boolean; data: Cliente[] }>('/cliente/buscar', {
-        params: { query },
+      const response = await api.get<Cliente[]>('/cliente/buscar', {
+        params: { termino: query, estado: 'Activo' },
       });
-      return response.data.data;
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error buscando clientes: ${message}`);
@@ -57,8 +52,8 @@ class ClienteService {
   // Actualizar cliente
   async updateCliente(clienteId: number, clienteData: UpdateClienteRequest): Promise<Cliente> {
     try {
-      const response = await api.put<ClienteResponse>(`/cliente/${clienteId}`, clienteData);
-      return response.data.data;
+      const response = await api.put<Cliente>(`/cliente/${clienteId}`, clienteData);
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error actualizando cliente: ${message}`);
@@ -81,7 +76,7 @@ class ClienteService {
       const response = await api.get<{ success: boolean; data: any[] }>(
         `/cliente/${clienteId}/historial-compras`
       );
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo historial: ${message}`);
@@ -94,7 +89,7 @@ class ClienteService {
       const response = await api.get<{ success: boolean; data: any }>(
         `/cliente/${clienteId}/estadisticas`
       );
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo estadísticas: ${message}`);
@@ -104,8 +99,8 @@ class ClienteService {
   // Obtener clientes frecuentes
   async getClientesFrecuentes(): Promise<Cliente[]> {
     try {
-      const response = await api.get<{ success: boolean; data: Cliente[] }>('/cliente/frecuentes');
-      return response.data.data;
+      const response = await api.get<Cliente[]>('/cliente/frecuentes');
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo clientes frecuentes: ${message}`);
@@ -115,8 +110,8 @@ class ClienteService {
   // Obtener cumpleañeros del mes
   async getClientesCumpleanos(): Promise<Cliente[]> {
     try {
-      const response = await api.get<{ success: boolean; data: Cliente[] }>('/cliente/cumpleanos');
-      return response.data.data;
+      const response = await api.get<Cliente[]>('/cliente/cumpleanos');
+      return response;
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error obteniendo cumpleañeros: ${message}`);

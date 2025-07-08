@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { toast } from 'react-toastify';
-import authService from '@/services/authService';
-import { User, LoginRequest, AuthState, UserRole } from '@/types';
+import { authService } from '@/services/authService';
+import { UsuarioResponse, LoginRequest, AuthState } from '@/types';
 
 // ====================================
 // TIPOS DEL CONTEXT
@@ -18,8 +18,8 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 
   // Utilidades
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
   isAdmin: () => boolean;
   isCajero: () => boolean;
   isMesero: () => boolean;
@@ -35,7 +35,7 @@ type AuthAction =
   | { type: 'AUTH_START' }
   | {
       type: 'AUTH_SUCCESS';
-      payload: { user: User; token: string; refreshToken: string };
+      payload: { user: UsuarioResponse; token: string; refreshToken: string };
     }
   | { type: 'AUTH_FAILURE'; payload: string }
   | { type: 'AUTH_LOGOUT' }
@@ -143,25 +143,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         dispatch({ type: 'AUTH_START' });
 
-        const user = await authService.initialize();
+        const user = authService.getStoredUser();
+        const token = authService.getStoredToken();
+        const refreshToken = authService.getStoredRefreshToken();
 
-        if (user) {
-          const token = authService.getStoredToken();
-          const refreshToken = authService.getStoredRefreshToken();
-
-          if (token && refreshToken) {
+        if (user && token && refreshToken) {
+          const isValid = await authService.validateToken(token);
+          if (isValid) {
             dispatch({
               type: 'AUTH_SUCCESS',
               payload: { user, token, refreshToken },
             });
-
             console.log('✅ Autenticación restaurada:', user.usuario);
-            return;
+          } else {
+            // Si el token no es válido, intentar refrescarlo
+            const newToken = await authService.refreshToken();
+            if (newToken) {
+              const refreshedUser = authService.getStoredUser();
+              const refreshedRefreshToken = authService.getStoredRefreshToken();
+              if (refreshedUser && refreshedRefreshToken) {
+                dispatch({
+                  type: 'AUTH_SUCCESS',
+                  payload: {
+                    user: refreshedUser,
+                    token: newToken,
+                    refreshToken: refreshedRefreshToken,
+                  },
+                });
+                console.log('✅ Autenticación restaurada con nuevo token:', refreshedUser.usuario);
+              }
+            } else {
+              dispatch({ type: 'AUTH_LOGOUT' });
+            }
           }
+        } else {
+          // Si no hay datos válidos, limpiar estado
+          dispatch({ type: 'AUTH_LOGOUT' });
         }
-
-        // Si no hay datos válidos, limpiar estado
-        dispatch({ type: 'AUTH_LOGOUT' });
       } catch (error: any) {
         console.error('❌ Error inicializando autenticación:', error);
         dispatch({
@@ -187,23 +205,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: {
-          user: response.user,
+          user: response.usuario,
           token: response.token,
           refreshToken: response.refreshToken,
         },
       });
 
       // Mostrar notificación de bienvenida
-      const userName = response.user.usuario || response.user.username || 'Usuario';
+      const userName = response.usuario.usuario || 'Usuario';
       toast.success(`¡Bienvenido, ${userName}! 🇩🇴`, {
         position: 'top-right',
         autoClose: 3000,
       });
 
-      console.log('✅ Login exitoso en contexto:', response.user);
+      console.log('✅ Login exitoso en contexto:', response.usuario);
       return true;
     } catch (error: any) {
-      const errorMessage = authService.handleAuthError(error);
+      const errorMessage = error.message || 'Error desconocido durante el login';
 
       dispatch({
         type: 'AUTH_FAILURE',
@@ -249,33 +267,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const checkAuth = async (): Promise<void> => {
-    try {
-      if (!authService.isAuthenticated()) {
-        dispatch({ type: 'AUTH_LOGOUT' });
-        return;
+    dispatch({ type: 'AUTH_SET_LOADING', payload: true });
+    const token = authService.getStoredToken();
+    if (token) {
+      const isValid = await authService.validateToken(token);
+      if (!isValid) {
+        await authService.refreshToken();
       }
-
-      const user = await authService.getCurrentUser();
-
-      if (user) {
-        const token = authService.getStoredToken();
-        const refreshToken = authService.getStoredRefreshToken();
-
-        if (token && refreshToken) {
-          dispatch({
-            type: 'AUTH_SUCCESS',
-            payload: { user, token, refreshToken },
-          });
-        } else {
-          dispatch({ type: 'AUTH_LOGOUT' });
-        }
-      } else {
-        dispatch({ type: 'AUTH_LOGOUT' });
-      }
-    } catch (error: any) {
-      console.error('❌ Error verificando autenticación:', error);
+    } else {
       dispatch({ type: 'AUTH_LOGOUT' });
     }
+    dispatch({ type: 'AUTH_SET_LOADING', payload: false });
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
@@ -293,38 +295,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return true;
     } catch (error: any) {
-      const errorMessage = authService.handleAuthError(error);
-
-      dispatch({
-        type: 'AUTH_FAILURE',
-        payload: errorMessage,
-      });
-
-      toast.error(errorMessage, {
-        position: 'top-right',
-        autoClose: 5000,
-      });
-
+      const errorMessage = error.message || 'Error desconocido';
+      toast.error(errorMessage);
       return false;
     }
   };
 
   // ====================================
-  // FUNCIONES DE UTILIDAD
+  // UTILIDADES DE ROL
   // ====================================
 
-  const hasRole = (role: UserRole): boolean => {
-    if (!state.user) return false;
-    // Handle both nombreRol and rol properties for compatibility
-    const userRole = state.user.nombreRol || state.user.rol;
-    return userRole === role;
+  const hasRole = (role: string): boolean => {
+    return state.user?.rol === role;
   };
 
-  const hasAnyRole = (roles: UserRole[]): boolean => {
-    if (!state.user) return false;
-    // Handle both nombreRol and rol properties for compatibility
-    const userRole = state.user.nombreRol || state.user.rol;
-    return roles.includes(userRole as UserRole);
+  const hasAnyRole = (roles: string[]): boolean => {
+    return !!state.user && roles.includes(state.user.rol);
   };
 
   const isAdmin = (): boolean => hasRole('Administrador');
@@ -334,7 +320,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isCocina = (): boolean => hasRole('Cocina');
 
   // ====================================
-  // VALOR DEL CONTEXT
+  // VALUE DEL CONTEXT
   // ====================================
 
   const contextValue: AuthContextType = {
@@ -374,8 +360,8 @@ export const useAuth = (): AuthContextType => {
 // ====================================
 
 interface WithAuthProps {
-  requiredRole?: UserRole;
-  requiredRoles?: UserRole[];
+  requiredRole?: string;
+  requiredRoles?: string[];
   fallback?: ReactNode;
 }
 

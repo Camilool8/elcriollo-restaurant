@@ -1,24 +1,27 @@
+import { Cliente, Empleado, MesaEstado } from './index';
 // ====================================
 // REQUESTS DE USUARIO Y EMPLEADO
 // ====================================
 
 export interface CreateUsuarioRequest {
-  // Datos del usuario
-  usuario: string;
+  // CAMPOS REQUERIDOS
+  username: string;
+  password: string;
+  confirmarPassword: string;
   email: string;
-  contrasena: string;
-  rolID: number;
-
-  // Datos del empleado (se crea automáticamente)
+  rolId: number;
   cedula: string;
   nombre: string;
   apellido: string;
+
+  // CAMPOS OPCIONALES
   sexo?: string;
   direccion?: string;
   telefono?: string;
-  fechaNacimiento?: string;
   salario?: number;
   departamento?: string;
+  fechaIngreso?: string;
+  requiereCambioContrasena?: boolean;
 }
 
 export interface UpdateUsuarioRequest {
@@ -42,26 +45,20 @@ export interface ResetPasswordRequest {
 // ====================================
 
 export interface CreateClienteRequest {
+  nombreCompleto: string;
   cedula?: string;
-  nombre: string;
-  apellido: string;
   telefono?: string;
   email?: string;
   direccion?: string;
   fechaNacimiento?: string;
-  preferenciasComida?: string;
 }
 
 export interface UpdateClienteRequest {
-  cedula?: string;
-  nombre?: string;
-  apellido?: string;
+  nombreCompleto: string;
   telefono?: string;
   email?: string;
   direccion?: string;
   fechaNacimiento?: string;
-  preferenciasComida?: string;
-  estado?: string;
 }
 
 // ====================================
@@ -82,17 +79,10 @@ export interface CreateEmpleadoRequest {
 }
 
 export interface UpdateEmpleadoRequest {
-  cedula?: string;
-  nombre?: string;
-  apellido?: string;
-  sexo?: string;
-  direccion?: string;
+  nombreCompleto?: string;
   telefono?: string;
   email?: string;
-  fechaNacimiento?: string;
-  salario?: number;
-  departamento?: string;
-  estado?: string;
+  direccion?: string;
 }
 
 // ====================================
@@ -141,34 +131,6 @@ export interface UpdateMesaRequest {
 export interface CambiarEstadoMesaRequest {
   estado: MesaEstado;
   observaciones?: string;
-}
-
-// ====================================
-// RESPONSES ESPECÍFICOS
-// ====================================
-
-export interface UsuarioResponse {
-  success: boolean;
-  message: string;
-  data: User;
-}
-
-export interface ClienteResponse {
-  success: boolean;
-  message: string;
-  data: Cliente;
-}
-
-export interface EmpleadoResponse {
-  success: boolean;
-  message: string;
-  data: Empleado;
-}
-
-export interface ProductoResponse {
-  success: boolean;
-  message: string;
-  data: Producto;
 }
 
 // ====================================
@@ -229,8 +191,9 @@ export interface DominicanValidations {
 // Patrones de validación dominicanos
 export const DOMINICAN_PATTERNS = {
   cedula: /^\d{3}-\d{7}-\d{1}$/,
-  telefono: /^(\+1\s?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/,
+  telefono: /^\d{3}-\d{3}-\d{4}$/,
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#-])[A-Za-z\d@$!%*?&._#-]{8,}$/,
   numeroMesa: /^\d{1,3}$/,
   precio: /^\d+(\.\d{1,2})?$/,
 };

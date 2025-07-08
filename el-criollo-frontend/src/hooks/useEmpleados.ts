@@ -1,27 +1,28 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Empleado, CreateEmpleadoRequest, SearchEmpleadoParams } from '@/types';
+import { Empleado } from '@/types';
 import { empleadoService } from '@/services/empleadoService';
 
 export const useEmpleados = () => {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [originalEmpleados, setOriginalEmpleados] = useState<Empleado[]>([]);
   const [departamentos, setDepartamentos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
 
   // Cargar empleados
-  const loadEmpleados = useCallback(async (params?: SearchEmpleadoParams) => {
+  const loadEmpleados = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await empleadoService.getEmpleados(params);
-      setEmpleados(response.items || []);
-      setTotalCount(response.totalCount || 0);
+      const data = await empleadoService.getEmpleados();
+      setOriginalEmpleados(data || []);
+      setEmpleados(data || []);
     } catch (error: any) {
       const errorMessage = error.message || 'Error al cargar empleados';
       setError(errorMessage);
+      setEmpleados([]);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -47,34 +48,24 @@ export const useEmpleados = () => {
     }
   }, []);
 
-  // Crear empleado
-  const createEmpleado = useCallback(
-    async (empleadoData: CreateEmpleadoRequest): Promise<Empleado | null> => {
-      try {
-        const newEmpleado = await empleadoService.createEmpleado(empleadoData);
-        setEmpleados((prev) => [newEmpleado, ...prev]);
-        setTotalCount((prev) => prev + 1);
-        toast.success('¡Empleado agregado exitosamente! 💼');
-        return newEmpleado;
-      } catch (error: any) {
-        const errorMessage = error.message || 'Error al agregar empleado';
-        toast.error(errorMessage);
-        return null;
-      }
-    },
-    []
-  );
-
   // Buscar empleados
   const searchEmpleados = useCallback(
-    async (query: string) => {
-      if (query.trim()) {
-        await loadEmpleados({ query: query.trim() });
-      } else {
-        await loadEmpleados();
+    (query: string) => {
+      const lowerQuery = query.trim().toLowerCase();
+      if (!lowerQuery) {
+        setEmpleados(originalEmpleados);
+        return;
       }
+
+      const filtered = originalEmpleados.filter(
+        (empleado) =>
+          empleado.nombreCompleto.toLowerCase().includes(lowerQuery) ||
+          (empleado.cedula && empleado.cedula.includes(lowerQuery)) ||
+          (empleado.email && empleado.email.toLowerCase().includes(lowerQuery))
+      );
+      setEmpleados(filtered);
     },
-    [loadEmpleados]
+    [originalEmpleados]
   );
 
   // Efecto inicial
@@ -88,9 +79,7 @@ export const useEmpleados = () => {
     departamentos,
     isLoading,
     error,
-    totalCount,
     loadEmpleados,
-    createEmpleado,
     searchEmpleados,
     refreshEmpleados: loadEmpleados,
   };
