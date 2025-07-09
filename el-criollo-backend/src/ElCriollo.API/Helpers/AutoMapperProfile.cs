@@ -142,7 +142,8 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.TiempoPreparacionEstimado, opt => opt.MapFrom(src => $"{src.TiempoPreparacionEstimado} min"))
             .ForMember(dest => dest.EstaRetrasada, opt => opt.MapFrom(src => src.EstaRetrasada))
             .ForMember(dest => dest.EstaFacturada, opt => opt.MapFrom(src => src.EstaFacturada))
-            .ForMember(dest => dest.CategoriasProductos, opt => opt.MapFrom(src => src.CategoriasProductos.ToList()));
+            .ForMember(dest => dest.CategoriasProductos, opt => opt.MapFrom(src => src.CategoriasProductos.ToList()))
+            .ForMember(dest => dest.Detalles, opt => opt.MapFrom(src => src.DetalleOrdenes));
 
         CreateMap<Orden, OrdenBasicaResponse>()
             .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
@@ -159,6 +160,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PrecioUnitario, opt => opt.MapFrom(src => src.PrecioUnitarioFormateado))
             .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => $"RD$ {src.Descuento:N2}"))
             .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.SubtotalFormateado))
+            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.PrecioTotalConDescuento))
             .ForMember(dest => dest.EstaDisponible, opt => opt.MapFrom(src => src.EstaDisponible))
             .ForMember(dest => dest.TiempoPreparacion, opt => opt.MapFrom(src => $"{src.TiempoPreparacion} min"))
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto));

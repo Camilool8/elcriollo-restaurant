@@ -137,7 +137,6 @@ namespace ElCriollo.API.Services
 
         public async Task<OrdenResponse> ActualizarOrdenAsync(ActualizarOrdenRequest request, int usuarioId)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("🔄 Actualizando orden {OrdenId} por usuario {UsuarioId}", request.OrdenID, usuarioId);
@@ -146,35 +145,51 @@ namespace ElCriollo.API.Services
                 if (orden == null)
                     throw new KeyNotFoundException($"Orden con ID {request.OrdenID} no encontrada.");
 
-                if (orden.Estado != "Pendiente" && orden.Estado != "En Preparacion")
+                if (orden.Estado != "Pendiente" && orden.Estado != "EnPreparacion")
                     throw new InvalidOperationException($"No se puede modificar una orden en estado '{orden.Estado}'.");
 
+                // Actualizar observaciones de la orden
                 orden.Observaciones = request.Observaciones;
                 orden.FechaActualizacion = DateTime.Now;
 
+                // Crear un diccionario de items actuales para comparación
                 var itemsActuales = orden.DetalleOrdenes.ToDictionary(d => d.ProductoID ?? -1);
                 var itemsRequest = request.Items.ToDictionary(i => i.ProductoId);
 
-                // Eliminar o actualizar items existentes
-                foreach (var itemActual in orden.DetalleOrdenes.ToList())
+                // Eliminar items que ya no están en la request
+                var itemsAEliminar = orden.DetalleOrdenes
+                    .Where(d => d.ProductoID.HasValue && !itemsRequest.ContainsKey(d.ProductoID.Value))
+                    .ToList();
+
+                _logger.LogInformation("🗑️ Eliminando {Count} items de la orden {OrdenId}", itemsAEliminar.Count, request.OrdenID);
+                foreach (var item in itemsAEliminar)
                 {
-                    if (itemActual.ProductoID.HasValue && !itemsRequest.ContainsKey(itemActual.ProductoID.Value))
-                    {
-                        await _ordenRepository.RemoveDetalleOrdenAsync(itemActual);
-                    }
-                    else if (itemActual.ProductoID.HasValue)
+                    orden.DetalleOrdenes.Remove(item);
+                    _context.DetalleOrdenes.Remove(item);
+                }
+
+                // Actualizar items existentes
+                var itemsActualizados = 0;
+                foreach (var itemActual in orden.DetalleOrdenes.Where(d => d.ProductoID.HasValue))
+                {
+                    if (itemsRequest.ContainsKey(itemActual.ProductoID.Value))
                     {
                         var itemNuevo = itemsRequest[itemActual.ProductoID.Value];
-                        if (itemActual.Cantidad != itemNuevo.Cantidad)
-                        {
-                            itemActual.Cantidad = itemNuevo.Cantidad;
-                            itemActual.Subtotal = itemActual.Cantidad * itemActual.PrecioUnitario;
-                        }
+                        
+                        // Actualizar cantidad y recalcular subtotal
+                        itemActual.Cantidad = itemNuevo.Cantidad;
+                        itemActual.Subtotal = itemActual.Cantidad * itemActual.PrecioUnitario;
                         itemActual.NotasEspeciales = itemNuevo.NotasEspeciales;
+                        
+                        // Marcar como modificado
+                        _context.Entry(itemActual).State = EntityState.Modified;
+                        itemsActualizados++;
                     }
                 }
+                _logger.LogInformation("✏️ Actualizando {Count} items existentes de la orden {OrdenId}", itemsActualizados, request.OrdenID);
                 
                 // Agregar nuevos items
+                var itemsNuevos = 0;
                 foreach (var itemNuevo in request.Items)
                 {
                     if (!itemsActuales.ContainsKey(itemNuevo.ProductoId))
@@ -190,22 +205,32 @@ namespace ElCriollo.API.Services
                             PrecioUnitario = producto.Precio,
                             NotasEspeciales = itemNuevo.NotasEspeciales,
                         };
-                        await _ordenRepository.AddDetalleOrdenAsync(nuevoDetalle);
+                        
+                        // Calcular subtotal manualmente para nuevos items
+                        nuevoDetalle.Subtotal = nuevoDetalle.Cantidad * nuevoDetalle.PrecioUnitario;
+                        
+                        // Agregar a la colección de la orden y al contexto
+                        orden.DetalleOrdenes.Add(nuevoDetalle);
+                        _context.DetalleOrdenes.Add(nuevoDetalle);
+                        itemsNuevos++;
                     }
                 }
+                _logger.LogInformation("➕ Agregando {Count} nuevos items a la orden {OrdenId}", itemsNuevos, request.OrdenID);
 
-                await _ordenRepository.UpdateAsync(orden);
-                await RecalcularTotalesAsync(orden.OrdenID);
-                await transaction.CommitAsync();
+                // Marcar la orden como modificada
+                _context.Entry(orden).State = EntityState.Modified;
+
+                // Guardar todos los cambios de una vez
+                await _context.SaveChangesAsync();
                 
                 _logger.LogInformation("✅ Orden {OrdenId} actualizada correctamente.", request.OrdenID);
                 
+                // Recargar la orden con los cambios
                 var ordenActualizada = await _ordenRepository.GetByIdWithIncludesAsync(request.OrdenID);
                 return _mapper.Map<OrdenResponse>(ordenActualizada);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "❌ Error al actualizar la orden {OrdenId}", request.OrdenID);
                 throw;
             }
@@ -216,7 +241,14 @@ namespace ElCriollo.API.Services
             try
             {
                 var orden = await _ordenRepository.GetByIdWithIncludesAsync(ordenId);
-                return orden != null ? _mapper.Map<OrdenResponse>(orden) : null;
+                if (orden == null) return null;
+
+                // Recalcular totales para asegurar que estén actualizados
+                await RecalcularTotalesAsync(ordenId);
+                
+                // Obtener la orden actualizada con totales recalculados
+                var ordenActualizada = await _ordenRepository.GetByIdWithIncludesAsync(ordenId);
+                return _mapper.Map<OrdenResponse>(ordenActualizada);
             }
             catch (Exception ex)
             {

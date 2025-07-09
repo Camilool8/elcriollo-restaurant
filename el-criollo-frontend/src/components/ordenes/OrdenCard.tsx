@@ -42,8 +42,13 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   compact = false,
   showActions = true,
 }) => {
-  const colorConfig = COLORES_ESTADO_ORDEN[orden.estado];
-  const iconoTipo = ICONOS_TIPO_ORDEN[orden.tipoOrden];
+  const colorConfig = COLORES_ESTADO_ORDEN[orden.estado] || {
+    bg: 'bg-gray-100',
+    border: 'border-gray-500',
+    text: 'text-gray-800',
+    icon: '❓',
+  };
+  const iconoTipo = ICONOS_TIPO_ORDEN[orden.tipoOrden] || '📋';
 
   const handleEstadoChange = (nuevoEstado: EstadoOrden) => {
     if (onEstadoChange) {

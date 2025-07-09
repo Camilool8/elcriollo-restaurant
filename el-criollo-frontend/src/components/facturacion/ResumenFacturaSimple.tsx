@@ -17,14 +17,13 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 
 // Types
-import type { Factura, FacturaDividida, FacturaEstado, MetodoPago } from '@/types';
+import type { Factura, FacturaEstado, MetodoPago } from '@/types';
 
 // Utils
 import { formatearPrecio } from '@/utils/dominicanValidations';
 
 interface ResumenFacturaProps {
   factura?: Factura;
-  facturasDivididas?: FacturaDividida[];
   onDescargarFactura?: (facturaId: number) => void;
   onEnviarEmail?: (facturaId: number) => void;
   onImprimir?: (facturaId: number) => void;
@@ -34,7 +33,6 @@ interface ResumenFacturaProps {
 
 export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
   factura,
-  facturasDivididas,
   onDescargarFactura,
   onEnviarEmail,
   onImprimir,
@@ -75,10 +73,6 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
       return factura.total;
     }
 
-    if (facturasDivididas) {
-      return facturasDivididas.reduce((total, f) => total + f.total, 0);
-    }
-
     return 0;
   };
 
@@ -86,7 +80,7 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
   // COMPONENTES AUXILIARES
   // ============================================================================
 
-  const FacturaCard: React.FC<{ factura: Factura | FacturaDividida }> = ({ factura }) => (
+  const FacturaCard: React.FC<{ factura: Factura }> = ({ factura }) => (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
@@ -120,22 +114,6 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
           </div>
         )}
 
-        {/* Cliente asignado para facturas divididas */}
-        {'clienteAsignado' in factura && factura.clienteAsignado && (
-          <div className="flex items-center space-x-2 text-sm">
-            <User className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-600">Cliente:</span>
-            <span className="font-medium">
-              {'nombreCompleto' in factura.clienteAsignado
-                ? factura.clienteAsignado.nombreCompleto
-                : factura.clienteAsignado.nombre}
-            </span>
-            {'cedula' in factura.clienteAsignado && factura.clienteAsignado.cedula && (
-              <span className="text-gray-500">({factura.clienteAsignado.cedula})</span>
-            )}
-          </div>
-        )}
-
         <div className="flex items-center space-x-2 text-sm">
           <FileText className="w-4 h-4 text-gray-500" />
           <span className="text-gray-600">Orden:</span>
@@ -143,26 +121,6 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
             #{'orden' in factura ? factura.orden?.numeroOrden : factura.ordenID}
           </span>
         </div>
-
-        {/* Items asignados para facturas divididas */}
-        {'itemsAsignados' in factura && factura.itemsAsignados && (
-          <div className="mt-3 pt-3 border-t">
-            <h5 className="text-sm font-medium text-gray-700 mb-2">
-              Items Asignados ({factura.itemsAsignados.length})
-            </h5>
-            <div className="space-y-1">
-              {factura.itemsAsignados.map((item) => (
-                <div key={item.detalleOrdenID} className="flex justify-between text-sm">
-                  <div className="flex-1">
-                    <span className="text-gray-900">{item.nombreProducto}</span>
-                    <span className="text-gray-600 ml-2">x{item.cantidad}</span>
-                  </div>
-                  <span className="font-medium">{formatearPrecio(item.subtotal)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Desglose de totales */}
@@ -240,14 +198,8 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
             <Receipt className="w-6 h-6 text-dominican-blue" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
-              {facturasDivididas ? 'Resumen de Facturas Divididas' : 'Resumen de Factura'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {facturasDivididas
-                ? `${facturasDivididas.length} facturas generadas`
-                : 'Factura individual'}
-            </p>
+            <h3 className="text-lg font-bold text-gray-900"> Resumen de Factura</h3>
+            <p className="text-sm text-gray-600">Factura individual</p>
           </div>
         </div>
 
@@ -263,10 +215,8 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-dominican-blue">
-              {facturasDivididas ? facturasDivididas.length : 1}
-            </div>
-            <div className="text-sm text-gray-600">Facturas</div>
+            <div className="text-2xl font-bold text-dominican-blue">1</div>
+            <div className="text-sm text-gray-600">Factura</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
@@ -289,23 +239,12 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
         </div>
       </Card>
 
-      {/* Facturas individuales */}
+      {/* Factura individual */}
       <div className="space-y-4">
         {factura && (
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Factura</h4>
             <FacturaCard factura={factura} />
-          </div>
-        )}
-
-        {facturasDivididas && (
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Facturas Divididas</h4>
-            <div className="space-y-3">
-              {facturasDivididas.map((factura) => (
-                <FacturaCard key={factura.facturaID} factura={factura} />
-              ))}
-            </div>
           </div>
         )}
       </div>
@@ -317,26 +256,11 @@ export const ResumenFacturaSimple: React.FC<ResumenFacturaProps> = ({
             <div className="flex items-center space-x-2">
               <Check className="w-5 h-5 text-green-600" />
               <span className="text-sm font-medium text-gray-900">
-                {facturasDivididas
-                  ? 'Facturas procesadas exitosamente'
-                  : 'Factura procesada exitosamente'}
+                Factura procesada exitosamente
               </span>
             </div>
 
             <div className="flex space-x-2">
-              {facturasDivididas && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    facturasDivididas.forEach((f) => onDescargarFactura?.(f.facturaID));
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Descargar Todo
-                </Button>
-              )}
-
               <Button
                 size="sm"
                 onClick={onClose}

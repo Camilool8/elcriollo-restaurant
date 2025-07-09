@@ -8,10 +8,6 @@ import {
 import type {
   Factura,
   CrearFacturaRequest,
-  FacturaDividida,
-  DivisionFacturaRequest,
-  DivisionCliente,
-  ResumenDivisionFactura,
   PagoRequest,
   PagoResponse,
   EstadisticasFacturacion,
@@ -22,7 +18,6 @@ import type {
   DetalleOrden,
   Cliente,
   ClienteOcasional,
-  DetalleOrdenAsignado,
 } from '@/types';
 
 class FacturaService {
@@ -147,164 +142,6 @@ class FacturaService {
       const message = getErrorMessage(error);
       throw new Error(`Error enviando factura por email: ${message}`);
     }
-  }
-
-  // ============================================================================
-  // DIVISIÓN DE FACTURAS (SIMULADA EN FRONTEND)
-  // ============================================================================
-
-  /**
-   * Dividir una factura entre múltiples clientes
-   * Esta funcionalidad simula la división en el frontend y crea múltiples facturas individuales
-   */
-  async dividirFactura(divisionRequest: DivisionFacturaRequest): Promise<ResumenDivisionFactura> {
-    try {
-      // 1. Obtener la orden original
-      const ordenResponse = await api.get<Orden>(`/Orden/${divisionRequest.ordenID}`);
-      const orden = ordenResponse;
-
-      if (!orden.detalles || orden.detalles.length === 0) {
-        throw new Error('La orden no tiene items para dividir');
-      }
-
-      // 2. Validar que todos los items están asignados
-      const itemsAsignados = divisionRequest.divisiones.flatMap((d) => d.itemsAsignados);
-      const todosLosItems = orden.detalles.map((d: DetalleOrden) => d.detalleOrdenID);
-
-      if (itemsAsignados.length !== todosLosItems.length) {
-        throw new Error('Todos los items deben estar asignados a un cliente');
-      }
-
-      // 3. Crear facturas individuales para cada división
-      const facturas: FacturaDividida[] = [];
-      const facturaGrupoId = `div-${Date.now()}`;
-
-      for (const division of divisionRequest.divisiones) {
-        const factura = await this.crearFacturaParaDivision(
-          orden,
-          division,
-          facturaGrupoId,
-          divisionRequest.aplicarDescuentoProporcionalmente,
-          divisionRequest.aplicarPropinaProporcionalmente
-        );
-        facturas.push(factura);
-      }
-
-      // 4. Crear resumen de la división
-      const resumen: ResumenDivisionFactura = {
-        ordenID: orden.ordenID,
-        numeroOrden: orden.numeroOrden,
-        mesa: orden.mesa,
-        totalOriginal: orden.totalCalculado,
-        totalDividido: facturas.reduce((sum, f) => sum + f.total, 0),
-        cantidadFacturas: facturas.length,
-        facturas,
-        fechaCreacion: new Date().toISOString(),
-        estado: 'Completada',
-      };
-
-      return resumen;
-    } catch (error: any) {
-      const message = getErrorMessage(error);
-      throw new Error(`Error dividiendo factura: ${message}`);
-    }
-  }
-
-  /**
-   * Crear una factura individual para una división específica
-   */
-  private async crearFacturaParaDivision(
-    orden: Orden,
-    division: DivisionCliente,
-    facturaGrupoId: string,
-    aplicarDescuentoProporcionalmente?: boolean,
-    aplicarPropinaProporcionalmente?: boolean
-  ): Promise<FacturaDividida> {
-    // Calcular items asignados a este cliente
-    const itemsAsignados: DetalleOrdenAsignado[] = orden
-      .detalles!.filter((detalle: DetalleOrden) =>
-        division.itemsAsignados.includes(detalle.detalleOrdenID)
-      )
-      .map((detalle: DetalleOrden) => ({
-        detalleOrdenID: detalle.detalleOrdenID,
-        productoID: detalle.producto?.productoID || 0,
-        nombreProducto: detalle.producto?.nombre || 'Producto desconocido',
-        cantidad: detalle.cantidad,
-        precioUnitario: parseFloat(detalle.precioUnitario),
-        subtotal: parseFloat(detalle.subtotal),
-        notasEspeciales: detalle.observaciones,
-        asignadoA: division.cliente,
-      }));
-
-    // Calcular subtotal de los items asignados
-    const subtotalItems = itemsAsignados.reduce((sum, item) => sum + item.subtotal, 0);
-
-    // Calcular proporciones para descuentos y propinas
-    const totalOrden = orden.subtotalCalculado;
-    const proporcion = subtotalItems / totalOrden;
-
-    // Aplicar descuentos
-    let descuento = 0;
-    if (division.descuentoPersonalizado !== undefined) {
-      descuento = division.descuentoPersonalizado;
-    } else if (
-      aplicarDescuentoProporcionalmente &&
-      orden.totalCalculado > orden.subtotalCalculado
-    ) {
-      // Si hay descuento en la orden original, aplicarlo proporcionalmente
-      const descuentoOriginal = totalOrden - orden.subtotalCalculado;
-      descuento = descuentoOriginal * proporcion;
-    }
-
-    // Aplicar propinas
-    let propina = 0;
-    if (division.propinaPersonalizada !== undefined) {
-      propina = division.propinaPersonalizada;
-    } else if (aplicarPropinaProporcionalmente) {
-      // Aplicar propina proporcionalmente (asumiendo que hay propina en la orden)
-      propina = 0; // Por defecto 0, se puede personalizar
-    }
-
-    // Calcular totales
-    const subtotal = subtotalItems - descuento;
-    const impuesto = calcularITBIS(subtotal);
-    const total = subtotal + impuesto + propina;
-
-    // Crear factura individual via API
-    const facturaRequest: CrearFacturaRequest = {
-      ordenID: orden.ordenID,
-      metodoPago: division.metodoPago,
-      descuento,
-      propina,
-      observacionesPago:
-        division.observacionesPago ||
-        `Factura dividida - Cliente: ${this.obtenerNombreCliente(division.cliente)}`,
-    };
-
-    const facturaCreada = await this.crearFactura(facturaRequest);
-
-    // Convertir a FacturaDividida
-    const facturaDividida: FacturaDividida = {
-      facturaID: facturaCreada.facturaID,
-      numeroFactura: facturaCreada.numeroFactura,
-      ordenID: facturaCreada.ordenID,
-      clienteAsignado: division.cliente,
-      itemsAsignados,
-      subtotal,
-      impuesto,
-      descuento,
-      propina,
-      total,
-      metodoPago: division.metodoPago,
-      estado: facturaCreada.estado,
-      fechaFactura: facturaCreada.fechaFactura,
-      fechaPago: facturaCreada.fechaPago,
-      observacionesPago: facturaCreada.observacionesPago,
-      esParte: true,
-      facturaGrupoId,
-    };
-
-    return facturaDividida;
   }
 
   /**

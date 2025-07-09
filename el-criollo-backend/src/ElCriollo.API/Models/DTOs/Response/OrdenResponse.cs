@@ -174,6 +174,11 @@ public class DetalleOrdenResponse
     public string Subtotal { get; set; } = string.Empty;
 
     /// <summary>
+    /// Subtotal numérico (para cálculos)
+    /// </summary>
+    public decimal SubtotalNumerico { get; set; }
+
+    /// <summary>
     /// Observaciones del item
     /// </summary>
     public string? Observaciones { get; set; }

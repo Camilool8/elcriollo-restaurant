@@ -7,9 +7,7 @@ import { facturaService } from '@/services/facturaService';
 // Types
 import type {
   Factura,
-  FacturaDividida,
   CrearFacturaRequest,
-  DivisionFacturaRequest,
   PagoRequest,
   PagoResponse,
   MetodoPago,
@@ -29,12 +27,10 @@ interface UseFacturacionOptions {
 interface FacturacionState {
   facturas: Factura[];
   facturasDelDia: Factura[];
-  facturasDivididas: FacturaDividida[];
   estadisticas: EstadisticasFacturacion | null;
   facturaActual: Factura | null;
   isLoading: boolean;
   isCreating: boolean;
-  isDividing: boolean;
   isPaying: boolean;
   error: string | null;
   lastUpdated: string | null;
@@ -46,7 +42,6 @@ export interface UseFacturacionReturn {
 
   // Acciones de facturas
   crearFactura: (request: CrearFacturaRequest) => Promise<Factura>;
-  dividirFactura: (request: DivisionFacturaRequest) => Promise<FacturaDividida[]>;
   anularFactura: (facturaId: number, razon: string) => Promise<void>;
 
   // Acciones de pagos
@@ -70,7 +65,6 @@ export interface UseFacturacionReturn {
 
   // Validaciones
   validarCrearFactura: (request: CrearFacturaRequest) => string | null;
-  validarDivisionFactura: (request: DivisionFacturaRequest) => string | null;
 }
 
 // ============================================================================
@@ -80,12 +74,10 @@ export interface UseFacturacionReturn {
 const estadoInicial: FacturacionState = {
   facturas: [],
   facturasDelDia: [],
-  facturasDivididas: [],
   estadisticas: null,
   facturaActual: null,
   isLoading: false,
   isCreating: false,
-  isDividing: false,
   isPaying: false,
   error: null,
   lastUpdated: null,
@@ -156,37 +148,6 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
       }
     },
     [state.facturas, state.facturasDelDia, manejarError, actualizarEstado]
-  );
-
-  const dividirFactura = useCallback(
-    async (request: DivisionFacturaRequest): Promise<FacturaDividida[]> => {
-      try {
-        // Validar request
-        const errorValidacion = validarDivisionFactura(request);
-        if (errorValidacion) {
-          throw new Error(errorValidacion);
-        }
-
-        actualizarEstado({ isDividing: true, error: null });
-
-        const resumenDivision = await facturaService.dividirFactura(request);
-        const facturasDivididas = resumenDivision.facturas;
-
-        // Actualizar estado local
-        actualizarEstado({
-          facturasDivididas: [...state.facturasDivididas, ...facturasDivididas],
-          isDividing: false,
-        });
-
-        toast.success(`Factura dividida en ${facturasDivididas.length} facturas`);
-        return facturasDivididas;
-      } catch (error: any) {
-        manejarError(error, 'dividir factura');
-        actualizarEstado({ isDividing: false });
-        throw error;
-      }
-    },
-    [state.facturasDivididas, manejarError, actualizarEstado]
   );
 
   const anularFactura = useCallback(
@@ -404,28 +365,6 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
     return null;
   }, []);
 
-  const validarDivisionFactura = useCallback((request: DivisionFacturaRequest): string | null => {
-    if (!request.ordenID) {
-      return 'ID de orden es requerido';
-    }
-
-    if (!request.divisiones || request.divisiones.length === 0) {
-      return 'Debe especificar al menos una división';
-    }
-
-    for (const division of request.divisiones) {
-      if (!division.itemsAsignados || division.itemsAsignados.length === 0) {
-        return 'Cada división debe tener al menos un item asignado';
-      }
-
-      if (!division.metodoPago) {
-        return 'Cada división debe tener un método de pago';
-      }
-    }
-
-    return null;
-  }, []);
-
   // ============================================================================
   // EFECTOS
   // ============================================================================
@@ -450,7 +389,6 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
   return {
     state,
     crearFactura,
-    dividirFactura,
     anularFactura,
     procesarPago,
     obtenerFactura,
@@ -464,6 +402,5 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
     filtrarFacturasPorEstado,
     filtrarFacturasPorMetodo,
     validarCrearFactura,
-    validarDivisionFactura,
   };
 };

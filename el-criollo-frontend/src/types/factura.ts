@@ -43,26 +43,6 @@ export interface CrearFacturaRequest {
   observacionesPago?: string;
 }
 
-export interface FacturaDividida {
-  facturaID: number;
-  numeroFactura: string;
-  ordenID: number;
-  clienteAsignado: Cliente | ClienteOcasional;
-  itemsAsignados: DetalleOrdenAsignado[];
-  subtotal: number;
-  impuesto: number;
-  descuento: number;
-  propina: number;
-  total: number;
-  metodoPago: MetodoPago;
-  estado: FacturaEstado;
-  fechaFactura: string;
-  fechaPago?: string;
-  observacionesPago?: string;
-  esParte: boolean; // Indica si es parte de una división
-  facturaGrupoId?: string; // ID del grupo de facturas divididas
-}
-
 export interface DetalleOrdenAsignado {
   detalleOrdenID: number;
   productoID: number;
@@ -81,34 +61,6 @@ export interface ClienteOcasional {
   email?: string;
   cedula?: string;
   esOcasional: true;
-}
-
-export interface DivisionFacturaRequest {
-  ordenID: number;
-  divisiones: DivisionCliente[];
-  aplicarDescuentoProporcionalmente?: boolean;
-  aplicarPropinaProporcionalmente?: boolean;
-}
-
-export interface DivisionCliente {
-  cliente: Cliente | ClienteOcasional;
-  itemsAsignados: number[]; // Array de detalleOrdenIDs
-  descuentoPersonalizado?: number;
-  propinaPersonalizada?: number;
-  metodoPago: MetodoPago;
-  observacionesPago?: string;
-}
-
-export interface ResumenDivisionFactura {
-  ordenID: number;
-  numeroOrden: string;
-  mesa?: Mesa;
-  totalOriginal: number;
-  totalDividido: number;
-  cantidadFacturas: number;
-  facturas: FacturaDividida[];
-  fechaCreacion: string;
-  estado: 'Pendiente' | 'Completada' | 'Parcial';
 }
 
 export interface PagoRequest {

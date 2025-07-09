@@ -24,7 +24,6 @@ import type {
   Carrito,
   Orden,
   Producto,
-  Mesa,
   ItemCarrito,
   Cliente,
 } from '@/types';
@@ -354,9 +353,15 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
 
   const inicializarCarrito = useCallback(() => {
     if (orden && orden.detalles) {
+      console.log('Inicializando carrito con orden:', orden);
+      console.log('Detalles de la orden:', orden.detalles);
+
       const items: ItemCarrito[] = orden.detalles
         .map((detalle): ItemCarrito | null => {
-          if (!detalle.producto) return null;
+          if (!detalle.producto) {
+            console.log('Detalle sin producto:', detalle);
+            return null;
+          }
           return {
             producto: detalle.producto,
             cantidad: detalle.cantidad,
@@ -366,11 +371,13 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
         })
         .filter((item): item is ItemCarrito => item !== null);
 
+      console.log('Items procesados:', items);
+
       const subtotal = items.reduce((acc: number, item: ItemCarrito) => acc + item.subtotal, 0);
       const impuesto = subtotal * 0.18;
       const total = subtotal + impuesto;
 
-      setCarrito({
+      const carritoInicial = {
         items,
         subtotal,
         impuesto,
@@ -379,7 +386,10 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
         mesaSeleccionada: orden.mesa,
         clienteSeleccionado: orden.cliente,
         observacionesGenerales: orden.observaciones,
-      });
+      };
+
+      console.log('Carrito inicial:', carritoInicial);
+      setCarrito(carritoInicial);
     }
   }, [orden]);
 

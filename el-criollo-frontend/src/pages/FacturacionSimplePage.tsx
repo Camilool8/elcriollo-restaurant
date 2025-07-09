@@ -17,15 +17,11 @@ import {
 } from 'lucide-react';
 
 // Components
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal';
+import { Card, Button, Input, Badge, Modal } from '@/components';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // Components de facturación
-import { FacturaForm, ResumenFactura, PagoForm } from '@/components/facturacion';
+import { ResumenFactura, PagoForm } from '@/components/facturacion';
 
 // Hooks
 import { useFacturacion } from '@/hooks/useFacturacion';
@@ -67,6 +63,7 @@ export const FacturacionSimplePage: React.FC = () => {
   const [busqueda, setBusqueda] = useState('');
   const [modalActivo, setModalActivo] = useState<string | null>(null);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState<Factura | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
 
   // Debounce para búsqueda
   const busquedaDebounced = useDebounce(busqueda, 300);
@@ -169,13 +166,14 @@ export const FacturacionSimplePage: React.FC = () => {
     setModalActivo('anular-factura');
   };
 
-  const handleConfirmarAnulacion = async (motivo: string) => {
+  const handleConfirmarAnulacion = async () => {
     if (!facturaSeleccionada) return;
 
     try {
-      await anularFactura(facturaSeleccionada.facturaID, motivo);
+      await anularFactura(facturaSeleccionada.facturaID, motivoAnulacion);
       setModalActivo(null);
       setFacturaSeleccionada(null);
+      setMotivoAnulacion('');
     } catch (error) {
       console.error('Error anulando factura:', error);
     }
@@ -426,13 +424,14 @@ export const FacturacionSimplePage: React.FC = () => {
       {/* Modales */}
       {modalActivo === 'crear-factura' && (
         <Modal isOpen={true} onClose={cerrarModal} title="Nueva Factura" size="xl">
-          <FacturaForm
-            onFacturaCreada={(factura) => {
-              console.log('Factura creada:', factura);
-              cerrarModal();
-            }}
-            onClose={cerrarModal}
-          />
+          <div className="p-4">
+            <p className="text-gray-600 mb-4">
+              Para crear una nueva factura, primero debe seleccionar una mesa con una orden activa.
+            </p>
+            <Button onClick={cerrarModal} variant="outline">
+              Cerrar
+            </Button>
+          </div>
         </Modal>
       )}
 
@@ -465,6 +464,8 @@ export const FacturacionSimplePage: React.FC = () => {
               </label>
               <textarea
                 rows={3}
+                value={motivoAnulacion}
+                onChange={(e) => setMotivoAnulacion(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-dominican-blue"
                 placeholder="Describa el motivo de la anulación..."
               />
@@ -475,7 +476,8 @@ export const FacturacionSimplePage: React.FC = () => {
                 Cancelar
               </Button>
               <Button
-                onClick={() => handleConfirmarAnulacion('Motivo de anulación')}
+                onClick={handleConfirmarAnulacion}
+                disabled={!motivoAnulacion.trim()}
                 className="bg-red-600 hover:bg-red-700"
               >
                 Anular Factura

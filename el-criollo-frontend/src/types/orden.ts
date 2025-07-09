@@ -58,6 +58,7 @@ export interface DetalleOrden {
   precioUnitario: string; // Formateado del backend
   descuento: string; // Formateado del backend
   subtotal: string; // Formateado del backend
+  subtotalNumerico?: number; // Campo numérico para cálculos
   observaciones?: string;
   estaDisponible: boolean;
   tiempoPreparacion?: string;

@@ -136,11 +136,11 @@ namespace ElCriollo.API.Services
 
                 // Obtener todas las órdenes activas de la mesa
                 var ordenes = await _ordenRepository.GetOrdenesPorMesaAsync(mesaId);
-                var ordenesActivas = ordenes.Where(o => o.Estado == "Entregada").ToList();
+                var ordenesActivas = ordenes.Where(o => o.Estado == "Entregada" || o.Estado == "Pendiente").ToList();
 
                 if (!ordenesActivas.Any())
                 {
-                    throw new InvalidOperationException("No hay órdenes activas para facturar en esta mesa");
+                    throw new InvalidOperationException("No hay órdenes entregadas o pendientes para facturar en esta mesa");
                 }
 
                 decimal subtotalTotal = 0;
@@ -462,10 +462,10 @@ namespace ElCriollo.API.Services
                     return resultado;
                 }
 
-                // Validar estado de la orden
-                if (orden.Estado != "Entregada")
+                // Validar estado de la orden - permitir facturar órdenes pendientes y entregadas
+                if (orden.Estado != "Entregada" && orden.Estado != "Pendiente")
                 {
-                    resultado.Errores.Add($"La orden debe estar en estado 'Entregada', actualmente está: {orden.Estado}");
+                    resultado.Errores.Add($"La orden debe estar en estado 'Entregada' o 'Pendiente', actualmente está: {orden.Estado}");
                 }
 
                 // Verificar si ya tiene factura
@@ -527,13 +527,13 @@ namespace ElCriollo.API.Services
 
                 // Obtener órdenes de la mesa
                 var ordenes = await _ordenRepository.GetOrdenesPorMesaAsync(mesaId);
-                var ordenesFacturables = ordenes.Where(o => o.Estado == "Entregada").ToList();
+                var ordenesFacturables = ordenes.Where(o => o.Estado == "Entregada" || o.Estado == "Pendiente").ToList();
 
                 resultado.CantidadOrdenes = ordenesFacturables.Count;
 
                 if (!ordenesFacturables.Any())
                 {
-                    resultado.Errores.Add("No hay órdenes entregadas para facturar en esta mesa");
+                    resultado.Errores.Add("No hay órdenes entregadas o pendientes para facturar en esta mesa");
                 }
 
                 // Calcular total estimado

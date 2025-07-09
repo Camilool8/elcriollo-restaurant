@@ -16,11 +16,10 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ordenesService } from '@/services/ordenesService';
 
 // Types
-import type { Mesa, Orden, Cliente } from '@/types';
+import type { Mesa, Orden } from '@/types';
 
 interface GestionMesaModalProps {
   mesa: Mesa | null;
-  clientes: Cliente[];
   onClose: () => void;
   onOrdenChange: () => void;
 }
@@ -29,7 +28,6 @@ type VistaModal = 'LISTA_ORDENES' | 'CREAR_ORDEN' | 'EDITAR_ORDEN' | 'FACTURAR';
 
 export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
   mesa,
-  clientes,
   onClose,
   onOrdenChange,
 }) => {
@@ -63,9 +61,18 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
     setVista('CREAR_ORDEN');
   };
 
-  const handleEditarOrden = (orden: Orden) => {
-    setOrdenSeleccionada(orden);
-    setVista('EDITAR_ORDEN');
+  const handleEditarOrden = async (orden: Orden) => {
+    try {
+      setLoading(true);
+      const ordenCompleta = await ordenesService.getOrdenById(orden.ordenID);
+      setOrdenSeleccionada(ordenCompleta);
+      setVista('EDITAR_ORDEN');
+    } catch (error) {
+      toast.error('No se pudo cargar el detalle de la orden para editar.');
+      console.error('Error fetching order details:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVolverALista = () => {
@@ -75,9 +82,18 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
     onOrdenChange();
   };
 
-  const handleFacturarOrden = (orden: Orden) => {
-    setOrdenSeleccionada(orden);
-    setVista('FACTURAR');
+  const handleFacturarOrden = async (orden: Orden) => {
+    try {
+      setLoading(true);
+      const ordenCompleta = await ordenesService.getOrdenById(orden.ordenID);
+      setOrdenSeleccionada(ordenCompleta);
+      setVista('FACTURAR');
+    } catch (error) {
+      toast.error('No se pudo cargar el detalle de la orden para facturar.');
+      console.error('Error fetching order details for billing:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -92,6 +108,12 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
         );
       case 'EDITAR_ORDEN':
         if (!ordenSeleccionada) return renderVistaLista();
+        if (loading)
+          return (
+            <div className="p-8 flex justify-center">
+              <LoadingSpinner />
+            </div>
+          );
         return (
           <EditarOrdenForm
             orden={ordenSeleccionada}
@@ -101,12 +123,17 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
         );
       case 'FACTURAR':
         if (!ordenSeleccionada) return renderVistaLista();
+        if (loading)
+          return (
+            <div className="p-8 flex justify-center">
+              <LoadingSpinner />
+            </div>
+          );
         return (
           <FacturaFormSimple
             orden={ordenSeleccionada}
             onFacturaCreada={handleVolverALista}
             onClose={handleVolverALista}
-            mostrarBotonDivision={true}
           />
         );
       case 'LISTA_ORDENES':

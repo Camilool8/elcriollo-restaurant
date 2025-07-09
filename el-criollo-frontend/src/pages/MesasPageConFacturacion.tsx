@@ -10,7 +10,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GestionMesaModal } from '@/components/mesas/GestionMesaModal';
 
 // Components de facturación y órdenes
-import { FacturaForm, ResumenFactura, DivisionFactura } from '@/components/facturacion';
+import { FacturaForm, ResumenFactura } from '@/components/facturacion';
 
 // Hooks
 import { useMesas } from '@/hooks/useMesas';
@@ -18,7 +18,7 @@ import { useFacturacion } from '@/hooks/useFacturacion';
 
 // Types
 import type { FiltrosMesa, Mesa, EstadoMesa } from '@/types/mesa';
-import type { Factura, CrearFacturaRequest, DivisionFacturaRequest, Orden, Cliente } from '@/types';
+import type { Factura, CrearFacturaRequest, Orden, Cliente } from '@/types';
 import { ordenesService } from '@/services/ordenesService';
 import { clienteService } from '@/services/clienteService';
 
@@ -36,7 +36,6 @@ export const MesasPageConFacturacion: React.FC = () => {
   // Estados de modales
   const [isVerFacturasModalOpen, setIsVerFacturasModalOpen] = useState(false);
   const [isCrearFacturaModalOpen, setIsCrearFacturaModalOpen] = useState(false);
-  const [isDividirFacturaModalOpen, setIsDividirFacturaModalOpen] = useState(false);
 
   // Hooks
   const {
@@ -55,7 +54,6 @@ export const MesasPageConFacturacion: React.FC = () => {
   const {
     state: { facturasDelDia, facturaActual, error: errorFacturas },
     crearFactura,
-    dividirFactura,
     obtenerFacturasPorOrden,
     seleccionarFactura,
     limpiarError,
@@ -213,20 +211,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     }
   };
 
-  const handleDividirFactura = async (mesa: Mesa) => {
-    if (!mesa.ordenActual) {
-      toast.warning('Esta mesa no tiene una orden activa');
-      return;
-    }
-
-    setMesaSeleccionada(mesa);
-    const orden = await obtenerOrdenCompleta(mesa.ordenActual.ordenID);
-
-    if (orden) {
-      setIsDividirFacturaModalOpen(true);
-    }
-  };
-
   const handleOrdenCreada = async (orden: Orden) => {
     console.log('Orden creada, refrescando...', orden);
     await refrescar();
@@ -251,18 +235,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     }
   };
 
-  const handleConfirmarDivisionFactura = async (request: DivisionFacturaRequest) => {
-    try {
-      const facturasDivididas = await dividirFactura(request);
-      await refrescar();
-      toast.success(`Factura dividida en ${facturasDivididas.length} facturas exitosamente`);
-      cerrarModales();
-    } catch (error) {
-      console.error('Error dividiendo factura:', error);
-      toast.error('Error al dividir la factura');
-    }
-  };
-
   // ============================================================================
   // UTILIDADES
   // ============================================================================
@@ -271,7 +243,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     setMesaSeleccionada(null);
     setIsVerFacturasModalOpen(false);
     setIsCrearFacturaModalOpen(false);
-    setIsDividirFacturaModalOpen(false);
   };
 
   const obtenerFacturasDelDiaPorMesa = (mesa: Mesa) => {
@@ -299,33 +270,25 @@ export const MesasPageConFacturacion: React.FC = () => {
               <div className="flex justify-center items-center p-8">
                 <LoadingSpinner />
               </div>
-            ) : (
+            ) : ordenActiva ? (
               <FacturaForm
-                orden={ordenActiva ?? undefined}
-                onFacturaCreada={handleConfirmarCreacionFactura}
+                orden={ordenActiva}
+                onFacturaCreada={() => {
+                  cerrarModales();
+                  refrescar();
+                }}
                 onClose={cerrarModales}
               />
-            )}
-          </Modal>
-        )}
-
-        {isDividirFacturaModalOpen && mesaSeleccionada && (
-          <Modal
-            isOpen={isDividirFacturaModalOpen}
-            onClose={cerrarModales}
-            title={`Dividir Factura - Mesa ${mesaSeleccionada.numeroMesa}`}
-            size="xl"
-          >
-            {loadingOrden ? (
-              <div className="flex justify-center items-center p-8">
-                <LoadingSpinner />
-              </div>
             ) : (
-              <DivisionFactura
-                orden={ordenActiva!}
-                onFacturaDividida={handleConfirmarDivisionFactura}
-                onClose={cerrarModales}
-              />
+              <div className="p-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No se pudo cargar la orden
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Intente cerrar esta ventana y volver a abrirla.
+                </p>
+              </div>
             )}
           </Modal>
         )}
@@ -454,7 +417,6 @@ export const MesasPageConFacturacion: React.FC = () => {
       {mesaSeleccionada && (
         <GestionMesaModal
           mesa={mesaSeleccionada}
-          clientes={clientes}
           onClose={cerrarModales}
           onOrdenChange={() => refrescar()}
         />
