@@ -10,3 +10,5 @@ export { default as AdminDashboard } from './admin/AdminDashboard';
 export { default as ClientesPage } from './admin/ClientesPage';
 export { default as EmpleadosPage } from './admin/EmpleadosPage';
 export { default as UsuariosPage } from './admin/UsuariosPage';
+export { default as ProductosPage } from './admin/ProductosPage';
+export { default as CategoriasPage } from './admin/CategoriasPage';

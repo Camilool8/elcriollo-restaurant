@@ -20,6 +20,7 @@ import type { Orden, EstadoOrden } from '@/types/orden';
 import { COLORES_ESTADO_ORDEN, ICONOS_TIPO_ORDEN } from '@/types/orden';
 import { parsePrice } from '@/utils/priceUtils';
 import { formatearPrecio } from '@/utils/dominicanValidations';
+import { useOrdenesContext } from '@/contexts/OrdenesContext';
 
 interface OrdenCardProps {
   orden: Orden;
@@ -42,6 +43,7 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   compact = false,
   showActions = true,
 }) => {
+  const { esOrdenReciente } = useOrdenesContext();
   const colorConfig = COLORES_ESTADO_ORDEN[orden.estado] || {
     bg: 'bg-gray-100',
     border: 'border-gray-500',
@@ -50,6 +52,10 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   };
   const iconoTipo = ICONOS_TIPO_ORDEN[orden.tipoOrden] || '📋';
 
+  // Aplicar estilo especial si la orden fue actualizada recientemente
+  const esReciente = esOrdenReciente(orden.ordenID);
+  const estiloReciente = esReciente ? 'ring-2 ring-blue-500 ring-opacity-50' : '';
+
   const handleEstadoChange = (nuevoEstado: EstadoOrden) => {
     if (onEstadoChange) {
       onEstadoChange(orden.ordenID, nuevoEstado);
@@ -57,7 +63,12 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   };
 
   const getAccionesRapidas = () => {
-    const acciones = [];
+    const acciones: React.ReactNode[] = [];
+
+    // No mostrar acciones rápidas si la orden está facturada
+    if (orden.estado === 'Facturada') {
+      return acciones;
+    }
 
     switch (orden.estado) {
       case 'Pendiente':
@@ -104,7 +115,7 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
     }
 
     // Botón de cancelar (solo si no está finalizada)
-    if (!['Entregada', 'Cancelada'].includes(orden.estado)) {
+    if (!['Entregada', 'Cancelada', 'Facturada'].includes(orden.estado)) {
       acciones.push(
         <button
           key="cancelar"
@@ -145,7 +156,9 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   }
 
   return (
-    <Card className={`p-4 hover:shadow-lg transition-shadow border-l-4 ${colorConfig.border}`}>
+    <Card
+      className={`p-4 hover:shadow-lg transition-shadow border-l-4 ${colorConfig.border} ${estiloReciente}`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-3">
@@ -261,19 +274,39 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
             <Button variant="outline" size="sm" onClick={() => onVerDetalles?.(orden)}>
               Detalles
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onEditarOrden?.(orden)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
-            <Button
-              size="sm"
-              className="bg-dominican-blue hover:bg-dominican-blue/90"
-              onClick={() => onFacturarOrden?.(orden)}
-              disabled={orden.estado !== 'Entregada' && orden.estado !== 'Lista'}
-            >
-              <Receipt className="w-4 h-4 mr-2" />
-              Facturar
-            </Button>
+
+            {/* Solo mostrar botón de editar si no está facturada */}
+            {orden.estado !== 'Facturada' && (
+              <Button variant="outline" size="sm" onClick={() => onEditarOrden?.(orden)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+            )}
+
+            {/* Solo mostrar botón de facturar si no está facturada y está en estado válido */}
+            {orden.estado !== 'Facturada' && (
+              <Button
+                size="sm"
+                className="bg-dominican-blue hover:bg-dominican-blue/90"
+                onClick={() => onFacturarOrden?.(orden)}
+                disabled={
+                  orden.estado !== 'Entregada' &&
+                  orden.estado !== 'Lista' &&
+                  orden.estado !== 'Pendiente'
+                }
+              >
+                <Receipt className="w-4 h-4 mr-2" />
+                Facturar
+              </Button>
+            )}
+
+            {/* Mostrar indicador de facturada si está facturada */}
+            {orden.estado === 'Facturada' && (
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" disabled>
+                <Check className="w-4 h-4 mr-2" />
+                Facturada
+              </Button>
+            )}
           </div>
         </div>
       )}

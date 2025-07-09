@@ -152,6 +152,12 @@ namespace ElCriollo.API.Services
         /// </summary>
         /// <returns>Estadísticas de envío de emails</returns>
         Task<EstadisticasEmailViewModel> GetEstadisticasEmailAsync();
+
+        /// <summary>
+        /// Obtiene el email por defecto para clientes anónimos
+        /// </summary>
+        /// <returns>Email por defecto configurado</returns>
+        string GetDefaultEmailForAnonymousClients();
     }
 
     // ============================================================================

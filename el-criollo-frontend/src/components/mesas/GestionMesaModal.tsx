@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, FileText, X, Loader } from 'lucide-react';
+import { PlusCircle, FileText, X, Loader, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Components
@@ -14,6 +14,8 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // Hooks y servicios
 import { ordenesService } from '@/services/ordenesService';
+import { useOrdenesContext } from '@/contexts/OrdenesContext';
+import { useOrdenesMesa } from '@/hooks/useOrdenesMesa';
 
 // Types
 import type { Mesa, Orden } from '@/types';
@@ -33,29 +35,14 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
 }) => {
   if (!mesa) return null;
 
+  const { ordenesActualizadas } = useOrdenesContext();
+  const { ordenes, loading, error, refrescar } = useOrdenesMesa(mesa.mesaID, {
+    autoRefresh: true,
+    refreshInterval: 5000, // Refrescar cada 5 segundos
+  });
+
   const [vista, setVista] = useState<VistaModal>('LISTA_ORDENES');
-  const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<Orden | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchOrdenes = async () => {
-    try {
-      setLoading(true);
-      const data = await ordenesService.getOrdenesByMesa(mesa.mesaID);
-      setOrdenes(data.filter((o) => o.estado !== 'Entregada' && o.estado !== 'Cancelada'));
-    } catch (error) {
-      console.error(`Error fetching orders for table ${mesa.mesaID}:`, error);
-      toast.error('No se pudo cargar las órdenes de la mesa.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (mesa) {
-      fetchOrdenes();
-    }
-  }, [mesa]);
 
   const handleCrearNuevaOrden = () => {
     setVista('CREAR_ORDEN');
@@ -63,36 +50,30 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
 
   const handleEditarOrden = async (orden: Orden) => {
     try {
-      setLoading(true);
       const ordenCompleta = await ordenesService.getOrdenById(orden.ordenID);
       setOrdenSeleccionada(ordenCompleta);
       setVista('EDITAR_ORDEN');
     } catch (error) {
       toast.error('No se pudo cargar el detalle de la orden para editar.');
       console.error('Error fetching order details:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleVolverALista = () => {
+  const handleVolverALista = async () => {
     setVista('LISTA_ORDENES');
     setOrdenSeleccionada(null); // Limpiar selección
-    fetchOrdenes();
-    onOrdenChange();
+    refrescar(); // Refrescar órdenes para obtener precios actualizados
+    onOrdenChange(); // Notificar cambio para actualizar otros componentes
   };
 
   const handleFacturarOrden = async (orden: Orden) => {
     try {
-      setLoading(true);
       const ordenCompleta = await ordenesService.getOrdenById(orden.ordenID);
       setOrdenSeleccionada(ordenCompleta);
       setVista('FACTURAR');
     } catch (error) {
       toast.error('No se pudo cargar el detalle de la orden para facturar.');
       console.error('Error fetching order details for billing:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -177,13 +158,23 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
                 onFacturarOrden={() => handleFacturarOrden(orden)}
               />
               <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
-                <Button variant="outline" size="sm" onClick={() => handleFacturarOrden(orden)}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Facturar
-                </Button>
-                <Button size="sm" onClick={() => handleEditarOrden(orden)}>
-                  Editar Orden
-                </Button>
+                {orden.estado !== 'Facturada' && (
+                  <Button variant="outline" size="sm" onClick={() => handleFacturarOrden(orden)}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Facturar
+                  </Button>
+                )}
+                {orden.estado !== 'Facturada' && (
+                  <Button size="sm" onClick={() => handleEditarOrden(orden)}>
+                    Editar Orden
+                  </Button>
+                )}
+                {orden.estado === 'Facturada' && (
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" disabled>
+                    <Check className="w-4 h-4 mr-2" />
+                    Facturada
+                  </Button>
+                )}
               </div>
             </Card>
           ))

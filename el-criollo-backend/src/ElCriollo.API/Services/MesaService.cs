@@ -15,6 +15,7 @@ namespace ElCriollo.API.Services
         private readonly IMesaRepository _mesaRepository;
         private readonly IOrdenRepository _ordenRepository;
         private readonly IReservacionRepository _reservacionRepository;
+        private readonly IFacturaRepository _facturaRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<MesaService> _logger;
 
@@ -26,12 +27,14 @@ namespace ElCriollo.API.Services
             IMesaRepository mesaRepository,
             IOrdenRepository ordenRepository,
             IReservacionRepository reservacionRepository,
+            IFacturaRepository facturaRepository,
             IMapper mapper,
             ILogger<MesaService> logger)
         {
             _mesaRepository = mesaRepository;
             _ordenRepository = ordenRepository;
             _reservacionRepository = reservacionRepository;
+            _facturaRepository = facturaRepository;
             _mapper = mapper;
             _logger = logger;
         }
@@ -152,15 +155,56 @@ namespace ElCriollo.API.Services
                 var puedeLiberarse = await PuedeLiberarseMesaAsync(mesaId);
                 if (!puedeLiberarse)
                 {
-                    _logger.LogWarning("⚠️ Mesa {MesaId} no puede liberarse - tiene órdenes activas", mesaId);
+                    _logger.LogWarning("⚠️ Mesa {MesaId} no puede liberarse - tiene órdenes activas o no pagadas", mesaId);
                     return false;
                 }
+
+                // Limpiar todas las órdenes de la mesa
+                await LimpiarOrdenesMesaAsync(mesaId);
 
                 return await CambiarEstadoMesaAsync(mesaId, "Libre", usuarioId, "Liberación automática post-facturación");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al liberar mesa {MesaId}", mesaId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Limpia todas las órdenes de una mesa (las marca como completadas)
+        /// </summary>
+        private async Task<bool> LimpiarOrdenesMesaAsync(int mesaId)
+        {
+            try
+            {
+                var ordenes = await _ordenRepository.GetByMesaAsync(mesaId);
+                var ordenesLimpiadas = 0;
+
+                foreach (var orden in ordenes)
+                {
+                    // Solo limpiar órdenes que están facturadas y pagadas
+                    if (orden.Estado == "Facturada")
+                    {
+                        var facturas = await _facturaRepository.GetByOrdenAsync(orden.OrdenID);
+                        var facturaPagada = facturas.FirstOrDefault(f => f.Estado == "Pagada");
+                        
+                        if (facturaPagada != null)
+                        {
+                            orden.Estado = "Completada";
+                            orden.FechaActualizacion = DateTime.Now;
+                            await _ordenRepository.UpdateAsync(orden);
+                            ordenesLimpiadas++;
+                        }
+                    }
+                }
+
+                _logger.LogInformation("🧹 Limpiadas {Count} órdenes de mesa {MesaId}", ordenesLimpiadas, mesaId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al limpiar órdenes de mesa {MesaId}", mesaId);
                 return false;
             }
         }
@@ -457,8 +501,55 @@ namespace ElCriollo.API.Services
         {
             try
             {
+                _logger.LogInformation("🔍 Verificando si mesa {MesaId} puede liberarse", mesaId);
+                
                 var ordenesActivas = await _ordenRepository.GetByMesaAsync(mesaId);
-                return !ordenesActivas.Any(o => o.Estado != "Facturada" && o.Estado != "Cancelada");
+                _logger.LogInformation("📋 Mesa {MesaId} tiene {Count} órdenes", mesaId, ordenesActivas.Count());
+                
+                if (!ordenesActivas.Any())
+                {
+                    _logger.LogInformation("✅ Mesa {MesaId} no tiene órdenes - puede liberarse", mesaId);
+                    return true;
+                }
+                
+                // Verificar que todas las órdenes estén pagadas o canceladas
+                foreach (var orden in ordenesActivas)
+                {
+                    _logger.LogInformation("📋 Verificando orden {OrdenId} en estado {Estado}", orden.OrdenID, orden.Estado);
+                    
+                    if (orden.Estado == "Cancelada") 
+                    {
+                        _logger.LogInformation("✅ Orden {OrdenId} está cancelada - continuando", orden.OrdenID);
+                        continue;
+                    }
+                    
+                    // Si la orden está facturada, verificar que tenga factura pagada
+                    if (orden.Estado == "Facturada")
+                    {
+                        var facturas = await _facturaRepository.GetByOrdenAsync(orden.OrdenID);
+                        _logger.LogInformation("🧾 Orden {OrdenId} tiene {Count} facturas", orden.OrdenID, facturas.Count());
+                        
+                        var facturaPagada = facturas.FirstOrDefault(f => f.Estado == "Pagada");
+                        
+                        if (facturaPagada == null)
+                        {
+                            _logger.LogWarning("⚠️ Orden {OrdenId} está facturada pero no pagada", orden.OrdenID);
+                            return false;
+                        }
+                        else
+                        {
+                            _logger.LogInformation("✅ Orden {OrdenId} está facturada y pagada", orden.OrdenID);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ Orden {OrdenId} no está facturada (estado: {Estado})", orden.OrdenID, orden.Estado);
+                        return false;
+                    }
+                }
+                
+                _logger.LogInformation("✅ Mesa {MesaId} puede liberarse - todas las órdenes están pagadas o canceladas", mesaId);
+                return true;
             }
             catch (Exception ex)
             {

@@ -160,7 +160,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PrecioUnitario, opt => opt.MapFrom(src => src.PrecioUnitarioFormateado))
             .ForMember(dest => dest.Descuento, opt => opt.MapFrom(src => $"RD$ {src.Descuento:N2}"))
             .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.SubtotalFormateado))
-            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.PrecioTotalConDescuento))
+            .ForMember(dest => dest.SubtotalNumerico, opt => opt.MapFrom(src => src.Subtotal))
             .ForMember(dest => dest.EstaDisponible, opt => opt.MapFrom(src => src.EstaDisponible))
             .ForMember(dest => dest.TiempoPreparacion, opt => opt.MapFrom(src => $"{src.TiempoPreparacion} min"))
             .ForMember(dest => dest.NombreCompleto, opt => opt.MapFrom(src => src.NombreCompleto));

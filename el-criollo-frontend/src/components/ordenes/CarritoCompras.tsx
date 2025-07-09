@@ -58,7 +58,7 @@ export const CarritoCompras: React.FC<CarritoComprasProps> = ({
   const itemsAgrupados = useMemo(() => {
     return carrito.items.reduce(
       (acc, item) => {
-        const categoria = item.producto.categoria?.nombreCategoria || 'Sin Categoría';
+        const categoria = item.producto.categoria?.nombre || 'Sin Categoría';
         if (!acc[categoria]) {
           acc[categoria] = [];
         }

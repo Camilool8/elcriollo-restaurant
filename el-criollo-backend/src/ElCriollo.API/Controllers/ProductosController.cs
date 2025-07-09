@@ -224,6 +224,39 @@ namespace ElCriollo.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtener todas las categorías disponibles
+        /// </summary>
+        /// <returns>Lista de categorías con información de productos</returns>
+        /// <response code="200">Lista de categorías</response>
+        [HttpGet("categorias")]
+        [AllowAnonymous]
+        [SwaggerOperation(
+            Summary = "Obtener categorías",
+            Description = "Devuelve todas las categorías disponibles con información de productos",
+            OperationId = "Productos.GetCategorias",
+            Tags = new[] { "Categorías" }
+        )]
+        [ProducesResponseType(typeof(IEnumerable<CategoriaBasicaResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CategoriaBasicaResponse>>> GetCategorias()
+        {
+            try
+            {
+                var categorias = await _productoService.GetCategoriasAsync();
+                return Ok(categorias);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener categorías");
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Error interno del servidor",
+                    Detail = "Ocurrió un error al obtener las categorías",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
         // ============================================================================
         // GESTIÓN DE PRODUCTOS (ADMIN/MESERO)
         // ============================================================================

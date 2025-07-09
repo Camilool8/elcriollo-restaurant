@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   DollarSign,
   UtensilsCrossed,
+  Package,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -205,6 +206,12 @@ const AdminDashboard: React.FC = () => {
                 leftIcon={<UtensilsCrossed className="w-4 h-4" />}
               >
                 Gestión de Productos
+              </Button>
+            </Link>
+
+            <Link to="/admin/categorias">
+              <Button variant="outline" fullWidth leftIcon={<Package className="w-4 h-4" />}>
+                Gestión de Categorías
               </Button>
             </Link>
 

@@ -656,6 +656,60 @@ namespace ElCriollo.API.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Verificar estado detallado de una mesa
+        /// </summary>
+        /// <param name="id">ID de la mesa</param>
+        /// <returns>Estado detallado de la mesa</returns>
+        [HttpGet("{id}/estado-detallado")]
+        [Authorize(Roles = "Administrador,Cajero")]
+        [SwaggerOperation(
+            Summary = "Verificar estado detallado de mesa",
+            Description = "Obtiene información detallada sobre el estado de una mesa y sus órdenes",
+            OperationId = "Mesas.GetEstadoDetallado",
+            Tags = new[] { "Gestión de Estados" }
+        )]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<object>> GetEstadoDetallado(int id)
+        {
+            try
+            {
+                var mesa = await _mesaService.GetMesaByIdAsync(id);
+                if (mesa == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Mesa no encontrada",
+                        Detail = $"No se encontró una mesa con ID {id}",
+                        Status = StatusCodes.Status404NotFound
+                    });
+                }
+
+                var puedeLiberarse = await _mesaService.PuedeLiberarseMesaAsync(id);
+                
+                var resultado = new
+                {
+                    Mesa = mesa,
+                    PuedeLiberarse = puedeLiberarse,
+                    FechaVerificacion = DateTime.Now
+                };
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estado detallado de mesa: {MesaId}", id);
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Error interno del servidor",
+                    Detail = "Ocurrió un error al obtener el estado detallado de la mesa",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
     }
 
     // ============================================================================

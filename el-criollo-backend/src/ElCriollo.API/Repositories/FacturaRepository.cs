@@ -166,14 +166,9 @@ namespace ElCriollo.API.Repositories
                     // Actualizar estado de orden
                     orden.Estado = "Entregada";
 
-                    // Liberar mesa si estaba ocupada
-                    if (orden.Mesa != null && orden.Mesa.Estado == "Ocupada")
-                    {
-                        orden.Mesa.Estado = "Libre";
-                        await _context.Mesas
-                            .Where(m => m.MesaID == orden.Mesa.MesaID)
-                            .ExecuteUpdateAsync(m => m.SetProperty(mesa => mesa.Estado, "Libre"));
-                    }
+                    // NO liberar la mesa automáticamente aquí
+                    // La liberación debe ser manejada por el servicio de facturación
+                    // que verifica si todas las órdenes están pagadas
 
                     await _context.SaveChangesAsync();
 

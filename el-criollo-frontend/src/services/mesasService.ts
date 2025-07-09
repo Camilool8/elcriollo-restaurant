@@ -62,6 +62,19 @@ class MesasService {
   }
 
   /**
+   * Verifica el estado detallado de una mesa
+   */
+  async getEstadoDetallado(mesaId: number): Promise<any> {
+    try {
+      const response = await api.get(`/Mesas/${mesaId}/estado-detallado`);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error obteniendo estado detallado: ${message}`);
+    }
+  }
+
+  /**
    * Ocupa una mesa (la marca como ocupada)
    */
   async ocuparMesa(mesaId: number): Promise<{ success: boolean; message: string }> {

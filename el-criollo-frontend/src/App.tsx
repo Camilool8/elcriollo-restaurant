@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Contexts
 import { AuthProvider } from '@/contexts/AuthContext';
+import { OrdenesProvider } from '@/contexts/OrdenesContext';
 
 // Components y Pages
 import { ProtectedRoute, AdminRoute } from '@/components/auth';
@@ -23,55 +24,57 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
-        <div className="App min-h-screen bg-warm-beige">
-          {/* Rutas principales */}
-          <Routes>
-            {/* Login es público */}
-            <Route path="/login" element={<LoginPage />} />
+        <OrdenesProvider>
+          <div className="App min-h-screen bg-warm-beige">
+            {/* Rutas principales */}
+            <Routes>
+              {/* Login es público */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Rutas que requieren autenticación */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AuthenticatedLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<SmartRedirect />} />
-              <Route path="/mesas" element={<MesasPageConFacturacion />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              {/* Rutas que requieren autenticación */}
               <Route
-                path="/admin/*"
                 element={
-                  <AdminRoute>
-                    <AdminRoutes />
-                  </AdminRoute>
+                  <ProtectedRoute>
+                    <AuthenticatedLayout />
+                  </ProtectedRoute>
                 }
-              />
-            </Route>
+              >
+                <Route path="/" element={<SmartRedirect />} />
+                <Route path="/mesas" element={<MesasPageConFacturacion />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route
+                  path="/admin/*"
+                  element={
+                    <AdminRoute>
+                      <AdminRoutes />
+                    </AdminRoute>
+                  }
+                />
+              </Route>
 
-            {/* Ruta catch-all para 404 */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+              {/* Ruta catch-all para 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
 
-          {/* Notificaciones Toast configuradas para tema dominicano */}
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-            className="dominican-toast"
-            toastClassName="font-sans"
-            bodyClassName="text-sm"
-            progressStyle={{ background: '#CF142B' }}
-          />
-        </div>
+            {/* Notificaciones Toast configuradas para tema dominicano */}
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+              className="dominican-toast"
+              toastClassName="font-sans"
+              bodyClassName="text-sm"
+              progressStyle={{ background: '#CF142B' }}
+            />
+          </div>
+        </OrdenesProvider>
       </AuthProvider>
     </Router>
   );

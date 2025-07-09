@@ -204,6 +204,13 @@ export const MesasPageConFacturacion: React.FC = () => {
       toast.warning('Esta mesa no tiene una orden activa');
       return;
     }
+
+    // Verificar si la orden ya está facturada
+    if (mesa.ordenActual.estado === 'Facturada') {
+      toast.warning('Esta orden ya ha sido facturada');
+      return;
+    }
+
     setMesaSeleccionada(mesa);
     const orden = await obtenerOrdenCompleta(mesa.ordenActual.ordenID);
     if (orden) {

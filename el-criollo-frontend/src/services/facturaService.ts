@@ -109,6 +109,19 @@ class FacturaService {
   }
 
   /**
+   * Obtener facturas por orden
+   */
+  async obtenerFacturasPorOrden(ordenId: number): Promise<Factura[]> {
+    try {
+      const response = await api.get<Factura[]>(`/Factura/orden/${ordenId}`);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error obteniendo facturas por orden: ${message}`);
+    }
+  }
+
+  /**
    * Anular una factura
    */
   async anularFactura(facturaId: number, motivo: string): Promise<void> {

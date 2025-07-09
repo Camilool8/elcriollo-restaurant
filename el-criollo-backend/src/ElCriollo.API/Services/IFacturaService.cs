@@ -122,12 +122,14 @@ namespace ElCriollo.API.Services
         Task<IEnumerable<FacturaDto>> GetFacturasPorFechaAsync(DateTime fecha);
 
         /// <summary>
-        /// Obtiene facturas en un rango de fechas
+        /// Obtener facturas por rango de fechas
         /// </summary>
-        /// <param name="fechaInicio">Fecha inicio del rango</param>
-        /// <param name="fechaFin">Fecha fin del rango</param>
-        /// <returns>Lista de facturas en el rango</returns>
         Task<IEnumerable<FacturaDto>> GetFacturasPorRangoAsync(DateTime fechaInicio, DateTime fechaFin);
+
+        /// <summary>
+        /// Obtener facturas por orden
+        /// </summary>
+        Task<IEnumerable<FacturaResponse>> GetFacturasPorOrdenAsync(int ordenId);
 
         // ============================================================================
         // VALIDACIONES Y VERIFICACIONES

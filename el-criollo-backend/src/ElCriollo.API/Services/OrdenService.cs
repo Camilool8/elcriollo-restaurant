@@ -26,7 +26,7 @@ namespace ElCriollo.API.Services
         // Constantes básicas dominicanas
         private const decimal ITBIS_DOMINICANO = 0.18m; // 18%
         private const string PREFIJO_ORDEN = "ORD";
-        private readonly string[] ESTADOS_VALIDOS = { "Pendiente", "EnPreparacion", "Lista", "Entregada", "Facturada", "Cancelada" };
+        private readonly string[] ESTADOS_VALIDOS = { "Pendiente", "EnPreparacion", "Lista", "Entregada", "Facturada", "Completada", "Cancelada" };
 
         public OrdenService(
             IOrdenRepository ordenRepository,
@@ -816,14 +816,10 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                var ordenesActivas = await _ordenRepository.GetByMesaAsync(mesaId);
-                var tieneOrdenesActivas = ordenesActivas.Any(o => o.Estado != "Facturada" && o.Estado != "Cancelada");
-                
-                if (!tieneOrdenesActivas)
-                {
-                    await CambiarEstadoMesaAsync(mesaId, "Libre");
-                }
-                
+                // NO liberar la mesa automáticamente aquí
+                // La liberación debe ser manejada por el servicio de facturación
+                // que verifica si todas las órdenes están pagadas
+                _logger.LogInformation("🪑 Mesa {MesaId} - liberación automática deshabilitada, debe ser manejada por facturación", mesaId);
                 return true;
             }
             catch

@@ -10,6 +10,8 @@ import {
   LogOut,
   Coffee,
   ClipboardList,
+  Package,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -42,6 +44,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       roles: ['Administrador', 'Cajero', 'Recepcion'],
     },
     { name: 'Empleados', href: '/admin/empleados', icon: Briefcase, roles: ['Administrador'] },
+    {
+      name: 'Productos',
+      href: '/admin/productos',
+      icon: UtensilsCrossed,
+      roles: ['Administrador'],
+    },
+    { name: 'Categorías', href: '/admin/categorias', icon: Package, roles: ['Administrador'] },
     { name: 'Reportes', href: '/admin/reportes', icon: BarChart3, roles: ['Administrador'] },
     {
       name: 'Configuración',

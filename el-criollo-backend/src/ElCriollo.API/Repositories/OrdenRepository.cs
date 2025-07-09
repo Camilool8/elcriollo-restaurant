@@ -1035,7 +1035,7 @@ namespace ElCriollo.API.Repositories
         }
 
         /// <summary>
-        /// Obtiene órdenes activas
+        /// Obtiene órdenes activas (no terminadas)
         /// </summary>
         public async Task<IEnumerable<Orden>> GetOrdenesActivasAsync()
         {
@@ -1047,7 +1047,10 @@ namespace ElCriollo.API.Repositories
                     .Include(o => o.Mesa)
                     .Include(o => o.Cliente)
                     .Include(o => o.Empleado)
-                    .Where(o => o.Estado != "Entregada" && o.Estado != "Cancelada")
+                    .Where(o => o.Estado != "Entregada" && 
+                               o.Estado != "Cancelada" && 
+                               o.Estado != "Facturada" && 
+                               o.Estado != "Completada")
                     .OrderByDescending(o => o.FechaCreacion)
                     .ToListAsync();
 
@@ -1076,7 +1079,11 @@ namespace ElCriollo.API.Repositories
                     .Include(o => o.Empleado)
                     .Include(o => o.DetalleOrdenes)
                         .ThenInclude(d => d.Producto)
-                    .Where(o => o.MesaID == mesaId && o.Estado != "Entregada" && o.Estado != "Cancelada")
+                    .Where(o => o.MesaID == mesaId && 
+                               o.Estado != "Entregada" && 
+                               o.Estado != "Cancelada" && 
+                               o.Estado != "Facturada" && 
+                               o.Estado != "Completada")
                     .OrderByDescending(o => o.FechaCreacion)
                     .ToListAsync();
 

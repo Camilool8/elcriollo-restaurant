@@ -475,6 +475,11 @@ namespace ElCriollo.API.Services
             }
         }
 
+        public string GetDefaultEmailForAnonymousClients()
+        {
+            return _emailSettings.DefaultEmailForAnonymousClients;
+        }
+
         // ============================================================================
         // MÉTODOS PRIVADOS AUXILIARES
         // ============================================================================

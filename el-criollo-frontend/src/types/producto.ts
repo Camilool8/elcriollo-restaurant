@@ -1,9 +1,11 @@
 export interface Categoria {
   categoriaID: number;
-  nombreCategoria: string;
+  nombre: string;
   descripcion?: string;
-  cantidadProductos: number;
-  productosDisponibles: number;
+  totalProductos: number;
+  productosActivos: number;
+  rangoPrecios: string;
+  estado: boolean;
 }
 
 export interface Producto {

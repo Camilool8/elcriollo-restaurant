@@ -265,6 +265,24 @@ namespace ElCriollo.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtener facturas por orden
+        /// </summary>
+        [HttpGet("orden/{ordenId}")]
+        public async Task<ActionResult<IEnumerable<FacturaResponse>>> GetFacturasPorOrden(int ordenId)
+        {
+            try
+            {
+                var facturas = await _facturaService.GetFacturasPorOrdenAsync(ordenId);
+                return Ok(facturas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener facturas de orden {OrdenId}", ordenId);
+                return StatusCode(500, new { error = "Error interno del servidor" });
+            }
+        }
+
         // ============================================================================
         // OPERACIONES DE FACTURA
         // ============================================================================

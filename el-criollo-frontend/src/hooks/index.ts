@@ -3,6 +3,7 @@ export { useEmpleados } from './useEmpleados';
 export { useUsuarios } from './useUsuarios';
 export { useMesas } from './useMesas';
 export { useOrdenes } from './useOrdenes';
+export { useOrdenesMesa } from './useOrdenesMesa';
 export { useFacturacion } from './useFacturacion';
 export { useForm } from './useForm';
 export { useDebounce } from './useDebounce';

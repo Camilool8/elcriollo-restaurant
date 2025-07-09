@@ -300,6 +300,8 @@ class OrdenesService {
       Lista: ['Entregada'],
       Entregada: [], // Estado final
       Cancelada: [], // Estado final
+      Facturada: [], // Estado final
+      Completada: [], // Estado final
     };
 
     return transiciones[estadoActual] || [];

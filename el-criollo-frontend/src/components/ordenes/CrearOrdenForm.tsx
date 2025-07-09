@@ -8,6 +8,7 @@ import { Search, PlusCircle, ChevronDown } from 'lucide-react';
 import { ordenesService } from '@/services/ordenesService';
 import { productosService } from '@/services/productosService';
 import { clienteService } from '@/services/clienteService';
+import { useOrdenesContext } from '@/contexts/OrdenesContext';
 
 import type {
   CrearOrdenRequest,
@@ -44,7 +45,7 @@ const PanelBusquedaProductos: React.FC<PanelBusquedaProductosProps> = ({
   const productosAgrupados = useMemo(() => {
     return productosFiltrados.reduce(
       (acc, producto) => {
-        const categoria = producto.categoria?.nombreCategoria || 'Sin Categoría';
+        const categoria = producto.categoria?.nombre || 'Sin Categoría';
         if (!acc[categoria]) {
           acc[categoria] = [];
         }
@@ -131,6 +132,8 @@ interface CrearOrdenFormProps {
 }
 
 export const CrearOrdenForm: React.FC<CrearOrdenFormProps> = ({ mesa, onOrdenCreada, onClose }) => {
+  const { notificarCambioOrden } = useOrdenesContext();
+
   // Estados de datos
   const [productos, setProductos] = useState<Producto[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -236,6 +239,7 @@ export const CrearOrdenForm: React.FC<CrearOrdenFormProps> = ({ mesa, onOrdenCre
       };
       const nuevaOrden = await ordenesService.crearOrden(request);
       toast.success(`Nueva orden creada para la mesa ${mesa.numeroMesa}`);
+      notificarCambioOrden(nuevaOrden.ordenID);
       onOrdenCreada(nuevaOrden);
     } catch (err) {
       toast.error('Ocurrió un error al procesar la orden.');

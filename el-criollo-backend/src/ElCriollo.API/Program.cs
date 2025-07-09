@@ -229,11 +229,13 @@ try
     builder.Services.AddScoped<ElCriollo.API.Interfaces.IEmpleadoRepository, ElCriollo.API.Repositories.EmpleadoRepository>();
     builder.Services.AddScoped<ElCriollo.API.Interfaces.IInventarioRepository, ElCriollo.API.Repositories.InventarioRepository>();
     builder.Services.AddScoped<ElCriollo.API.Interfaces.IClienteRepository, ElCriollo.API.Repositories.ClienteRepository>();
+    builder.Services.AddScoped<ElCriollo.API.Interfaces.ICategoriaRepository, ElCriollo.API.Repositories.CategoriaRepository>();
     builder.Services.AddScoped<ElCriollo.API.Interfaces.IBaseRepository<ElCriollo.API.Models.Entities.EmailTransaccion>, ElCriollo.API.Repositories.BaseRepository<ElCriollo.API.Models.Entities.EmailTransaccion>>();
     
     // Servicios
     builder.Services.AddScoped<ElCriollo.API.Services.IAuthService, ElCriollo.API.Services.AuthService>();
     builder.Services.AddScoped<ElCriollo.API.Services.IProductoService, ElCriollo.API.Services.ProductoService>();
+    builder.Services.AddScoped<ElCriollo.API.Services.ICategoriaService, ElCriollo.API.Services.CategoriaService>();
     builder.Services.AddScoped<ElCriollo.API.Services.IOrdenService, ElCriollo.API.Services.OrdenService>();
     builder.Services.AddScoped<ElCriollo.API.Services.IFacturaService, ElCriollo.API.Services.FacturaService>();
     builder.Services.AddScoped<ElCriollo.API.Services.IMesaService, ElCriollo.API.Services.MesaService>();

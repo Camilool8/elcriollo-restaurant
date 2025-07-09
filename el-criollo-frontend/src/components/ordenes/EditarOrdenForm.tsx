@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ordenesService } from '@/services/ordenesService';
 import { productosService } from '@/services/productosService';
 import { clienteService } from '@/services/clienteService';
+import { useOrdenesContext } from '@/contexts/OrdenesContext';
 
 import type {
   ActualizarOrdenRequest,
@@ -49,7 +50,7 @@ const PanelBusquedaProductos: React.FC<PanelBusquedaProductosProps> = ({
   const productosAgrupados = useMemo(() => {
     return productosFiltrados.reduce(
       (acc, producto) => {
-        const categoria = producto.categoria?.nombreCategoria || 'Sin Categoría';
+        const categoria = producto.categoria?.nombre || 'Sin Categoría';
         if (!acc[categoria]) {
           acc[categoria] = [];
         }
@@ -150,7 +151,7 @@ const ResumenOrdenEditar: React.FC<ResumenOrdenEditarProps> = ({
   const itemsAgrupados = useMemo(() => {
     return carrito.items.reduce(
       (acc, item) => {
-        const categoria = item.producto.categoria?.nombreCategoria || 'Sin Categoría';
+        const categoria = item.producto.categoria?.nombre || 'Sin Categoría';
         if (!acc[categoria]) {
           acc[categoria] = [];
         }
@@ -338,6 +339,7 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
   onOrdenActualizada,
   onClose,
 }) => {
+  const { notificarCambioOrden } = useOrdenesContext();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [carrito, setCarrito] = useState<Carrito>({
@@ -484,6 +486,10 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
         })),
       };
       const ordenActualizada = await ordenesService.actualizarOrden(orden.ordenID, request);
+
+      // Notificar el cambio para que otros componentes se actualicen
+      notificarCambioOrden(orden.ordenID);
+
       toast.success(`Orden #${orden.numeroOrden} actualizada exitosamente`);
       onOrdenActualizada(ordenActualizada);
     } catch (err) {

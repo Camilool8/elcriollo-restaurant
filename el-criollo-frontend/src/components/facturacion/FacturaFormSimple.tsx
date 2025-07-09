@@ -67,6 +67,12 @@ export const FacturaFormSimple: React.FC<FacturaFormSimpleProps> = ({
   }, [montoRecibido, total]);
 
   const handleConfirmarCreacion = async () => {
+    // Verificar si la orden ya está facturada
+    if (orden.estado === 'Facturada') {
+      await handleMarcarComoPagada();
+      return;
+    }
+
     if (montoRecibido < total) {
       toast.error('El monto recibido debe ser mayor o igual al total.');
       return;
@@ -90,6 +96,30 @@ export const FacturaFormSimple: React.FC<FacturaFormSimpleProps> = ({
     }
   };
 
+  const handleMarcarComoPagada = async () => {
+    setIsSubmitting(true);
+    try {
+      // Obtener la factura existente de la orden
+      const facturas = await facturaService.obtenerFacturasPorOrden(orden.ordenID);
+      const facturaPendiente = facturas.find((f) => f.estado === 'Pendiente');
+
+      if (!facturaPendiente) {
+        toast.error('No se encontró una factura pendiente para esta orden.');
+        return;
+      }
+
+      // Marcar la factura como pagada
+      await facturaService.marcarComoPagada(facturaPendiente.facturaID, metodoPago);
+      toast.success('Factura marcada como pagada exitosamente.');
+      onFacturaCreada();
+    } catch (error) {
+      toast.error('Hubo un error al marcar la factura como pagada.');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!orden || !orden.detalles) {
     return (
       <div className="p-8 text-center">
@@ -98,6 +128,33 @@ export const FacturaFormSimple: React.FC<FacturaFormSimpleProps> = ({
         <p className="mt-1 text-sm text-gray-500">
           Intente cerrar esta ventana y volver a abrirla.
         </p>
+      </div>
+    );
+  }
+
+  // Verificar si la orden ya está facturada
+  if (orden.estado === 'Facturada') {
+    return (
+      <div className="p-8 text-center">
+        <Check className="mx-auto h-12 w-12 text-green-500" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Orden ya facturada</h3>
+        <p className="mt-1 text-sm text-gray-500 mb-4">
+          Esta orden ya ha sido facturada. Puede marcar la factura como pagada si el cliente ya
+          realizó el pago.
+        </p>
+        <div className="space-y-3">
+          <Button
+            onClick={handleConfirmarCreacion}
+            className="bg-green-600 hover:bg-green-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <LoadingSpinner size="sm" /> : <Check className="w-4 h-4 mr-2" />}
+            Marcar como Pagada
+          </Button>
+          <Button onClick={onClose} variant="outline">
+            Cerrar
+          </Button>
+        </div>
       </div>
     );
   }
@@ -131,7 +188,7 @@ export const FacturaFormSimple: React.FC<FacturaFormSimpleProps> = ({
                   {item.cantidad} x {item.producto?.nombre || 'Producto no disponible'}
                 </span>
                 <span className="font-mono text-gray-800">
-                  ${(typeof item.subtotal === 'number' ? item.subtotal : 0).toFixed(2)}
+                  ${(item.subtotalNumerico || 0).toFixed(2)}
                 </span>
               </div>
             ))}

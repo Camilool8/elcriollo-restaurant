@@ -247,6 +247,12 @@ const OrdenesPage: React.FC = () => {
   };
 
   const handleFacturarOrden = (orden: Orden) => {
+    // Verificar si la orden ya está facturada
+    if (orden.estado === 'Facturada') {
+      toast.warning('Esta orden ya ha sido facturada');
+      return;
+    }
+
     setOrdenParaFacturar(orden);
     setMostrarFacturacion(true);
   };

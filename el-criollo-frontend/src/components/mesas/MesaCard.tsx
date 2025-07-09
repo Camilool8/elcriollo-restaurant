@@ -7,14 +7,11 @@ import {
   CheckCircle,
   XCircle,
   Settings,
-  RefreshCw,
   Receipt,
-  DollarSign,
-  Split,
-  FileText,
   Eye,
   Wrench,
   ConciergeBell,
+  Bug,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -22,11 +19,11 @@ import { toast } from 'react-toastify';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 
 // Services
 import { ordenesService } from '@/services/ordenesService';
+import { mesasService } from '@/services/mesasService';
 
 // Types
 import type { Mesa, EstadoMesa } from '@/types/mesa';
@@ -119,21 +116,6 @@ export const MesaCard: React.FC<MesaCardProps> = ({
     }
   };
 
-  const handleOcupar = async () => {
-    if (!onOcupar) return;
-
-    try {
-      setLoading(true);
-      await onOcupar(mesa.mesaID);
-      toast.success(`Mesa ${mesa.numeroMesa} ocupada`);
-    } catch (error: any) {
-      console.error('Error ocupando mesa:', error);
-      toast.error(error.message || 'Error al ocupar la mesa');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLiberar = async () => {
     if (!onLiberar) return;
 
@@ -198,6 +180,24 @@ export const MesaCard: React.FC<MesaCardProps> = ({
         onClick: handleLiberar,
         variant: 'danger',
       });
+      // Botón de debug para verificar estado
+      items.push({
+        label: 'Debug Estado',
+        icon: <Bug className="w-4 h-4" />,
+        onClick: async () => {
+          try {
+            const estadoDetallado = await mesasService.getEstadoDetallado(mesa.mesaID);
+            console.log('Estado detallado de la mesa:', estadoDetallado);
+            alert(
+              `Estado detallado:\nPuede liberarse: ${estadoDetallado.puedeLiberarse}\nVer consola para más detalles`
+            );
+          } catch (error) {
+            console.error('Error obteniendo estado detallado:', error);
+            alert('Error obteniendo estado detallado');
+          }
+        },
+        variant: 'default',
+      });
     }
 
     if (mesa.estado !== 'Mantenimiento') {
@@ -247,14 +247,6 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       default:
         return <XCircle className="w-4 h-4" />;
     }
-  };
-
-  const puedeFacturar = () => {
-    return mesa.estado === 'Ocupada' && mesa.ordenActual;
-  };
-
-  const puedeAbrirOrden = () => {
-    return mesa.estado === 'Libre' || mesa.estado === 'Reservada';
   };
 
   // ============================================================================

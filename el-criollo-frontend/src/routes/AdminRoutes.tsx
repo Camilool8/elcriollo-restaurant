@@ -5,6 +5,8 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UsuariosPage from '@/pages/admin/UsuariosPage';
 import ClientesPage from '@/pages/admin/ClientesPage';
 import EmpleadosPage from '@/pages/admin/EmpleadosPage';
+import ProductosPage from '@/pages/admin/ProductosPage';
+import CategoriasPage from '@/pages/admin/CategoriasPage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -14,6 +16,8 @@ const AdminRoutes: React.FC = () => {
         <Route path="usuarios" element={<UsuariosPage />} />
         <Route path="clientes" element={<ClientesPage />} />
         <Route path="empleados" element={<EmpleadosPage />} />
+        <Route path="productos" element={<ProductosPage />} />
+        <Route path="categorias" element={<CategoriasPage />} />
       </Routes>
     </AdminLayout>
   );

@@ -99,12 +99,21 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
   }, [filtroEstado, filtroTipo, mesaId, soloActivas]);
 
   /**
-   * Refresca los datos
+   * Refresca los datos inmediatamente
    */
   const refrescar = useCallback(() => {
     setLoading(true);
     cargarOrdenes();
   }, [cargarOrdenes]);
+
+  /**
+   * Actualiza una orden específica en el estado local
+   */
+  const actualizarOrdenLocal = useCallback((ordenActualizada: Orden) => {
+    setOrdenes((prev) =>
+      prev.map((o) => (o.ordenID === ordenActualizada.ordenID ? ordenActualizada : o))
+    );
+  }, []);
 
   // ============================================================================
   // OPERACIONES CRUD
@@ -151,7 +160,7 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         const ordenActualizada = await ordenesService.actualizarOrden(orden.ordenID, request);
 
         // Actualizar el estado localmente para reflejar el cambio de inmediato
-        setOrdenes((prev) => prev.map((o) => (o.ordenID === orden.ordenID ? ordenActualizada : o)));
+        actualizarOrdenLocal(ordenActualizada);
 
         return ordenActualizada;
       } catch (err) {
@@ -160,7 +169,7 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         throw err;
       }
     },
-    [cargarOrdenes]
+    [actualizarOrdenLocal]
   );
 
   /**
@@ -380,6 +389,9 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
     marcarOrdenLista,
     agregarItemsOrden,
     refrescar,
+
+    // Utilidades de actualización
+    actualizarOrdenLocal,
 
     // Utilidades de búsqueda
     buscarOrdenPorId,

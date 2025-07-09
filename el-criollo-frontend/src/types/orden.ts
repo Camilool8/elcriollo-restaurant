@@ -4,7 +4,14 @@ import type { Empleado } from './empleado';
 import type { Producto } from './producto';
 
 // Estados de orden según el backend
-export type EstadoOrden = 'Pendiente' | 'En Preparacion' | 'Lista' | 'Entregada' | 'Cancelada';
+export type EstadoOrden =
+  | 'Pendiente'
+  | 'En Preparacion'
+  | 'Lista'
+  | 'Entregada'
+  | 'Cancelada'
+  | 'Facturada'
+  | 'Completada';
 
 // Tipos de orden según el backend
 export type TipoOrden = 'Mesa' | 'Llevar' | 'Delivery';
@@ -198,7 +205,19 @@ export const COLORES_ESTADO_ORDEN = {
     text: 'text-red-800',
     icon: '❌',
   },
-} as const;
+  Facturada: {
+    bg: 'bg-purple-100',
+    border: 'border-purple-500',
+    text: 'text-purple-800',
+    icon: '🧾',
+  },
+  Completada: {
+    bg: 'bg-gray-100',
+    border: 'border-gray-500',
+    text: 'text-gray-800',
+    icon: '🏁',
+  },
+};
 
 export const ICONOS_TIPO_ORDEN = {
   Mesa: '🪑',
@@ -220,6 +239,8 @@ export const TRANSICIONES_ESTADO: Record<EstadoOrden, EstadoOrden[]> = {
   Pendiente: ['En Preparacion', 'Cancelada'],
   'En Preparacion': ['Lista', 'Cancelada'],
   Lista: ['Entregada'],
-  Entregada: [], // Estado final
+  Entregada: ['Facturada'], // Puede ser facturada
   Cancelada: [], // Estado final
+  Facturada: ['Completada'], // Puede ser completada
+  Completada: [], // Estado final
 };

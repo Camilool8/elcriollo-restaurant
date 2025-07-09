@@ -17,6 +17,7 @@ namespace ElCriollo.API.Services
         private readonly IFacturaRepository _facturaRepository;
         private readonly IOrdenRepository _ordenRepository;
         private readonly IMesaRepository _mesaRepository;
+        private readonly IMesaService _mesaService;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly ILogger<FacturaService> _logger;
@@ -29,6 +30,7 @@ namespace ElCriollo.API.Services
             IFacturaRepository facturaRepository,
             IOrdenRepository ordenRepository,
             IMesaRepository mesaRepository,
+            IMesaService mesaService,
             IEmailService emailService,
             IMapper mapper,
             ILogger<FacturaService> logger)
@@ -36,6 +38,7 @@ namespace ElCriollo.API.Services
             _facturaRepository = facturaRepository;
             _ordenRepository = ordenRepository;
             _mesaRepository = mesaRepository;
+            _mesaService = mesaService;
             _emailService = emailService;
             _mapper = mapper;
             _logger = logger;
@@ -91,8 +94,9 @@ namespace ElCriollo.API.Services
                     Propina = totales.Propina,
                     Total = totales.TotalFinal,
                     MetodoPago = crearFacturaRequest.MetodoPago ?? "Efectivo",
-                    Estado = "Pendiente",
-                    ObservacionesPago = crearFacturaRequest.Observaciones
+                    Estado = "Pagada", // Marcar automáticamente como pagada
+                    ObservacionesPago = crearFacturaRequest.Observaciones,
+                    FechaPago = DateTime.Now // Establecer fecha de pago
                 };
 
                 // Guardar en base de datos
@@ -101,10 +105,44 @@ namespace ElCriollo.API.Services
                 // Actualizar estado de la orden
                 await ActualizarEstadoOrdenPostFacturacionAsync(crearFacturaRequest.OrdenId);
 
-                // Liberar mesa si es necesario
+                // Verificar si se puede liberar la mesa (solo si todas las órdenes están pagadas)
                 if (orden.MesaID.HasValue)
                 {
-                    await LiberarMesaPostFacturacionAsync(orden.MesaID.Value);
+                    var puedeLiberarse = await _mesaService.PuedeLiberarseMesaAsync(orden.MesaID.Value);
+                    if (puedeLiberarse)
+                    {
+                        await _mesaService.LiberarMesaAsync(orden.MesaID.Value, orden.EmpleadoID);
+                        _logger.LogInformation("🪑 Mesa {MesaId} liberada automáticamente - todas las órdenes pagadas", orden.MesaID.Value);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("🪑 Mesa {MesaId} no liberada - aún hay órdenes pendientes", orden.MesaID.Value);
+                    }
+                }
+
+                // Enviar factura por email automáticamente
+                try
+                {
+                    string emailDestino;
+                    if (!string.IsNullOrEmpty(orden.Cliente?.Email))
+                    {
+                        emailDestino = orden.Cliente.Email;
+                        _logger.LogInformation("📧 Enviando factura a cliente registrado: {Email}", emailDestino);
+                    }
+                    else
+                    {
+                        // Usar email por defecto para clientes anónimos
+                        emailDestino = _emailService.GetDefaultEmailForAnonymousClients();
+                        _logger.LogInformation("📧 Enviando factura a cliente anónimo usando email por defecto: {Email}", emailDestino);
+                    }
+
+                    await EnviarFacturaPorEmailAsync(facturaCreada.FacturaID, emailDestino);
+                    _logger.LogInformation("📧 Factura enviada automáticamente a {Email}", emailDestino);
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning(emailEx, "⚠️ Error al enviar factura automática para factura {FacturaId}", facturaCreada.FacturaID);
+                    // No falla la operación principal si hay error en el email
                 }
 
                 _logger.LogInformation("✅ Factura {NumeroFactura} creada exitosamente para orden {OrdenId}", 
@@ -255,19 +293,29 @@ namespace ElCriollo.API.Services
 
                 await _facturaRepository.UpdateAsync(factura);
 
-                // Enviar comprobante de pago por email automáticamente si el cliente tiene email
-                if (!string.IsNullOrEmpty(factura.Cliente?.Email))
+                // Enviar comprobante de pago por email automáticamente
+                try
                 {
-                    try
+                    string emailDestino;
+                    if (!string.IsNullOrEmpty(factura.Cliente?.Email))
                     {
-                        await _emailService.EnviarComprobantePagoAsync(factura);
-                        _logger.LogInformation("📧 Comprobante de pago enviado automáticamente a {Email}", factura.Cliente.Email);
+                        emailDestino = factura.Cliente.Email;
+                        _logger.LogInformation("📧 Enviando comprobante de pago a cliente registrado: {Email}", emailDestino);
                     }
-                    catch (Exception emailEx)
+                    else
                     {
-                        _logger.LogWarning(emailEx, "⚠️ Error al enviar comprobante de pago automático para factura {FacturaId}", facturaId);
-                        // No falla la operación principal si hay error en el email
+                        // Usar email por defecto para clientes anónimos
+                        emailDestino = _emailService.GetDefaultEmailForAnonymousClients();
+                        _logger.LogInformation("📧 Enviando comprobante de pago a cliente anónimo usando email por defecto: {Email}", emailDestino);
                     }
+
+                    await _emailService.EnviarComprobantePagoAsync(factura);
+                    _logger.LogInformation("📧 Comprobante de pago enviado automáticamente a {Email}", emailDestino);
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning(emailEx, "⚠️ Error al enviar comprobante de pago automático para factura {FacturaId}", facturaId);
+                    // No falla la operación principal si hay error en el email
                 }
 
                 _logger.LogInformation("✅ Factura {FacturaId} marcada como pagada", facturaId);
@@ -445,6 +493,23 @@ namespace ElCriollo.API.Services
             }
         }
 
+        /// <summary>
+        /// Obtener facturas por orden
+        /// </summary>
+        public async Task<IEnumerable<FacturaResponse>> GetFacturasPorOrdenAsync(int ordenId)
+        {
+            try
+            {
+                var facturas = await _facturaRepository.GetByOrdenAsync(ordenId);
+                return _mapper.Map<IEnumerable<FacturaResponse>>(facturas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener facturas de orden {OrdenId}", ordenId);
+                throw;
+            }
+        }
+
         // ============================================================================
         // VALIDACIONES Y VERIFICACIONES
         // ============================================================================
@@ -462,18 +527,18 @@ namespace ElCriollo.API.Services
                     return resultado;
                 }
 
-                // Validar estado de la orden - permitir facturar órdenes pendientes y entregadas
-                if (orden.Estado != "Entregada" && orden.Estado != "Pendiente")
+                // Validar estado de la orden - permitir facturar órdenes pendientes, entregadas y facturadas
+                if (orden.Estado != "Entregada" && orden.Estado != "Pendiente" && orden.Estado != "Facturada")
                 {
-                    resultado.Errores.Add($"La orden debe estar en estado 'Entregada' o 'Pendiente', actualmente está: {orden.Estado}");
+                    resultado.Errores.Add($"La orden debe estar en estado 'Entregada', 'Pendiente' o 'Facturada', actualmente está: {orden.Estado}");
                 }
 
-                // Verificar si ya tiene factura
+                // Verificar si ya tiene factura pagada
                 var facturasExistentes = await _facturaRepository.GetByOrdenAsync(ordenId);
-                var facturaActiva = facturasExistentes.FirstOrDefault(f => f.Estado != "Anulada");
-                if (facturaActiva != null)
+                var facturaPagada = facturasExistentes.FirstOrDefault(f => f.Estado == "Pagada");
+                if (facturaPagada != null)
                 {
-                    resultado.Errores.Add("La orden ya tiene una factura asociada");
+                    resultado.Errores.Add("La orden ya tiene una factura pagada");
                 }
 
                 // Calcular total estimado
@@ -707,6 +772,15 @@ namespace ElCriollo.API.Services
         {
             try
             {
+                // Verificar si se puede liberar la mesa antes de hacerlo
+                var puedeLiberarse = await _mesaService.PuedeLiberarseMesaAsync(mesaId);
+                if (!puedeLiberarse)
+                {
+                    _logger.LogInformation("🪑 Mesa {MesaId} no liberada - aún hay órdenes activas o no pagadas", mesaId);
+                    return false;
+                }
+
+                // Usar el servicio de mesa para liberar correctamente
                 var mesa = await _mesaRepository.GetByIdAsync(mesaId);
                 if (mesa == null) return false;
 
