@@ -11,7 +11,7 @@ namespace ElCriollo.API.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Cajero")]
     [SwaggerTag("Generación de reportes gerenciales, estadísticas y análisis de negocio")]
     public class ReporteController : ControllerBase
     {
@@ -460,6 +460,7 @@ namespace ElCriollo.API.Controllers
         /// <returns>Dashboard con métricas básicas del día</returns>
         /// <response code="200">Dashboard generado exitosamente</response>
         [HttpGet("dashboard")]
+        [Authorize(Roles = "Administrador,Cajero,Mesero,Recepcion")]
         [SwaggerOperation(
             Summary = "Dashboard básico",
             Description = "Genera un dashboard básico con las métricas principales del día",

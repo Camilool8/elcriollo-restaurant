@@ -160,10 +160,11 @@ public class CategoriaService : ICategoriaService
                 return false;
             }
 
-            // Verificar si la categoría tiene productos
-            if (await _categoriaRepository.TieneProductosAsync(categoriaId))
+            // Verificar si la categoría tiene productos (solo para logging)
+            var tieneProductos = await _categoriaRepository.TieneProductosAsync(categoriaId);
+            if (tieneProductos)
             {
-                throw new InvalidOperationException("No se puede eliminar una categoría que tiene productos asignados");
+                _logger.LogWarning("Eliminando categoría {CategoriaId} que tiene productos asociados. Los productos también serán eliminados.", categoriaId);
             }
 
             await _categoriaRepository.DeleteAsync(categoriaId);

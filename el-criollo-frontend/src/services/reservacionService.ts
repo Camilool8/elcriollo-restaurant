@@ -1,6 +1,5 @@
 import { api } from './api';
 import type {
-  Reservacion,
   CrearReservacionRequest,
   ActualizarReservacionRequest,
   FiltrosReservacion,
@@ -10,7 +9,7 @@ import type {
 } from '@/types/reservacion';
 
 class ReservacionService {
-  private baseUrl = '/api/Reservacion';
+  private baseUrl = '/Reservacion';
 
   // ============================================================================
   // OPERACIONES CRUD
@@ -154,9 +153,17 @@ class ReservacionService {
   // DISPONIBILIDAD
   // ============================================================================
 
-  async getDisponibilidadMesa(mesaId: number, fecha: string): Promise<DisponibilidadMesa> {
+  async getDisponibilidadMesa(fecha: string, hora?: string): Promise<DisponibilidadMesa> {
     try {
       const params = new URLSearchParams({ fecha });
+      if (hora) {
+        params.append('hora', hora);
+      } else {
+        // Si no se proporciona hora, usar la hora actual
+        const horaActual = new Date().toTimeString().slice(0, 5);
+        params.append('hora', horaActual);
+      }
+
       const response = await api.get<DisponibilidadMesa>(
         `${this.baseUrl}/disponibilidad?${params.toString()}`
       );
@@ -169,10 +176,19 @@ class ReservacionService {
 
   async getMesasDisponibles(
     fecha: string,
-    cantidadPersonas?: number
+    cantidadPersonas?: number,
+    hora?: string
   ): Promise<DisponibilidadMesa[]> {
     try {
       const params = new URLSearchParams({ fecha });
+      if (hora) {
+        params.append('hora', hora);
+      } else {
+        // Si no se proporciona hora, usar la hora actual
+        const horaActual = new Date().toTimeString().slice(0, 5);
+        params.append('hora', horaActual);
+      }
+
       if (cantidadPersonas) {
         params.append('cantidadPersonas', cantidadPersonas.toString());
       }
@@ -187,16 +203,10 @@ class ReservacionService {
     }
   }
 
-  async verificarDisponibilidad(
-    mesaId: number,
-    fechaHora: string,
-    duracionEstimada: number
-  ): Promise<boolean> {
+  async verificarDisponibilidad(mesaId: number): Promise<boolean> {
     try {
       // Usar el servicio de mesas para verificar disponibilidad
-      const response = await api.get<{ disponible: boolean }>(
-        `/api/Mesas/${mesaId}/disponibilidad`
-      );
+      const response = await api.get<{ disponible: boolean }>(`/Mesas/${mesaId}/disponibilidad`);
       return response.disponible;
     } catch (error) {
       console.error('Error verificando disponibilidad:', error);

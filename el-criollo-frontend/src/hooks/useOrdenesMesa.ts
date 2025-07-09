@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { ordenesService } from '@/services/ordenesService';
 import { useOrdenesContext } from '@/contexts/OrdenesContext';
+import { useAutoRefresh } from './useAutoRefresh';
 import type { Orden } from '@/types';
 
 interface UseOrdenesMesaOptions {
@@ -12,7 +13,7 @@ interface UseOrdenesMesaOptions {
 export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = {}) => {
   const {
     autoRefresh = true,
-    refreshInterval = 10000, // 10 segundos para órdenes de mesa
+    refreshInterval = 30000, // 30 segundos para órdenes de mesa (reducido para evitar parpadeo)
   } = options;
 
   const { ordenesActualizadas } = useOrdenesContext();
@@ -60,26 +61,33 @@ export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = 
   useEffect(() => {
     if (ordenesActualizadas.size > 0) {
       // Refrescar cuando se detectan cambios en órdenes
+      console.log(
+        '🔄 Refrescando órdenes por cambios en contexto:',
+        Array.from(ordenesActualizadas)
+      );
       fetchOrdenes();
     }
   }, [ordenesActualizadas, fetchOrdenes]);
 
-  // Auto-refresh periódico
+  // Efecto para refrescar inmediatamente cuando se actualiza una orden de esta mesa
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    const ordenesDeEstaMesa = ordenes.map((o) => o.ordenID);
+    const hayCambiosEnEstaMesa = Array.from(ordenesActualizadas).some((ordenId) =>
+      ordenesDeEstaMesa.includes(ordenId)
+    );
 
-    if (autoRefresh && !loading) {
-      interval = setInterval(() => {
-        fetchOrdenes();
-      }, refreshInterval);
+    if (hayCambiosEnEstaMesa) {
+      console.log('🔄 Refrescando inmediatamente por cambio en orden de esta mesa');
+      fetchOrdenes();
     }
+  }, [ordenesActualizadas, ordenes, fetchOrdenes]);
 
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [autoRefresh, refreshInterval, loading, fetchOrdenes]);
+  // Auto-refresh control
+  const autoRefreshControl = useAutoRefresh({
+    enabled: autoRefresh,
+    interval: refreshInterval,
+    onRefresh: fetchOrdenes,
+  });
 
   return {
     ordenes,
@@ -87,5 +95,6 @@ export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = 
     error,
     refrescar,
     fetchOrdenes,
+    autoRefresh: autoRefreshControl,
   };
 };

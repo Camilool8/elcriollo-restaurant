@@ -201,6 +201,63 @@ namespace ElCriollo.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Verificar disponibilidad de una mesa específica
+        /// </summary>
+        /// <param name="id">ID de la mesa</param>
+        /// <returns>Estado de disponibilidad de la mesa</returns>
+        /// <response code="200">Disponibilidad verificada</response>
+        /// <response code="404">Mesa no encontrada</response>
+        /// <response code="401">No autorizado</response>
+        [HttpGet("{id}/disponibilidad")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Verificar disponibilidad de mesa",
+            Description = "Verifica si una mesa específica está disponible para ser ocupada",
+            OperationId = "Mesas.VerificarDisponibilidad",
+            Tags = new[] { "Disponibilidad" }
+        )]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<object>> VerificarDisponibilidadMesa(int id)
+        {
+            try
+            {
+                var mesa = await _mesaService.GetMesaByIdAsync(id);
+                if (mesa == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Mesa no encontrada",
+                        Detail = $"No se encontró una mesa con ID {id}",
+                        Status = StatusCodes.Status404NotFound
+                    });
+                }
+
+                var disponible = await _mesaService.VerificarDisponibilidadMesaAsync(id);
+                
+                return Ok(new
+                {
+                    mesaId = id,
+                    disponible = disponible,
+                    estado = mesa.Estado,
+                    numeroMesa = mesa.NumeroMesa,
+                    capacidad = mesa.Capacidad
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar disponibilidad de mesa: {MesaId}", id);
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Error interno del servidor",
+                    Detail = "Ocurrió un error al verificar la disponibilidad de la mesa",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
         // ============================================================================
         // GESTIÓN DE ESTADOS DE MESA
         // ============================================================================
@@ -497,7 +554,7 @@ namespace ElCriollo.API.Controllers
         /// <response code="200">Estadísticas obtenidas</response>
         /// <response code="401">No autorizado</response>
         [HttpGet("estadisticas")]
-        [Authorize]
+        [Authorize(Roles = "Administrador,Recepcion,Mesero,Cajero")]
         [SwaggerOperation(
             Summary = "Estadísticas de mesas",
             Description = "Obtiene estadísticas básicas de ocupación y estado de las mesas",

@@ -204,6 +204,15 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       });
     }
 
+    if (mesa.estado === 'Reservada') {
+      items.push({
+        label: 'Cancelar Reserva',
+        icon: <XCircle className="w-4 h-4" />,
+        onClick: handleLiberar,
+        variant: 'danger',
+      });
+    }
+
     if (mesa.estado !== 'Mantenimiento') {
       items.push({
         label: 'Poner en Mantenimiento',

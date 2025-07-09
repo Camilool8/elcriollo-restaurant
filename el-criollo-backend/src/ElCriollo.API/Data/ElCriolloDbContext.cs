@@ -232,7 +232,7 @@ public class ElCriolloDbContext : DbContext
             entity.HasOne(e => e.Categoria)
                   .WithMany(c => c.Productos)
                   .HasForeignKey(e => e.CategoriaID)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configurar Inventario

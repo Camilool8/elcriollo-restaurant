@@ -526,7 +526,7 @@ namespace ElCriollo.API.Controllers
         /// <returns>Estadísticas detalladas de facturación</returns>
         /// <response code="200">Estadísticas de facturación</response>
         [HttpGet("estadisticas")]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Administrador,Cajero")]
         [SwaggerOperation(
             Summary = "Estadísticas de facturación",
             Description = "Obtiene estadísticas detalladas de facturación para un período",

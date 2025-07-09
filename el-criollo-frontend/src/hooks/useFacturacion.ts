@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 
 // Services
 import { facturaService } from '@/services/facturaService';
+import { useAutoRefresh } from './useAutoRefresh';
 
 // Types
 import type {
@@ -65,6 +66,18 @@ export interface UseFacturacionReturn {
 
   // Validaciones
   validarCrearFactura: (request: CrearFacturaRequest) => string | null;
+
+  // Auto-refresh control
+  autoRefresh: {
+    isEnabled: boolean;
+    isRefreshing: boolean;
+    lastRefresh: Date | null;
+    toggleAutoRefresh: () => void;
+    enableAutoRefresh: () => void;
+    disableAutoRefresh: () => void;
+    refreshNow: () => Promise<void>;
+    setInterval: (interval: number) => void;
+  };
 }
 
 // ============================================================================
@@ -374,13 +387,12 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
     refrescarDatos();
   }, []);
 
-  // Auto-refresh
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(refrescarDatos, refreshInterval);
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, refrescarDatos]);
+  // Auto-refresh control
+  const autoRefreshControl = useAutoRefresh({
+    enabled: autoRefresh,
+    interval: refreshInterval,
+    onRefresh: refrescarDatos,
+  });
 
   // ============================================================================
   // RETURN
@@ -402,5 +414,6 @@ export const useFacturacion = (options: UseFacturacionOptions = {}): UseFacturac
     filtrarFacturasPorEstado,
     filtrarFacturasPorMetodo,
     validarCrearFactura,
+    autoRefresh: autoRefreshControl,
   };
 };

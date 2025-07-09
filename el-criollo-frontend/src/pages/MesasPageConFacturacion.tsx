@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, AlertTriangle, Clock, Users, MapPin, Receipt, Calendar } from 'lucide-react';
+import { AlertTriangle, Clock, MapPin, Receipt } from 'lucide-react';
 
 // Components
 import { MesaCard } from '@/components/mesas/MesaCard';
@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GestionMesaModal } from '@/components/mesas/GestionMesaModal';
 import { CrearReservacionModal } from '@/components/mesas/CrearReservacionModal';
+import { UnifiedAutoRefreshControl } from '@/components/ui/UnifiedAutoRefreshControl';
 
 // Components de facturación y órdenes
 import { FacturaForm, ResumenFactura } from '@/components/facturacion';
@@ -19,8 +20,7 @@ import { useFacturacion } from '@/hooks/useFacturacion';
 
 // Types
 import type { FiltrosMesa, Mesa, EstadoMesa } from '@/types/mesa';
-import type { Factura, CrearFacturaRequest, Orden, Cliente } from '@/types';
-import { ordenesService } from '@/services/ordenesService';
+import type { Orden, Cliente } from '@/types';
 import { clienteService } from '@/services/clienteService';
 
 // Toast notifications
@@ -43,7 +43,6 @@ export const MesasPageConFacturacion: React.FC = () => {
   // Hooks
   const {
     mesas,
-    estadisticas,
     loading,
     error,
     refrescar,
@@ -52,14 +51,15 @@ export const MesasPageConFacturacion: React.FC = () => {
     cambiarEstadoMesa,
     marcarMantenimiento,
     mesasQueNecesitanAtencion,
+    autoRefresh,
   } = useMesas({ autoRefresh: true, refreshInterval: 30000 });
 
   const {
     state: { facturasDelDia, facturaActual, error: errorFacturas },
-    crearFactura,
     obtenerFacturasPorOrden,
     seleccionarFactura,
     limpiarError,
+    autoRefresh: facturacionAutoRefresh,
   } = useFacturacion({ autoRefresh: true, refreshInterval: 30000 });
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export const MesasPageConFacturacion: React.FC = () => {
   };
 
   const handleMesaClick = (mesa: Mesa) => {
-    if (mesa.estado === 'Ocupada' || mesa.estado === 'Libre') {
+    if (mesa.estado === 'Ocupada' || mesa.estado === 'Libre' || mesa.estado === 'Reservada') {
       setMesaSeleccionada(mesa);
     } else {
       toast.info(`La mesa está en estado de ${mesa.estado} y no puede ser gestionada.`);
@@ -178,21 +178,6 @@ export const MesasPageConFacturacion: React.FC = () => {
   // HANDLERS DE FACTURACIÓN
   // ============================================================================
 
-  const obtenerOrdenCompleta = async (ordenID: number) => {
-    setLoadingOrden(true);
-    try {
-      const orden = await ordenesService.getOrdenById(ordenID);
-      setOrdenActiva(orden);
-      return orden;
-    } catch (error) {
-      console.error('Error obteniendo detalles de la orden:', error);
-      toast.error('No se pudieron cargar los detalles de la orden.');
-      return null;
-    } finally {
-      setLoadingOrden(false);
-    }
-  };
-
   const handleVerFacturas = async (mesa: Mesa) => {
     if (!mesa.ordenActual) {
       toast.warning('Esta mesa no tiene una orden activa');
@@ -216,49 +201,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     }
   };
 
-  const handleCrearFactura = async (mesa: Mesa) => {
-    if (!mesa.ordenActual) {
-      toast.warning('Esta mesa no tiene una orden activa');
-      return;
-    }
-
-    // Verificar si la orden ya está facturada
-    if (mesa.ordenActual.estado === 'Facturada') {
-      toast.warning('Esta orden ya ha sido facturada');
-      return;
-    }
-
-    setMesaSeleccionada(mesa);
-    const orden = await obtenerOrdenCompleta(mesa.ordenActual.ordenID);
-    if (orden) {
-      setIsCrearFacturaModalOpen(true);
-    }
-  };
-
-  const handleOrdenCreada = async (orden: Orden) => {
-    console.log('Orden creada, refrescando...', orden);
-    await refrescar();
-    cerrarModales();
-  };
-
-  const handleOrdenActualizada = async (orden: Orden) => {
-    console.log('Orden actualizada, refrescando...', orden);
-    await refrescar();
-    cerrarModales();
-  };
-
-  const handleConfirmarCreacionFactura = async (request: CrearFacturaRequest) => {
-    try {
-      const factura = await crearFactura(request);
-      await refrescar();
-      toast.success(`Factura ${factura.numeroFactura} creada exitosamente`);
-      cerrarModales();
-    } catch (error) {
-      console.error('Error creando factura:', error);
-      toast.error('Error al crear la factura');
-    }
-  };
-
   // ============================================================================
   // UTILIDADES
   // ============================================================================
@@ -269,15 +211,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     setIsCrearFacturaModalOpen(false);
     setIsCrearReservacionModalOpen(false);
     setMesaParaReservar(null);
-  };
-
-  const obtenerFacturasDelDiaPorMesa = (mesa: Mesa) => {
-    if (!mesa.ordenActual) return [];
-    return facturasDelDia.filter((f) => f.ordenID === mesa.ordenActual?.ordenID);
-  };
-
-  const mesaTieneFacturas = (mesa: Mesa) => {
-    return obtenerFacturasDelDiaPorMesa(mesa).length > 0;
   };
 
   const renderFacturacionModals = () => {
@@ -373,7 +306,29 @@ export const MesasPageConFacturacion: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800">Salón de Mesas</h1>
           <p className="text-gray-600">Gestión de mesas, órdenes y facturación en tiempo real.</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          <UnifiedAutoRefreshControl
+            controls={[
+              {
+                isEnabled: autoRefresh.isEnabled,
+                isRefreshing: autoRefresh.isRefreshing,
+                lastRefresh: autoRefresh.lastRefresh,
+                onToggle: autoRefresh.toggleAutoRefresh,
+                onRefresh: autoRefresh.refreshNow,
+                label: 'Mesas',
+              },
+              {
+                isEnabled: facturacionAutoRefresh.isEnabled,
+                isRefreshing: facturacionAutoRefresh.isRefreshing,
+                lastRefresh: facturacionAutoRefresh.lastRefresh,
+                onToggle: facturacionAutoRefresh.toggleAutoRefresh,
+                onRefresh: facturacionAutoRefresh.refreshNow,
+                label: 'Facturación',
+              },
+            ]}
+            interval={30000}
+            className="bg-white border border-gray-200"
+          />
           <Badge variant={facturasDelDia.length > 0 ? 'success' : 'secondary'}>
             <Receipt className="w-4 h-4 mr-2" />
             {facturasDelDia.length} Facturas Hoy

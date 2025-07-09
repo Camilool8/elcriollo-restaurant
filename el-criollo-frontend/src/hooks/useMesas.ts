@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { mesasService } from '@/services/mesasService';
+import { useAutoRefresh } from './useAutoRefresh';
 import type {
   Mesa,
   EstadoMesa,
@@ -186,22 +187,12 @@ export const useMesas = (options: UseMesasOptions = {}) => {
     );
   }, [mesas]);
 
-  // Auto-refresh
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (autoRefresh && !loading) {
-      interval = setInterval(() => {
-        cargarMesas();
-      }, refreshInterval);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [autoRefresh, refreshInterval, loading, cargarMesas]);
+  // Auto-refresh control
+  const autoRefreshControl = useAutoRefresh({
+    enabled: autoRefresh,
+    interval: refreshInterval,
+    onRefresh: cargarMesas,
+  });
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -226,6 +217,9 @@ export const useMesas = (options: UseMesasOptions = {}) => {
     buscarMesaPorNumero,
     filtrarMesasPorEstado,
     mesasQueNecesitanAtencion,
+
+    // Auto-refresh control
+    autoRefresh: autoRefreshControl,
 
     // Estadísticas computadas
     mesasLibres: filtrarMesasPorEstado('Libre'),

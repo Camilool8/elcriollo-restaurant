@@ -11,6 +11,7 @@ import { CrearOrdenForm } from '@/components/ordenes/CrearOrdenForm';
 import { EditarOrdenForm } from '@/components/ordenes/EditarOrdenForm';
 import { FacturaFormSimple } from '@/components/facturacion/FacturaFormSimple';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { AutoRefreshControl } from '@/components/ui/AutoRefreshControl';
 
 // Hooks y servicios
 import { ordenesService } from '@/services/ordenesService';
@@ -36,9 +37,9 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
   if (!mesa) return null;
 
   const { ordenesActualizadas } = useOrdenesContext();
-  const { ordenes, loading, error, refrescar } = useOrdenesMesa(mesa.mesaID, {
+  const { ordenes, loading, error, refrescar, autoRefresh } = useOrdenesMesa(mesa.mesaID, {
     autoRefresh: true,
-    refreshInterval: 5000, // Refrescar cada 5 segundos
+    refreshInterval: 30000, // Refrescar cada 30 segundos (reducido para evitar parpadeo)
   });
 
   const [vista, setVista] = useState<VistaModal>('LISTA_ORDENES');
@@ -127,9 +128,20 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Gestionar Mesa {mesa.numeroMesa}</h2>
-        <Button onClick={onClose} variant="ghost" size="sm">
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <AutoRefreshControl
+            isEnabled={autoRefresh.isEnabled}
+            isRefreshing={autoRefresh.isRefreshing}
+            lastRefresh={autoRefresh.lastRefresh}
+            onToggle={autoRefresh.toggleAutoRefresh}
+            onRefresh={autoRefresh.refreshNow}
+            interval={30000}
+            className="bg-gray-50"
+          />
+          <Button onClick={onClose} variant="ghost" size="sm">
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex justify-end">

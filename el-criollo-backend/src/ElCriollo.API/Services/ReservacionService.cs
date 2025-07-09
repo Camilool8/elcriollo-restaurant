@@ -127,6 +127,20 @@ namespace ElCriollo.API.Services
 
                 var reservaCreada = await _reservacionRepository.CreateAsync(nuevaReserva);
 
+                // Cambiar el estado de la mesa a "Reservada"
+                await _mesaRepository.CambiarEstadoMesaAsync(mesaId, "Reservada");
+
+                // Enviar correo de confirmación de reserva
+                try
+                {
+                    await _emailService.EnviarConfirmacionReservaAsync(reservaCreada);
+                    _logger.LogInformation("Correo de confirmación enviado para reserva {ReservaId}", reservaCreada.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "No se pudo enviar el correo de confirmación para reserva {ReservaId}", reservaCreada.Id);
+                }
+
                 _logger.LogInformation("Reserva creada exitosamente: ID {ReservaId} para mesa {MesaId}", 
                     reservaCreada.Id, mesaId);
 
@@ -324,6 +338,13 @@ namespace ElCriollo.API.Services
 
                 await _reservacionRepository.UpdateAsync(reserva);
 
+                // Liberar la mesa si estaba reservada
+                if (reserva.Estado == "Pendiente" || reserva.Estado == "Confirmada")
+                {
+                    await _mesaRepository.CambiarEstadoMesaAsync(reserva.MesaId, "Libre");
+                    _logger.LogInformation("Mesa {MesaId} liberada por cancelación de reserva", reserva.MesaId);
+                }
+
                 _logger.LogInformation("Reserva cancelada exitosamente: {ReservaId}", reservaId);
 
                 return true;
@@ -437,7 +458,7 @@ namespace ElCriollo.API.Services
                 var resultado = new ValidacionReservaResult();
 
                 // Validaciones básicas
-                if (request.FechaHora <= DateTime.UtcNow)
+                if (request.FechaHora <= GetDominicanNow())
                 {
                     resultado.Errores.Add("La fecha de reserva debe ser futura");
                 }
@@ -550,7 +571,33 @@ namespace ElCriollo.API.Services
         /// </summary>
         public async Task<bool> MarcarClienteLlegoAsync(int reservaId, int usuarioId)
         {
-            return await CambiarEstadoReservaAsync(reservaId, "ClienteLlego", usuarioId, "Cliente llegó");
+            try
+            {
+                // Obtener la reservación para saber qué mesa cambiar
+                var reserva = await _reservacionRepository.GetByIdAsync(reservaId);
+                if (reserva == null)
+                {
+                    _logger.LogWarning("Reserva no encontrada: {ReservaId}", reservaId);
+                    return false;
+                }
+
+                // Cambiar el estado de la reservación
+                var exito = await CambiarEstadoReservaAsync(reservaId, "ClienteLlego", usuarioId, "Cliente llegó");
+                
+                if (exito)
+                {
+                    // Cambiar el estado de la mesa a "Ocupada"
+                    await _mesaRepository.CambiarEstadoMesaAsync(reserva.MesaId, "Ocupada");
+                    _logger.LogInformation("Mesa {MesaId} cambiada a Ocupada por llegada de cliente", reserva.MesaId);
+                }
+
+                return exito;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al marcar llegada de cliente para reserva {ReservaId}", reservaId);
+                return false;
+            }
         }
 
         /// <summary>
@@ -558,7 +605,33 @@ namespace ElCriollo.API.Services
         /// </summary>
         public async Task<bool> MarcarNoShowAsync(int reservaId, int usuarioId)
         {
-            return await CambiarEstadoReservaAsync(reservaId, "NoShow", usuarioId, "Cliente no se presentó");
+            try
+            {
+                // Obtener la reservación para saber qué mesa cambiar
+                var reserva = await _reservacionRepository.GetByIdAsync(reservaId);
+                if (reserva == null)
+                {
+                    _logger.LogWarning("Reserva no encontrada: {ReservaId}", reservaId);
+                    return false;
+                }
+
+                // Cambiar el estado de la reservación
+                var exito = await CambiarEstadoReservaAsync(reservaId, "NoShow", usuarioId, "Cliente no se presentó");
+                
+                if (exito)
+                {
+                    // Liberar la mesa
+                    await _mesaRepository.CambiarEstadoMesaAsync(reserva.MesaId, "Libre");
+                    _logger.LogInformation("Mesa {MesaId} liberada por No Show", reserva.MesaId);
+                }
+
+                return exito;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al marcar No Show para reserva {ReservaId}", reservaId);
+                return false;
+            }
         }
 
         /// <summary>
@@ -566,7 +639,33 @@ namespace ElCriollo.API.Services
         /// </summary>
         public async Task<bool> CompletarReservaAsync(int reservaId, int usuarioId)
         {
-            return await CambiarEstadoReservaAsync(reservaId, "Completada", usuarioId, "Reserva completada");
+            try
+            {
+                // Obtener la reservación para saber qué mesa cambiar
+                var reserva = await _reservacionRepository.GetByIdAsync(reservaId);
+                if (reserva == null)
+                {
+                    _logger.LogWarning("Reserva no encontrada: {ReservaId}", reservaId);
+                    return false;
+                }
+
+                // Cambiar el estado de la reservación
+                var exito = await CambiarEstadoReservaAsync(reservaId, "Completada", usuarioId, "Reserva completada");
+                
+                if (exito)
+                {
+                    // Liberar la mesa
+                    await _mesaRepository.CambiarEstadoMesaAsync(reserva.MesaId, "Libre");
+                    _logger.LogInformation("Mesa {MesaId} liberada por completación de reserva", reserva.MesaId);
+                }
+
+                return exito;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al completar reserva {ReservaId}", reservaId);
+                return false;
+            }
         }
 
         // ============================================================================
@@ -894,6 +993,8 @@ namespace ElCriollo.API.Services
                 return false;
             }
         }
+
+
 
         /// <summary>
         /// Busca mesas alternativas en horarios cercanos

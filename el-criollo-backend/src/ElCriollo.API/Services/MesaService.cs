@@ -512,43 +512,44 @@ namespace ElCriollo.API.Services
                     return true;
                 }
                 
-                // Verificar que todas las órdenes estén pagadas o canceladas
-                foreach (var orden in ordenesActivas)
+                // Verificar que NO hay órdenes activas (pendientes, en preparación, etc.)
+                var ordenesNoFinalizadas = ordenesActivas.Where(o => 
+                    o.Estado != "Facturada" && 
+                    o.Estado != "Cancelada" && 
+                    o.Estado != "Completada"
+                ).ToList();
+                
+                if (ordenesNoFinalizadas.Any())
                 {
-                    _logger.LogInformation("📋 Verificando orden {OrdenId} en estado {Estado}", orden.OrdenID, orden.Estado);
+                    _logger.LogWarning("⚠️ Mesa {MesaId} tiene {Count} órdenes activas - no puede liberarse", 
+                        mesaId, ordenesNoFinalizadas.Count());
+                    return false;
+                }
+                
+                // Verificar que todas las órdenes facturadas estén pagadas
+                var ordenesFacturadas = ordenesActivas.Where(o => o.Estado == "Facturada").ToList();
+                
+                foreach (var orden in ordenesFacturadas)
+                {
+                    _logger.LogInformation("📋 Verificando orden facturada {OrdenId}", orden.OrdenID);
                     
-                    if (orden.Estado == "Cancelada") 
-                    {
-                        _logger.LogInformation("✅ Orden {OrdenId} está cancelada - continuando", orden.OrdenID);
-                        continue;
-                    }
+                    var facturas = await _facturaRepository.GetByOrdenAsync(orden.OrdenID);
+                    _logger.LogInformation("🧾 Orden {OrdenId} tiene {Count} facturas", orden.OrdenID, facturas.Count());
                     
-                    // Si la orden está facturada, verificar que tenga factura pagada
-                    if (orden.Estado == "Facturada")
+                    var facturaPagada = facturas.FirstOrDefault(f => f.Estado == "Pagada");
+                    
+                    if (facturaPagada == null)
                     {
-                        var facturas = await _facturaRepository.GetByOrdenAsync(orden.OrdenID);
-                        _logger.LogInformation("🧾 Orden {OrdenId} tiene {Count} facturas", orden.OrdenID, facturas.Count());
-                        
-                        var facturaPagada = facturas.FirstOrDefault(f => f.Estado == "Pagada");
-                        
-                        if (facturaPagada == null)
-                        {
-                            _logger.LogWarning("⚠️ Orden {OrdenId} está facturada pero no pagada", orden.OrdenID);
-                            return false;
-                        }
-                        else
-                        {
-                            _logger.LogInformation("✅ Orden {OrdenId} está facturada y pagada", orden.OrdenID);
-                        }
+                        _logger.LogWarning("⚠️ Orden {OrdenId} está facturada pero no pagada", orden.OrdenID);
+                        return false;
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ Orden {OrdenId} no está facturada (estado: {Estado})", orden.OrdenID, orden.Estado);
-                        return false;
+                        _logger.LogInformation("✅ Orden {OrdenId} está facturada y pagada", orden.OrdenID);
                     }
                 }
                 
-                _logger.LogInformation("✅ Mesa {MesaId} puede liberarse - todas las órdenes están pagadas o canceladas", mesaId);
+                _logger.LogInformation("✅ Mesa {MesaId} puede liberarse - todas las órdenes están finalizadas y pagadas", mesaId);
                 return true;
             }
             catch (Exception ex)

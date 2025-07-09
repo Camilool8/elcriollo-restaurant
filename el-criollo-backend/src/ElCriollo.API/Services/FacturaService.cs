@@ -105,19 +105,10 @@ namespace ElCriollo.API.Services
                 // Actualizar estado de la orden
                 await ActualizarEstadoOrdenPostFacturacionAsync(crearFacturaRequest.OrdenId);
 
-                // Verificar si se puede liberar la mesa (solo si todas las órdenes están pagadas)
+                // NO liberar mesa automáticamente - solo se liberará cuando todas las órdenes estén pagadas
                 if (orden.MesaID.HasValue)
                 {
-                    var puedeLiberarse = await _mesaService.PuedeLiberarseMesaAsync(orden.MesaID.Value);
-                    if (puedeLiberarse)
-                    {
-                        await _mesaService.LiberarMesaAsync(orden.MesaID.Value, orden.EmpleadoID);
-                        _logger.LogInformation("🪑 Mesa {MesaId} liberada automáticamente - todas las órdenes pagadas", orden.MesaID.Value);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("🪑 Mesa {MesaId} no liberada - aún hay órdenes pendientes", orden.MesaID.Value);
-                    }
+                    _logger.LogInformation("🪑 Mesa {MesaId} - factura creada, mesa permanece ocupada hasta que todas las órdenes estén pagadas", orden.MesaID.Value);
                 }
 
                 // Enviar factura por email automáticamente
@@ -227,8 +218,8 @@ namespace ElCriollo.API.Services
                     await ActualizarEstadoOrdenPostFacturacionAsync(orden.OrdenID);
                 }
 
-                // Liberar la mesa
-                await LiberarMesaPostFacturacionAsync(mesaId);
+                // NO liberar mesa automáticamente - solo se liberará cuando todas las órdenes estén pagadas
+                _logger.LogInformation("🪑 Mesa {MesaId} - facturación grupal completada, mesa permanece ocupada hasta que todas las órdenes estén pagadas", mesaId);
 
                 _logger.LogInformation("✅ Factura grupal {NumeroFactura} creada para mesa {MesaId} con {CantidadOrdenes} órdenes", 
                     numeroFactura, mesaId, ordenesActivas.Count);
