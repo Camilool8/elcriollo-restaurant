@@ -229,7 +229,7 @@ export const CrearOrdenForm: React.FC<CrearOrdenFormProps> = ({ mesa, onOrdenCre
         tipoOrden: 'Mesa',
         observaciones: carrito.observacionesGenerales,
         items: carrito.items.map((i) => ({
-          productoID: i.producto.productoID,
+          productoId: i.producto.productoID,
           cantidad: i.cantidad,
           notasEspeciales: i.notasEspeciales,
         })),

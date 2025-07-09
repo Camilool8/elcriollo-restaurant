@@ -83,7 +83,7 @@ export const CarritoCompras: React.FC<CarritoComprasProps> = ({
       setProcesandoOrden(true);
 
       const items: ItemOrdenRequest[] = carrito.items.map((item) => ({
-        productoID: item.producto.productoID,
+        productoId: item.producto.productoID,
         cantidad: item.cantidad,
         notasEspeciales: item.notasEspeciales,
       }));

@@ -78,7 +78,7 @@ export interface CrearOrdenRequest {
 }
 
 export interface ItemOrdenRequest {
-  productoID: number;
+  productoId: number;
   cantidad: number;
   notasEspeciales?: string;
 }

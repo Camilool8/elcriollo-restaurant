@@ -54,25 +54,15 @@ export const FacturaFormSimple: React.FC<FacturaFormProps> = ({
 
   useEffect(() => {
     if (orden) {
-      calcularTotales();
+      const subtotalBase = orden.subtotalCalculado - descuento;
+      const impuestoCalculado = calcularITBIS(subtotalBase);
+      const totalCalculado = subtotalBase + impuestoCalculado + propina;
+
+      setSubtotal(subtotalBase);
+      setImpuesto(impuestoCalculado);
+      setTotal(totalCalculado);
     }
   }, [orden, descuento, propina]);
-
-  // ============================================================================
-  // FUNCIONES DE CÁLCULO
-  // ============================================================================
-
-  const calcularTotales = () => {
-    if (!orden) return;
-
-    const subtotalBase = orden.subtotalCalculado - descuento;
-    const impuestoCalculado = calcularITBIS(subtotalBase);
-    const totalCalculado = subtotalBase + impuestoCalculado + propina;
-
-    setSubtotal(subtotalBase);
-    setImpuesto(impuestoCalculado);
-    setTotal(totalCalculado);
-  };
 
   // ============================================================================
   // VALIDACIONES

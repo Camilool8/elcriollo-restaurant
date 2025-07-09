@@ -2,9 +2,19 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { CarritoCompras } from '@/components/ordenes/CarritoCompras';
 import { Input } from '@/components/ui/Input';
-import { Search, PlusCircle, ChevronDown } from 'lucide-react';
+import {
+  Search,
+  PlusCircle,
+  ChevronDown,
+  Minus,
+  Plus,
+  Trash2,
+  Calculator,
+  Edit,
+} from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { ordenesService } from '@/services/ordenesService';
 import { productosService } from '@/services/productosService';
 import { clienteService } from '@/services/clienteService';
@@ -20,8 +30,7 @@ import type {
 } from '@/types';
 import { AlertTriangle, ChefHat } from 'lucide-react';
 
-// Note: The PanelBusquedaProductos component would be identical to the one in CrearOrdenForm.
-// For brevity, it is assumed to be defined here.
+// Componente para búsqueda de productos
 interface PanelBusquedaProductosProps {
   productos: Producto[];
   onAgregarProducto: (producto: Producto) => void;
@@ -101,7 +110,9 @@ const PanelBusquedaProductos: React.FC<PanelBusquedaProductosProps> = ({
                   >
                     <div>
                       <div className="font-medium">{producto.nombre}</div>
-                      <div className="text-sm text-gray-600">{producto.precio}</div>
+                      <div className="text-sm text-gray-600">
+                        RD$ {producto.precioNumerico.toFixed(2)}
+                      </div>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => onAgregarProducto(producto)}>
                       <PlusCircle className="w-5 h-5" />
@@ -114,6 +125,206 @@ const PanelBusquedaProductos: React.FC<PanelBusquedaProductosProps> = ({
         ))}
       </div>
     </div>
+  );
+};
+
+// Componente para resumen de orden específico para editar
+interface ResumenOrdenEditarProps {
+  carrito: Carrito;
+  clientes: Cliente[];
+  onActualizarCantidad: (productoId: number, nuevaCantidad: number) => void;
+  onEliminarProducto: (productoId: number) => void;
+  onSeleccionarCliente: (cliente: Cliente | null) => void;
+  onActualizarObservaciones: (observaciones: string) => void;
+  onLimpiarCarrito: () => void;
+}
+
+const ResumenOrdenEditar: React.FC<ResumenOrdenEditarProps> = ({
+  carrito,
+  clientes,
+  onActualizarCantidad,
+  onEliminarProducto,
+  onSeleccionarCliente,
+  onActualizarObservaciones,
+  onLimpiarCarrito,
+}) => {
+  const itemsAgrupados = useMemo(() => {
+    return carrito.items.reduce(
+      (acc, item) => {
+        const categoria = item.producto.categoria?.nombreCategoria || 'Sin Categoría';
+        if (!acc[categoria]) {
+          acc[categoria] = [];
+        }
+        acc[categoria].push(item);
+        return acc;
+      },
+      {} as Record<string, typeof carrito.items>
+    );
+  }, [carrito.items]);
+
+  if (carrito.items.length === 0) {
+    return (
+      <Card className="p-6 text-center">
+        <Edit className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Orden vacía</h3>
+        <p className="text-gray-600">Agrega productos para editar la orden</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Edit className="w-6 h-6 text-dominican-blue" />
+          <h3 className="text-lg font-bold text-gray-900">Editar Orden</h3>
+          <Badge variant="secondary">{carrito.items.length} items</Badge>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onLimpiarCarrito}
+          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Limpiar
+        </Button>
+      </div>
+
+      {/* Items del carrito agrupados por categoría */}
+      <div className="space-y-4">
+        {Object.entries(itemsAgrupados).map(([categoria, items]) => (
+          <div key={categoria}>
+            <h4 className="text-sm font-semibold text-gray-500 mb-2 border-b pb-1">{categoria}</h4>
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div key={item.producto.productoID} className="flex items-center space-x-3">
+                  {/* Detalles del producto */}
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{item.producto.nombre}</div>
+                    <div className="text-sm text-gray-500">
+                      RD$ {item.producto.precioNumerico.toFixed(2)}
+                    </div>
+                  </div>
+
+                  {/* Controles de cantidad */}
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        onActualizarCantidad(item.producto.productoID, item.cantidad - 1)
+                      }
+                      className="w-8 h-8"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={item.cantidad}
+                      onChange={(e) =>
+                        onActualizarCantidad(
+                          item.producto.productoID,
+                          parseInt(e.target.value, 10) || 1
+                        )
+                      }
+                      className="w-14 text-center"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        onActualizarCantidad(item.producto.productoID, item.cantidad + 1)
+                      }
+                      className="w-8 h-8"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Subtotal y botón de eliminar */}
+                  <div className="w-24 text-right">
+                    <div className="font-medium text-gray-800">
+                      RD$ {(item.producto.precioNumerico * item.cantidad).toFixed(2)}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEliminarProducto(item.producto.productoID)}
+                    className="text-gray-400 hover:text-red-600 w-8 h-8"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Selección de cliente */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+        <select
+          value={carrito.clienteSeleccionado?.clienteID ?? 'anonimo'}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === 'anonimo') {
+              onSeleccionarCliente(null);
+            } else {
+              const cliente = clientes.find((c) => c.clienteID === parseInt(value));
+              onSeleccionarCliente(cliente || null);
+            }
+          }}
+          className="w-full p-3 border border-gray-300 rounded-lg"
+        >
+          <option value="anonimo">Cliente Anónimo</option>
+          {clientes.map((cliente) => (
+            <option key={cliente.clienteID} value={cliente.clienteID}>
+              {cliente.nombreCompleto}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Observaciones */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Observaciones generales
+        </label>
+        <textarea
+          value={carrito.observacionesGenerales || ''}
+          onChange={(e) => onActualizarObservaciones(e.target.value)}
+          placeholder="Notas especiales para la orden..."
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent resize-none"
+          rows={3}
+        />
+      </div>
+
+      {/* Resumen de totales */}
+      <div className="border-t pt-4">
+        <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+          <Calculator className="w-5 h-5 mr-2" />
+          Resumen
+        </h4>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Subtotal:</span>
+            <span className="font-medium">RD$ {carrito.subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">ITBIS (18%):</span>
+            <span className="font-medium">RD$ {carrito.impuesto.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-lg font-bold">
+            <span>Total:</span>
+            <span className="text-dominican-blue">RD$ {carrito.total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 };
 
@@ -149,7 +360,7 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
           return {
             producto: detalle.producto,
             cantidad: detalle.cantidad,
-            subtotal: parseFloat(detalle.subtotal) || 0,
+            subtotal: detalle.producto.precioNumerico * detalle.cantidad,
             notasEspeciales: detalle.observaciones,
           };
         })
@@ -246,19 +457,24 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (carrito.items.length === 0) {
+      toast.error('Debe agregar al menos un producto a la orden');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const request: ActualizarOrdenRequest = {
         ordenID: orden.ordenID,
         observaciones: carrito.observacionesGenerales,
         items: carrito.items.map((i) => ({
-          productoID: i.producto.productoID,
+          productoId: i.producto.productoID,
           cantidad: i.cantidad,
           notasEspeciales: i.notasEspeciales,
         })),
       };
       const ordenActualizada = await ordenesService.actualizarOrden(orden.ordenID, request);
-      toast.success(`Orden #${orden.numeroOrden} actualizada.`);
+      toast.success(`Orden #${orden.numeroOrden} actualizada exitosamente`);
       onOrdenActualizada(ordenActualizada);
     } catch (err) {
       toast.error('Ocurrió un error al actualizar la orden.');
@@ -277,6 +493,7 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
   if (error)
     return (
       <div className="p-8 text-center text-red-600">
+        <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
         <p>{error}</p>
       </div>
     );
@@ -299,12 +516,9 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
           <h3 className="text-lg font-bold text-gray-900 sticky top-0 bg-gray-50 py-2">
             Resumen de la Orden
           </h3>
-          <CarritoCompras
+          <ResumenOrdenEditar
             carrito={carrito}
-            productos={productos}
-            mesas={[]}
             clientes={clientes}
-            onAgregarProducto={handleAgregarProducto}
             onActualizarCantidad={handleActualizarCantidad}
             onEliminarProducto={handleEliminarProducto}
             onLimpiarCarrito={handleLimpiarCarrito}
@@ -314,7 +528,6 @@ export const EditarOrdenForm: React.FC<EditarOrdenFormProps> = ({
             onSeleccionarCliente={(cliente) =>
               setCarrito((prev) => ({ ...prev, clienteSeleccionado: cliente || undefined }))
             }
-            onConfirmarOrden={handleSubmit}
           />
         </div>
       </div>

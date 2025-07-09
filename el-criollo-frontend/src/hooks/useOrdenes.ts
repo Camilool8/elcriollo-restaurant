@@ -142,7 +142,7 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
           observaciones: orden.observaciones,
           items:
             orden.detalles?.map((d) => ({
-              productoID: d.producto!.productoID,
+              productoId: d.producto!.productoID,
               cantidad: d.cantidad,
               notasEspeciales: d.observaciones,
             })) || [],
