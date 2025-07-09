@@ -214,12 +214,6 @@ const AdminDashboard: React.FC = () => {
                 Gestión de Categorías
               </Button>
             </Link>
-
-            <Link to="/admin/configuracion">
-              <Button variant="outline" fullWidth leftIcon={<Settings className="w-4 h-4" />}>
-                Configuración
-              </Button>
-            </Link>
           </div>
         </Card>
       </div>

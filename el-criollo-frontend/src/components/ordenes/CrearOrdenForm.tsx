@@ -45,7 +45,7 @@ const PanelBusquedaProductos: React.FC<PanelBusquedaProductosProps> = ({
   const productosAgrupados = useMemo(() => {
     return productosFiltrados.reduce(
       (acc, producto) => {
-        const categoria = producto.categoria?.nombre || 'Sin Categoría';
+        const categoria = producto.categoria?.nombreCategoria || 'Sin Categoría';
         if (!acc[categoria]) {
           acc[categoria] = [];
         }

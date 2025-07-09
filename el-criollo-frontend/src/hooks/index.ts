@@ -9,3 +9,6 @@ export { useForm } from './useForm';
 export { useDebounce } from './useDebounce';
 export { useLocalStorage } from './useLocalStorage';
 export { usePagination } from './usePagination';
+export { useCategorias } from './useCategorias';
+export { useProductos } from './useProductos';
+export { useReservaciones } from './useReservaciones';

@@ -8,11 +8,19 @@ export interface Categoria {
   estado: boolean;
 }
 
+export interface CategoriaBasica {
+  categoriaID: number;
+  nombreCategoria: string;
+  descripcion?: string;
+  cantidadProductos: number;
+  productosDisponibles: number;
+}
+
 export interface Producto {
   productoID: number;
   nombre: string;
   descripcion?: string;
-  categoria: Categoria;
+  categoria: CategoriaBasica;
   precio: string;
   precioNumerico: number;
   tiempoPreparacion: string;

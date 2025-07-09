@@ -149,5 +149,10 @@ namespace ElCriollo.API.Interfaces
         Task<IEnumerable<T>> GetWhereWithIncludesAsync(
             Expression<Func<T, bool>> predicate,
             params Expression<Func<T, object>>[] includeProperties);
+
+        /// <summary>
+        /// Limpia el caché del contexto de Entity Framework
+        /// </summary>
+        void ClearChangeTracker();
     }
 }

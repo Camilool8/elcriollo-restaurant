@@ -32,7 +32,7 @@ public class CategoriaRepository : BaseRepository<Categoria>, ICategoriaReposito
     public async Task<Categoria?> GetByNombreAsync(string nombre)
     {
         return await _context.Categorias
-            .FirstOrDefaultAsync(c => c.Nombre.Equals(nombre, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefaultAsync(c => c.Nombre.ToLower() == nombre.ToLower());
     }
 
     /// <summary>
@@ -40,7 +40,8 @@ public class CategoriaRepository : BaseRepository<Categoria>, ICategoriaReposito
     /// </summary>
     public async Task<bool> ExistePorNombreAsync(string nombre, int? excludeId = null)
     {
-        var query = _context.Categorias.Where(c => c.Nombre.Equals(nombre, StringComparison.OrdinalIgnoreCase));
+        var nombreLower = nombre.ToLower();
+        var query = _context.Categorias.Where(c => c.Nombre.ToLower() == nombreLower);
         
         if (excludeId.HasValue)
         {
@@ -56,7 +57,7 @@ public class CategoriaRepository : BaseRepository<Categoria>, ICategoriaReposito
     public async Task<IEnumerable<Categoria>> GetCategoriasConProductosAsync()
     {
         return await _context.Categorias
-            .Include(c => c.Productos)
+            .Include(c => c.Productos.Where(p => p.Estado)) // Solo incluir productos activos
             .OrderBy(c => c.Nombre)
             .ToListAsync();
     }
@@ -69,7 +70,7 @@ public class CategoriaRepository : BaseRepository<Categoria>, ICategoriaReposito
         return await _context.Categorias
             .Where(c => c.CategoriaID == categoriaId)
             .SelectMany(c => c.Productos)
-            .AnyAsync();
+            .AnyAsync(p => p.Estado);
     }
 
     /// <summary>

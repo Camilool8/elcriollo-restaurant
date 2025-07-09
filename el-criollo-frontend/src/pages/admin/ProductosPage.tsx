@@ -15,8 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { productosService } from '@/services/productosService';
-import { categoriaService } from '@/services/categoriaService';
+import { useProductos } from '@/hooks/useProductos';
 import { Producto, Categoria } from '@/types';
 import { formatearPrecio } from '@/utils/dominicanValidations';
 
@@ -26,7 +25,6 @@ interface CreateProductoForm {
   categoriaID: number;
   precio: string;
   tiempoPreparacion: string;
-  estaDisponible: boolean;
 }
 
 interface EditProductoForm {
@@ -35,7 +33,6 @@ interface EditProductoForm {
   categoriaID: number;
   precio: string;
   tiempoPreparacion: string;
-  estaDisponible: boolean;
 }
 
 interface CreateProductoRequest {
@@ -45,13 +42,26 @@ interface CreateProductoRequest {
   precio: string;
   precioNumerico: number;
   tiempoPreparacion: string;
-  estaDisponible: boolean;
 }
 
 const ProductosPage: React.FC = () => {
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    productos,
+    categorias,
+    isLoading,
+    error,
+    loadData,
+    createProducto,
+    updateProducto,
+    deleteProducto,
+    searchProductos,
+    totalProductos,
+    productosActivos,
+    productosInactivos,
+    productosStockBajo,
+    productosAgotados,
+  } = useProductos({ autoRefresh: true, refreshInterval: 30000 });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -65,7 +75,6 @@ const ProductosPage: React.FC = () => {
     categoriaID: 0,
     precio: '',
     tiempoPreparacion: '',
-    estaDisponible: true,
   });
   const [editForm, setEditForm] = useState<EditProductoForm>({
     nombre: '',
@@ -73,29 +82,7 @@ const ProductosPage: React.FC = () => {
     categoriaID: 0,
     precio: '',
     tiempoPreparacion: '',
-    estaDisponible: true,
   });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const [productosData, categoriasData] = await Promise.all([
-        productosService.getAllProductos(),
-        categoriaService.getCategorias(),
-      ]);
-      setProductos(productosData || []);
-      setCategorias(categoriasData || []);
-    } catch (error: any) {
-      console.error('Error cargando datos:', error);
-      toast.error('Error al cargar datos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateProducto = async () => {
     if (!createForm.nombre.trim() || !createForm.categoriaID || !createForm.precio.trim()) {
@@ -109,19 +96,18 @@ const ProductosPage: React.FC = () => {
       return;
     }
 
-    try {
-      const productoData = {
-        nombre: createForm.nombre.trim(),
-        descripcion: createForm.descripcion.trim(),
-        categoriaId: createForm.categoriaID,
-        precio: precioNumerico,
-        tiempoPreparacion: createForm.tiempoPreparacion.trim()
-          ? parseInt(createForm.tiempoPreparacion)
-          : undefined,
-      };
-      await productosService.crearProducto(productoData);
+    const productoData = {
+      nombre: createForm.nombre.trim(),
+      descripcion: createForm.descripcion.trim(),
+      categoriaId: createForm.categoriaID,
+      precio: precioNumerico,
+      tiempoPreparacion: createForm.tiempoPreparacion.trim()
+        ? parseInt(createForm.tiempoPreparacion)
+        : undefined,
+    };
 
-      toast.success('Producto creado exitosamente');
+    const success = await createProducto(productoData);
+    if (success) {
       setShowCreateModal(false);
       setCreateForm({
         nombre: '',
@@ -129,11 +115,7 @@ const ProductosPage: React.FC = () => {
         categoriaID: 0,
         precio: '',
         tiempoPreparacion: '',
-        estaDisponible: true,
       });
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al crear producto');
     }
   };
 
@@ -154,20 +136,18 @@ const ProductosPage: React.FC = () => {
       return;
     }
 
-    try {
-      const productoData = {
-        nombre: editForm.nombre.trim(),
-        descripcion: editForm.descripcion.trim(),
-        categoriaId: editForm.categoriaID,
-        precio: precioNumerico,
-        tiempoPreparacion: editForm.tiempoPreparacion.trim()
-          ? parseInt(editForm.tiempoPreparacion)
-          : undefined,
-        disponible: editForm.estaDisponible,
-      };
-      await productosService.actualizarProducto(selectedProducto.productoID, productoData);
+    const productoData = {
+      nombre: editForm.nombre.trim(),
+      descripcion: editForm.descripcion.trim(),
+      categoriaId: editForm.categoriaID,
+      precio: precioNumerico,
+      tiempoPreparacion: editForm.tiempoPreparacion.trim()
+        ? parseInt(editForm.tiempoPreparacion)
+        : undefined,
+    };
 
-      toast.success('Producto actualizado exitosamente');
+    const success = await updateProducto(selectedProducto.productoID, productoData);
+    if (success) {
       setShowEditModal(false);
       setSelectedProducto(null);
       setEditForm({
@@ -176,25 +156,17 @@ const ProductosPage: React.FC = () => {
         categoriaID: 0,
         precio: '',
         tiempoPreparacion: '',
-        estaDisponible: true,
       });
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar producto');
     }
   };
 
   const handleDeleteProducto = async () => {
     if (!selectedProducto) return;
 
-    try {
-      await productosService.eliminarProducto(selectedProducto.productoID);
-      toast.success('Producto eliminado exitosamente');
+    const success = await deleteProducto(selectedProducto.productoID);
+    if (success) {
       setShowDeleteModal(false);
       setSelectedProducto(null);
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al eliminar producto');
     }
   };
 
@@ -206,7 +178,6 @@ const ProductosPage: React.FC = () => {
       categoriaID: producto.categoria.categoriaID,
       precio: producto.precio,
       tiempoPreparacion: producto.tiempoPreparacion,
-      estaDisponible: producto.estaDisponible,
     });
     setShowEditModal(true);
   };
@@ -221,21 +192,11 @@ const ProductosPage: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  const filteredProductos = productos.filter((producto) => {
-    const matchesSearch =
-      producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (producto.descripcion &&
-        producto.descripcion.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesCategoria =
-      !selectedCategoria || producto.categoria.categoriaID === selectedCategoria;
-
-    return matchesSearch && matchesCategoria;
-  });
+  const filteredProductos = searchProductos(searchQuery, selectedCategoria || undefined);
 
   const getCategoriaName = (categoriaID: number) => {
     const categoria = categorias.find((c) => c.categoriaID === categoriaID);
-    return categoria?.nombre || 'Categoría no encontrada';
+    return categoria?.nombreCategoria || 'Categoría no encontrada';
   };
 
   return (
@@ -247,38 +208,38 @@ const ProductosPage: React.FC = () => {
             Gestión de Productos
           </h1>
           <p className="text-stone-gray mt-1">Administra el catálogo de productos</p>
+          {error && <p className="text-red-600 text-sm mt-1">Error: {error}</p>}
         </div>
-        <Button
-          variant="primary"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setShowCreateModal(true)}
-        >
-          Nuevo Producto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadData} disabled={isLoading}>
+            {isLoading ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+          <Button
+            variant="primary"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Nuevo Producto
+          </Button>
+        </div>
       </div>
 
       {/* Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-dominican-blue">{productos.length}</p>
+          <p className="text-2xl font-bold text-dominican-blue">{totalProductos}</p>
           <p className="text-sm text-stone-gray">Total Productos</p>
         </Card>
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-green-600">
-            {productos.filter((p) => p.estaDisponible).length}
-          </p>
+          <p className="text-2xl font-bold text-green-600">{productosActivos}</p>
           <p className="text-sm text-stone-gray">Disponibles</p>
         </Card>
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-red-600">
-            {productos.filter((p) => !p.estaDisponible).length}
-          </p>
+          <p className="text-2xl font-bold text-red-600">{productosInactivos}</p>
           <p className="text-sm text-stone-gray">No Disponibles</p>
         </Card>
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-blue-600">
-            {productos.filter((p) => p.inventario?.stockBajo).length}
-          </p>
+          <p className="text-2xl font-bold text-blue-600">{productosStockBajo}</p>
           <p className="text-sm text-stone-gray">Stock Bajo</p>
         </Card>
       </div>
@@ -299,12 +260,18 @@ const ProductosPage: React.FC = () => {
             <select
               value={selectedCategoria || ''}
               onChange={(e) => setSelectedCategoria(e.target.value ? Number(e.target.value) : null)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent text-gray-900 bg-white"
             >
-              <option value="">Todas las categorías</option>
+              <option value="" className="text-gray-900">
+                Todas las categorías
+              </option>
               {categorias.map((categoria) => (
-                <option key={categoria.categoriaID} value={categoria.categoriaID}>
-                  {categoria.nombre}
+                <option
+                  key={categoria.categoriaID}
+                  value={categoria.categoriaID}
+                  className="text-gray-900"
+                >
+                  {categoria.nombreCategoria || `Categoría ${categoria.categoriaID}`}
                 </option>
               ))}
             </select>
@@ -378,7 +345,9 @@ const ProductosPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="text-stone-gray">{producto.categoria.nombre}</span>
+                      <span className="text-stone-gray">
+                        {producto.categoria?.nombreCategoria || 'Categoría no disponible'}
+                      </span>
                     </td>
                     <td className="p-4 text-center">
                       <span className="font-medium text-dominican-red">
@@ -480,12 +449,18 @@ const ProductosPage: React.FC = () => {
                 onChange={(e) =>
                   setCreateForm({ ...createForm, categoriaID: Number(e.target.value) })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent text-gray-900 bg-white"
               >
-                <option value={0}>Seleccionar categoría</option>
+                <option value={0} className="text-gray-900">
+                  Seleccionar categoría
+                </option>
                 {categorias.map((categoria) => (
-                  <option key={categoria.categoriaID} value={categoria.categoriaID}>
-                    {categoria.nombre}
+                  <option
+                    key={categoria.categoriaID}
+                    value={categoria.categoriaID}
+                    className="text-gray-900"
+                  >
+                    {categoria.nombreCategoria || `Categoría ${categoria.categoriaID}`}
                   </option>
                 ))}
               </select>
@@ -505,7 +480,7 @@ const ProductosPage: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-dominican-blue mb-2">Precio *</label>
               <Input
@@ -527,19 +502,6 @@ const ProductosPage: React.FC = () => {
                 }
                 fullWidth
               />
-            </div>
-            <div className="flex items-center">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={createForm.estaDisponible}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, estaDisponible: e.target.checked })
-                  }
-                  className="mr-2"
-                />
-                <span className="text-sm font-medium text-dominican-blue">Disponible</span>
-              </label>
             </div>
           </div>
 
@@ -581,12 +543,18 @@ const ProductosPage: React.FC = () => {
               <select
                 value={editForm.categoriaID}
                 onChange={(e) => setEditForm({ ...editForm, categoriaID: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent text-gray-900 bg-white"
               >
-                <option value={0}>Seleccionar categoría</option>
+                <option value={0} className="text-gray-900">
+                  Seleccionar categoría
+                </option>
                 {categorias.map((categoria) => (
-                  <option key={categoria.categoriaID} value={categoria.categoriaID}>
-                    {categoria.nombre}
+                  <option
+                    key={categoria.categoriaID}
+                    value={categoria.categoriaID}
+                    className="text-gray-900"
+                  >
+                    {categoria.nombreCategoria || `Categoría ${categoria.categoriaID}`}
                   </option>
                 ))}
               </select>
@@ -606,7 +574,7 @@ const ProductosPage: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-dominican-blue mb-2">Precio *</label>
               <Input
@@ -626,17 +594,6 @@ const ProductosPage: React.FC = () => {
                 onChange={(e) => setEditForm({ ...editForm, tiempoPreparacion: e.target.value })}
                 fullWidth
               />
-            </div>
-            <div className="flex items-center">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.estaDisponible}
-                  onChange={(e) => setEditForm({ ...editForm, estaDisponible: e.target.checked })}
-                  className="mr-2"
-                />
-                <span className="text-sm font-medium text-dominican-blue">Disponible</span>
-              </label>
             </div>
           </div>
 
@@ -668,7 +625,7 @@ const ProductosPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-stone-gray mb-1">Categoría</label>
                 <p className="font-medium text-dominican-blue">
-                  {selectedProducto.categoria.nombre}
+                  {selectedProducto.categoria?.nombreCategoria || 'Categoría no disponible'}
                 </p>
               </div>
             </div>

@@ -151,6 +151,21 @@ namespace ElCriollo.API.Services
         /// <returns>Número de reservas liberadas</returns>
         Task<int> LiberarReservasVencidasAsync(int minutosTolerancia = 15);
 
+        /// <summary>
+        /// Envía recordatorio por email para una reservación específica
+        /// </summary>
+        /// <param name="reservacionId">ID de la reservación</param>
+        /// <param name="minutosAntes">Minutos antes de la reservación</param>
+        /// <returns>Éxito del envío</returns>
+        Task<bool> EnviarRecordatorioReservacionAsync(int reservacionId, int minutosAntes = 60);
+
+        /// <summary>
+        /// Envía recordatorios automáticos para todas las reservaciones que lo requieren
+        /// </summary>
+        /// <param name="minutosAntes">Minutos antes de la reservación</param>
+        /// <returns>Número de recordatorios enviados</returns>
+        Task<int> EnviarRecordatoriosAutomaticosAsync(int minutosAntes = 60);
+
         // ============================================================================
         // REPORTES Y ESTADÍSTICAS BÁSICAS
         // ============================================================================

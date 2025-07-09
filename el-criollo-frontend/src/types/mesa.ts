@@ -1,8 +1,4 @@
-export interface ClienteBasico {
-  clienteID: number;
-  nombreCompleto: string;
-  telefono?: string;
-}
+import type { ClienteBasico, ReservacionBasica } from './reservacion';
 
 export interface OrdenBasica {
   ordenID: number;
@@ -10,14 +6,6 @@ export interface OrdenBasica {
   totalCalculado: number;
   estado: string;
   fechaCreacion: string;
-}
-
-export interface ReservacionBasica {
-  reservacionID: number;
-  numeroReservacion: string;
-  cantidadPersonas: number;
-  fechaHora: string;
-  estado: string;
 }
 
 export interface Mesa {

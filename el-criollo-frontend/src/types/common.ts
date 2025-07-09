@@ -123,20 +123,6 @@ export interface AppConfig {
   requestTimeout: number;
 }
 
-export interface SystemConfig {
-  passwordMinLength: number;
-  passwordRequireUppercase: boolean;
-  passwordRequireNumbers: boolean;
-  passwordRequireSpecialChars: boolean;
-  sessionTimeoutMinutes: number;
-  clienteRequiereCedula: boolean;
-  clienteRequiereTelefono: boolean;
-  clienteRequiereEmail: boolean;
-  empleadoRequiereCedula: boolean;
-  empleadoRequiereSalario: boolean;
-  empleadoRequiereDepartamento: boolean;
-}
-
 // ====================================
 // TIPOS DE UI
 // ====================================

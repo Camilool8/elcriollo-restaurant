@@ -52,12 +52,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     },
     { name: 'Categorías', href: '/admin/categorias', icon: Package, roles: ['Administrador'] },
     { name: 'Reportes', href: '/admin/reportes', icon: BarChart3, roles: ['Administrador'] },
-    {
-      name: 'Configuración',
-      href: '/admin/configuracion',
-      icon: Settings,
-      roles: ['Administrador'],
-    },
   ];
 
   const navigation = allNavigation.filter((item) => hasAnyRole(item.roles));

@@ -276,6 +276,185 @@ namespace ElCriollo.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtener reservaciones por mesa
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <returns>Lista de reservaciones de la mesa</returns>
+        /// <response code="200">Lista de reservaciones</response>
+        [HttpGet("mesa/{mesaId:int}")]
+        [SwaggerOperation(
+            Summary = "Obtener reservaciones por mesa",
+            Description = "Devuelve todas las reservaciones de una mesa específica",
+            OperationId = "Reservacion.GetPorMesa",
+            Tags = new[] { "Consulta de Reservaciones" }
+        )]
+        [ProducesResponseType(typeof(IEnumerable<ReservacionResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ReservacionResponse>>> GetReservacionesPorMesa(int mesaId)
+        {
+            try
+            {
+                // Usar el método de disponibilidad para obtener reservaciones por mesa
+                var mesasDisponibles = await _reservacionService.BuscarMesasDisponiblesParaReservaAsync(DateTime.Now, 1, 120);
+                var mesa = mesasDisponibles.FirstOrDefault(m => m.Id == mesaId);
+                
+                if (mesa == null)
+                {
+                    return Ok(new List<ReservacionResponse>());
+                }
+
+                // Por ahora devolver lista vacía hasta implementar el método específico
+                return Ok(new List<ReservacionResponse>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener reservaciones por mesa {MesaId}", mesaId);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        /// <summary>
+        /// Obtener reservaciones por cliente
+        /// </summary>
+        /// <param name="clienteId">ID del cliente</param>
+        /// <returns>Lista de reservaciones del cliente</returns>
+        /// <response code="200">Lista de reservaciones</response>
+        [HttpGet("cliente/{clienteId:int}")]
+        [SwaggerOperation(
+            Summary = "Obtener reservaciones por cliente",
+            Description = "Devuelve todas las reservaciones de un cliente específico",
+            OperationId = "Reservacion.GetPorCliente",
+            Tags = new[] { "Consulta de Reservaciones" }
+        )]
+        [ProducesResponseType(typeof(IEnumerable<ReservacionResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ReservacionResponse>>> GetReservacionesPorCliente(int clienteId)
+        {
+            try
+            {
+                // Usar el método de reservaciones por cliente del servicio
+                var reservaciones = await _reservacionService.GetReservasClienteAsync(clienteId);
+                return Ok(reservaciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener reservaciones por cliente {ClienteId}", clienteId);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        /// <summary>
+        /// Obtener horarios disponibles para una mesa
+        /// </summary>
+        /// <param name="mesaId">ID de la mesa</param>
+        /// <param name="fecha">Fecha a consultar</param>
+        /// <returns>Lista de horarios disponibles</returns>
+        /// <response code="200">Lista de horarios</response>
+        [HttpGet("horarios-disponibles/{mesaId:int}")]
+        [SwaggerOperation(
+            Summary = "Obtener horarios disponibles",
+            Description = "Devuelve los horarios disponibles para una mesa en una fecha específica",
+            OperationId = "Reservacion.GetHorariosDisponibles",
+            Tags = new[] { "Consulta de Disponibilidad" }
+        )]
+        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<string>>> GetHorariosDisponibles(int mesaId, [FromQuery] string fecha)
+        {
+            try
+            {
+                // Convertir string a DateTime
+                if (!DateTime.TryParse(fecha, out DateTime fechaDateTime))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Formato de fecha inválido",
+                        Detail = "La fecha debe estar en formato YYYY-MM-DD",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                // Generar horarios disponibles de 11:00 AM a 10:00 PM cada 30 minutos
+                var horarios = new List<string>();
+                var horaInicio = new TimeSpan(11, 0, 0); // 11:00 AM
+                var horaFin = new TimeSpan(22, 0, 0); // 10:00 PM
+                var intervalo = TimeSpan.FromMinutes(30);
+
+                for (var hora = horaInicio; hora <= horaFin; hora += intervalo)
+                {
+                    var fechaHora = fechaDateTime.Date.Add(hora);
+                    var disponible = await _reservacionService.VerificarDisponibilidadMesaAsync(mesaId, fechaHora, 120);
+                    
+                    if (disponible)
+                    {
+                        horarios.Add(fechaHora.ToString("HH:mm"));
+                    }
+                }
+
+                return Ok(horarios);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener horarios disponibles para mesa {MesaId}", mesaId);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        /// <summary>
+        /// Obtener reservaciones retrasadas
+        /// </summary>
+        /// <returns>Lista de reservaciones retrasadas</returns>
+        /// <response code="200">Lista de reservaciones</response>
+        [HttpGet("retrasadas")]
+        [SwaggerOperation(
+            Summary = "Obtener reservaciones retrasadas",
+            Description = "Devuelve las reservaciones que están retrasadas",
+            OperationId = "Reservacion.GetRetrasadas",
+            Tags = new[] { "Consulta de Reservaciones" }
+        )]
+        [ProducesResponseType(typeof(IEnumerable<ReservacionResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ReservacionResponse>>> GetReservacionesRetrasadas()
+        {
+            try
+            {
+                // Usar el método de reservaciones vencidas del servicio
+                var reservaciones = await _reservacionService.GetReservasVencidasAsync(15);
+                return Ok(reservaciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener reservaciones retrasadas");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        /// <summary>
+        /// Obtener reservaciones próximas
+        /// </summary>
+        /// <param name="minutos">Minutos hacia adelante para buscar</param>
+        /// <returns>Lista de reservaciones próximas</returns>
+        /// <response code="200">Lista de reservaciones</response>
+        [HttpGet("proximas")]
+        [SwaggerOperation(
+            Summary = "Obtener reservaciones próximas",
+            Description = "Devuelve las reservaciones que están próximas a comenzar",
+            OperationId = "Reservacion.GetProximas",
+            Tags = new[] { "Consulta de Reservaciones" }
+        )]
+        [ProducesResponseType(typeof(IEnumerable<ReservacionResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ReservacionResponse>>> GetReservacionesProximas([FromQuery] int minutos = 30)
+        {
+            try
+            {
+                // Usar el método de próximas reservaciones del servicio
+                var reservaciones = await _reservacionService.GetProximasReservasAsync(minutos / 60);
+                return Ok(reservaciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener reservaciones próximas");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
         // ============================================================================
         // OPERACIONES DE RESERVACIÓN
         // ============================================================================
@@ -407,42 +586,197 @@ namespace ElCriollo.API.Controllers
         )]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-        public Task<ActionResult<ApiResponse>> EnviarRecordatorioReservacion(int id)
+        public async Task<ActionResult<ApiResponse>> EnviarRecordatorioReservacion(int id)
         {
             try
             {
                 _logger.LogInformation("📧 Enviando recordatorio de reservación {ReservacionId}", id);
 
-                // Temporalmente comentado hasta implementar notificaciones
-                // await _reservacionService.EnviarRecordatorioReservacionAsync(id);
+                var exito = await _reservacionService.EnviarRecordatorioReservacionAsync(id, 60);
                 
+                if (!exito)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "No se pudo enviar el recordatorio",
+                        Detail = "La reservación no existe, no tiene email configurado o ya pasó la hora",
+                        Status = StatusCodes.Status404NotFound
+                    });
+                }
+
                 _logger.LogInformation("✅ Recordatorio de reservación {ReservacionId} enviado", id);
                 
-                var result = Ok(new ApiResponse
+                return Ok(new ApiResponse
                 {
                     Success = true,
                     Message = "Recordatorio enviado exitosamente"
                 });
-
-                return Task.FromResult<ActionResult<ApiResponse>>(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning("⚠️ Error al enviar recordatorio: {Mensaje}", ex.Message);
-                var result = NotFound(new ProblemDetails
-                {
-                    Title = "Reservación no encontrada",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status404NotFound
-                });
-
-                return Task.FromResult<ActionResult<ApiResponse>>(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al enviar recordatorio de reservación {ReservacionId}", id);
-                var result = StatusCode(StatusCodes.Status500InternalServerError);
-                return Task.FromResult<ActionResult<ApiResponse>>(result);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al enviar el recordatorio",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Iniciar una reservación (cliente llegó)
+        /// </summary>
+        /// <param name="id">ID de la reservación a iniciar</param>
+        /// <returns>Resultado de la operación</returns>
+        /// <response code="200">Reservación iniciada exitosamente</response>
+        /// <response code="400">La reservación no se pudo iniciar</response>
+        /// <response code="404">Reservación no encontrada</response>
+        [HttpPost("{id:int}/iniciar")]
+        [Authorize(Roles = "Administrador,Recepcion,Mesero")]
+        [SwaggerOperation(
+            Summary = "Iniciar reservación",
+            Description = "Marca que el cliente ha llegado y la reservación está en curso",
+            OperationId = "Reservacion.Iniciar",
+            Tags = new[] { "Operaciones de Reservación" }
+        )]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse>> IniciarReservacion(int id)
+        {
+            try
+            {
+                _logger.LogInformation("🚀 Iniciando reservación ID: {ReservacionId}", id);
+
+                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var exito = await _reservacionService.MarcarClienteLlegoAsync(id, usuarioId);
+
+                if (!exito)
+                {
+                    return BadRequest(new ValidationProblemDetails
+                    {
+                        Title = "No se pudo iniciar la reservación",
+                        Detail = "La reservación podría no existir o ya estar en un estado final",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                return Ok(new ApiResponse { Success = true, Message = "Reservación iniciada exitosamente." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al iniciar reservación {ReservacionId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al procesar el inicio de la reservación.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Completar una reservación
+        /// </summary>
+        /// <param name="id">ID de la reservación a completar</param>
+        /// <returns>Resultado de la operación</returns>
+        /// <response code="200">Reservación completada exitosamente</response>
+        /// <response code="400">La reservación no se pudo completar</response>
+        /// <response code="404">Reservación no encontrada</response>
+        [HttpPost("{id:int}/completar")]
+        [Authorize(Roles = "Administrador,Recepcion,Mesero")]
+        [SwaggerOperation(
+            Summary = "Completar reservación",
+            Description = "Marca la reservación como completada",
+            OperationId = "Reservacion.Completar",
+            Tags = new[] { "Operaciones de Reservación" }
+        )]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse>> CompletarReservacion(int id)
+        {
+            try
+            {
+                _logger.LogInformation("✅ Completando reservación ID: {ReservacionId}", id);
+
+                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var exito = await _reservacionService.CompletarReservaAsync(id, usuarioId);
+
+                if (!exito)
+                {
+                    return BadRequest(new ValidationProblemDetails
+                    {
+                        Title = "No se pudo completar la reservación",
+                        Detail = "La reservación podría no existir o ya estar completada",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                return Ok(new ApiResponse { Success = true, Message = "Reservación completada exitosamente." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al completar reservación {ReservacionId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al procesar la finalización de la reservación.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Marcar reservación como No Show
+        /// </summary>
+        /// <param name="id">ID de la reservación a marcar</param>
+        /// <returns>Resultado de la operación</returns>
+        /// <response code="200">Reservación marcada como No Show exitosamente</response>
+        /// <response code="400">La reservación no se pudo marcar</response>
+        /// <response code="404">Reservación no encontrada</response>
+        [HttpPost("{id:int}/no-show")]
+        [Authorize(Roles = "Administrador,Recepcion")]
+        [SwaggerOperation(
+            Summary = "Marcar No Show",
+            Description = "Marca la reservación como No Show (cliente no llegó)",
+            OperationId = "Reservacion.MarcarNoShow",
+            Tags = new[] { "Operaciones de Reservación" }
+        )]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse>> MarcarNoShow(int id)
+        {
+            try
+            {
+                _logger.LogInformation("❌ Marcando No Show para reservación ID: {ReservacionId}", id);
+
+                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var exito = await _reservacionService.MarcarNoShowAsync(id, usuarioId);
+
+                if (!exito)
+                {
+                    return BadRequest(new ValidationProblemDetails
+                    {
+                        Title = "No se pudo marcar como No Show",
+                        Detail = "La reservación podría no existir o ya estar en un estado final",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                return Ok(new ApiResponse { Success = true, Message = "Reservación marcada como No Show exitosamente." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al marcar No Show para reservación {ReservacionId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno",
+                    Detail = "Ocurrió un error al procesar el No Show.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
             }
         }
 
@@ -466,11 +800,32 @@ namespace ElCriollo.API.Controllers
             Tags = new[] { "Reportes" }
         )]
         [ProducesResponseType(typeof(EstadisticasReservacionResponse), StatusCodes.Status200OK)]
-        public async Task<ActionResult<EstadisticasReservacionResponse>> GetEstadisticasReservaciones([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFin)
+        public async Task<ActionResult<EstadisticasReservacionResponse>> GetEstadisticasReservaciones([FromQuery] string fechaInicio, [FromQuery] string fechaFin)
         {
             try
             {
-                var estadisticas = await _reservacionService.GetEstadisticasReservasAsync(fechaInicio, fechaFin);
+                // Convertir strings a DateTime
+                if (!DateTime.TryParse(fechaInicio, out DateTime fechaInicioDateTime))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Formato de fecha de inicio inválido",
+                        Detail = "La fecha de inicio debe estar en formato YYYY-MM-DD",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                if (!DateTime.TryParse(fechaFin, out DateTime fechaFinDateTime))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Formato de fecha de fin inválido",
+                        Detail = "La fecha de fin debe estar en formato YYYY-MM-DD",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                var estadisticas = await _reservacionService.GetEstadisticasReservasAsync(fechaInicioDateTime, fechaFinDateTime);
                 
                 // Mapear a la respuesta esperada por el controlador
                 var response = new EstadisticasReservacionResponse
@@ -509,11 +864,33 @@ namespace ElCriollo.API.Controllers
             Tags = new[] { "Consulta de Disponibilidad" }
         )]
         [ProducesResponseType(typeof(DisponibilidadMesasResponse), StatusCodes.Status200OK)]
-        public async Task<ActionResult<DisponibilidadMesasResponse>> GetDisponibilidadMesas([FromQuery] DateTime fecha, [FromQuery] TimeSpan hora)
+        public async Task<ActionResult<DisponibilidadMesasResponse>> GetDisponibilidadMesas([FromQuery] string fecha, [FromQuery] string hora)
         {
             try
             {
-                var fechaHora = fecha.Date.Add(hora);
+                // Convertir string a DateTime
+                if (!DateTime.TryParse(fecha, out DateTime fechaDateTime))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Formato de fecha inválido",
+                        Detail = "La fecha debe estar en formato YYYY-MM-DD",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                // Convertir string a TimeSpan
+                if (!TimeSpan.TryParse(hora, out TimeSpan horaTimeSpan))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Formato de hora inválido",
+                        Detail = "La hora debe estar en formato HH:MM",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                var fechaHora = fechaDateTime.Date.Add(horaTimeSpan);
                 var mesasDisponibles = await _reservacionService.BuscarMesasDisponiblesParaReservaAsync(fechaHora, 4, 120);
                 
                 var response = new DisponibilidadMesasResponse

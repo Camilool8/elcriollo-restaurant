@@ -1,4 +1,4 @@
-import { Cliente, Empleado, MesaEstado } from './index';
+import { Cliente, Empleado } from './index';
 // ====================================
 // REQUESTS DE USUARIO Y EMPLEADO
 // ====================================
@@ -129,7 +129,7 @@ export interface UpdateMesaRequest {
 }
 
 export interface CambiarEstadoMesaRequest {
-  estado: MesaEstado;
+  estado: boolean;
   observaciones?: string;
 }
 
@@ -238,29 +238,6 @@ export interface NotificationData {
   datos?: Record<string, any>;
   fechaCreacion: string;
   leido: boolean;
-}
-
-// ====================================
-// TIPOS DE CONFIGURACIÓN
-// ====================================
-
-export interface SystemConfig {
-  // Configuración de usuarios
-  passwordMinLength: number;
-  passwordRequireUppercase: boolean;
-  passwordRequireNumbers: boolean;
-  passwordRequireSpecialChars: boolean;
-  sessionTimeoutMinutes: number;
-
-  // Configuración de clientes
-  clienteRequiereCedula: boolean;
-  clienteRequiereTelefono: boolean;
-  clienteRequiereEmail: boolean;
-
-  // Configuración de empleados
-  empleadoRequiereCedula: boolean;
-  empleadoRequiereSalario: boolean;
-  empleadoRequiereDepartamento: boolean;
 }
 
 // ====================================

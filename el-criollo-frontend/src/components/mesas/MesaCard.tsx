@@ -12,6 +12,8 @@ import {
   Wrench,
   ConciergeBell,
   Bug,
+  Calendar,
+  Star,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -38,6 +40,7 @@ interface MesaCardProps {
   onLiberar?: (mesaId: number) => Promise<void>;
   onGestionarOrden?: (mesa: Mesa) => void;
   onVerFacturas?: (mesa: Mesa) => void;
+  onReservar?: (mesa: Mesa) => void;
   className?: string;
 }
 
@@ -49,6 +52,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
   onLiberar,
   onGestionarOrden,
   onVerFacturas,
+  onReservar,
   className = '',
 }) => {
   // Estados
@@ -141,24 +145,32 @@ export const MesaCard: React.FC<MesaCardProps> = ({
   const getAccionPrincipal = () => {
     switch (mesa.estado) {
       case 'Libre':
-      case 'Reservada':
         return {
-          label: 'Ocupar / Gestionar',
+          label: 'Ocupar Mesa',
           onClick: () => onGestionarOrden?.(mesa),
           icon: <ConciergeBell className="w-4 h-4 mr-2" />,
+          variant: 'primary' as const,
+        };
+      case 'Reservada':
+        return {
+          label: 'Confirmar Llegada',
+          onClick: () => onGestionarOrden?.(mesa),
+          icon: <Calendar className="w-4 h-4 mr-2" />,
+          variant: 'primary' as const,
         };
       case 'Ocupada':
         return {
           label: 'Gestionar Órdenes',
           onClick: () => onGestionarOrden?.(mesa),
           icon: <Receipt className="w-4 h-4 mr-2" />,
+          variant: 'secondary' as const,
         };
       case 'Mantenimiento':
         return {
           label: 'Quitar Mantenimiento',
           onClick: () => handleCambiarEstado('Libre'),
           icon: <Wrench className="w-4 h-4 mr-2" />,
-          variant: 'default',
+          variant: 'outline' as const,
         };
       default:
         return null;
@@ -168,11 +180,21 @@ export const MesaCard: React.FC<MesaCardProps> = ({
   const getAccionesSecundarias = (): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [];
 
+    if (mesa.estado === 'Libre') {
+      items.push({
+        label: 'Reservar Mesa',
+        icon: <Calendar className="w-4 h-4" />,
+        onClick: () => onReservar?.(mesa),
+        variant: 'default',
+      });
+    }
+
     if (mesa.estado === 'Ocupada') {
       items.push({
         label: 'Ver Facturas',
         icon: <Eye className="w-4 h-4" />,
         onClick: () => onVerFacturas?.(mesa),
+        variant: 'default',
       });
       items.push({
         label: 'Liberar Mesa',
@@ -180,7 +202,19 @@ export const MesaCard: React.FC<MesaCardProps> = ({
         onClick: handleLiberar,
         variant: 'danger',
       });
-      // Botón de debug para verificar estado
+    }
+
+    if (mesa.estado !== 'Mantenimiento') {
+      items.push({
+        label: 'Poner en Mantenimiento',
+        icon: <Settings className="w-4 h-4" />,
+        onClick: handleMantenimiento,
+        variant: 'warning',
+      });
+    }
+
+    // Botón de debug para desarrollo
+    if (import.meta.env.DEV) {
       items.push({
         label: 'Debug Estado',
         icon: <Bug className="w-4 h-4" />,
@@ -200,37 +234,25 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       });
     }
 
-    if (mesa.estado !== 'Mantenimiento') {
-      items.push({
-        label: 'Poner en Mantenimiento',
-        icon: <Settings className="w-4 h-4" />,
-        onClick: handleMantenimiento,
-        variant: 'warning',
-      });
-    }
-
     return items;
   };
 
-  const accionPrincipal = getAccionPrincipal();
-  const accionesSecundarias = getAccionesSecundarias();
-
   // ============================================================================
-  // FUNCIONES AUXILIARES
+  // UTILIDADES DE ESTILO
   // ============================================================================
 
   const obtenerColorEstado = (estado: EstadoMesa) => {
     switch (estado) {
       case 'Libre':
-        return 'bg-green-100 border-green-200 text-green-800';
+        return 'bg-gradient-to-r from-palm-green-500 to-palm-green-600 text-white border-palm-green-600 shadow-sm';
       case 'Ocupada':
-        return 'bg-blue-100 border-blue-200 text-blue-800';
+        return 'bg-gradient-to-r from-dominican-red-500 to-red-600 text-white border-dominican-red-600 shadow-sm';
       case 'Reservada':
-        return 'bg-amber-100 border-amber-200 text-amber-800';
+        return 'bg-gradient-to-r from-dominican-blue-500 to-blue-600 text-white border-dominican-blue-600 shadow-sm';
       case 'Mantenimiento':
-        return 'bg-red-100 border-red-200 text-red-800';
+        return 'bg-gradient-to-r from-caribbean-gold to-sunset-orange text-white border-orange-500 shadow-sm';
       default:
-        return 'bg-gray-100 border-gray-200 text-gray-800';
+        return 'bg-gradient-to-r from-stone-gray to-gray-600 text-white border-gray-600 shadow-sm';
     }
   };
 
@@ -239,76 +261,183 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       case 'Libre':
         return <CheckCircle className="w-4 h-4" />;
       case 'Ocupada':
-        return <Users className="w-4 h-4" />;
-      case 'Reservada':
-        return <Clock className="w-4 h-4" />;
-      case 'Mantenimiento':
-        return <AlertTriangle className="w-4 h-4" />;
-      default:
         return <XCircle className="w-4 h-4" />;
+      case 'Reservada':
+        return <Calendar className="w-4 h-4" />;
+      case 'Mantenimiento':
+        return <Settings className="w-4 h-4" />;
+      default:
+        return <AlertTriangle className="w-4 h-4" />;
     }
   };
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
+  const obtenerColorFondo = (estado: EstadoMesa) => {
+    switch (estado) {
+      case 'Libre':
+        return 'bg-gradient-to-br from-palm-green-50 via-green-50 to-white border-palm-green-200 hover:border-palm-green-300';
+      case 'Ocupada':
+        return 'bg-gradient-to-br from-dominican-red-50 via-red-50 to-white border-dominican-red-200 hover:border-dominican-red-300';
+      case 'Reservada':
+        return 'bg-gradient-to-br from-dominican-blue-50 via-blue-50 to-white border-dominican-blue-200 hover:border-dominican-blue-300';
+      case 'Mantenimiento':
+        return 'bg-gradient-to-br from-caribbean-gold-50 via-yellow-50 to-white border-caribbean-gold-200 hover:border-caribbean-gold-300';
+      default:
+        return 'bg-gradient-to-br from-gray-50 to-white border-gray-200 hover:border-gray-300';
+    }
+  };
+
+  const obtenerColorAccent = (estado: EstadoMesa) => {
+    switch (estado) {
+      case 'Libre':
+        return 'text-palm-green-700 bg-palm-green-100';
+      case 'Ocupada':
+        return 'text-dominican-red-700 bg-dominican-red-100';
+      case 'Reservada':
+        return 'text-dominican-blue-700 bg-dominican-blue-100';
+      case 'Mantenimiento':
+        return 'text-orange-700 bg-orange-100';
+      default:
+        return 'text-gray-700 bg-gray-100';
+    }
+  };
+
+  const obtenerColorBoton = (estado: EstadoMesa) => {
+    switch (estado) {
+      case 'Libre':
+        return 'bg-gradient-to-r from-palm-green-500 to-palm-green-600 hover:from-palm-green-600 hover:to-palm-green-700 text-white';
+      case 'Ocupada':
+        return 'bg-gradient-to-r from-dominican-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white';
+      case 'Reservada':
+        return 'bg-gradient-to-r from-dominican-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white';
+      case 'Mantenimiento':
+        return 'bg-gradient-to-r from-caribbean-gold to-sunset-orange hover:from-orange-500 hover:to-orange-600 text-white';
+      default:
+        return 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white';
+    }
+  };
+
+  const accionPrincipal = getAccionPrincipal();
+  const accionesSecundarias = getAccionesSecundarias();
 
   return (
-    <>
-      <Card
-        className={`flex flex-col justify-between h-full group ${className} ${
-          loading ? 'opacity-70 pointer-events-none' : ''
-        }`}
-      >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-2">
-              <div className="text-xl font-bold text-dominican-blue">Mesa {mesa.numeroMesa}</div>
-              <Badge className={`${obtenerColorEstado(mesa.estado)} text-xs`}>
-                {obtenerIconoEstado(mesa.estado)}
-                <span className="ml-1">{mesa.estado}</span>
-              </Badge>
-            </div>
+    <Card
+      className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${obtenerColorFondo(mesa.estado)} ${className}`}
+    >
+      {/* Header con número de mesa y estado */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-dominican-blue to-blue-600 rounded-full shadow-lg border-2 border-white">
+            <span className="text-lg font-bold text-white">{mesa.numeroMesa}</span>
           </div>
-
-          <div className="text-sm text-gray-600 space-y-3">
-            {/* Descripción o estado actual */}
-            <p className="line-clamp-2">{mesa.descripcion || 'Sin descripción adicional.'}</p>
-
-            {/* Detalles rápidos */}
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center">
-                <Users className="w-3 h-3 mr-1" />
-                <span>Capacidad: {mesa.capacidad}</span>
-              </div>
-              <div className="flex items-center">
-                <MapPin className="w-3 h-3 mr-1" />
-                <span>{mesa.ubicacion}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-          {accionPrincipal && (
-            <Button
-              size="sm"
-              onClick={accionPrincipal.onClick}
-              variant={accionPrincipal.variant as any}
-              className="flex-grow"
-              disabled={loading}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Mesa {mesa.numeroMesa}</h3>
+            <Badge
+              className={`${obtenerColorEstado(mesa.estado)} flex items-center space-x-1 font-medium px-3 py-1`}
             >
-              {accionPrincipal.icon}
-              {accionPrincipal.label}
-            </Button>
-          )}
-          {accionesSecundarias.length > 0 && (
-            <div className="ml-2">
-              <ActionMenu items={accionesSecundarias} />
-            </div>
-          )}
+              {obtenerIconoEstado(mesa.estado)}
+              <span className="font-semibold">{mesa.estado}</span>
+            </Badge>
+          </div>
         </div>
-      </Card>
-    </>
+
+        {/* Indicador de prioridad para mesas ocupadas */}
+        {mesa.estado === 'Ocupada' && (
+          <div className="flex items-center space-x-1 text-dominican-red-600 bg-dominican-red-50 px-2 py-1 rounded-full">
+            <Star className="w-4 h-4 fill-current" />
+            <span className="text-xs font-semibold">Ocupada</span>
+          </div>
+        )}
+      </div>
+
+      {/* Información de la mesa */}
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center space-x-2 text-gray-600">
+            <Users className="w-4 h-4" />
+            <span>Capacidad: {mesa.capacidad} personas</span>
+          </div>
+          <div className="flex items-center space-x-2 text-gray-600">
+            <MapPin className="w-4 h-4" />
+            <span className="capitalize">{mesa.ubicacion}</span>
+          </div>
+        </div>
+
+        {/* Información adicional según estado */}
+        {mesa.estado === 'Ocupada' && (
+          <div
+            className={`flex items-center space-x-2 text-sm ${obtenerColorAccent(mesa.estado)} p-3 rounded-lg border`}
+          >
+            <Clock className="w-4 h-4" />
+            <span className="font-medium">En uso - Gestión activa</span>
+          </div>
+        )}
+
+        {mesa.estado === 'Reservada' && (
+          <div
+            className={`flex items-center space-x-2 text-sm ${obtenerColorAccent(mesa.estado)} p-3 rounded-lg border`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="font-medium">Reservada - Esperando cliente</span>
+          </div>
+        )}
+
+        {mesa.estado === 'Mantenimiento' && (
+          <div
+            className={`flex items-center space-x-2 text-sm ${obtenerColorAccent(mesa.estado)} p-3 rounded-lg border`}
+          >
+            <Settings className="w-4 h-4" />
+            <span className="font-medium">En mantenimiento</span>
+          </div>
+        )}
+
+        {mesa.estado === 'Libre' && (
+          <div
+            className={`flex items-center space-x-2 text-sm ${obtenerColorAccent(mesa.estado)} p-3 rounded-lg border`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span className="font-medium">Disponible para uso</span>
+          </div>
+        )}
+      </div>
+
+      {/* Acciones */}
+      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+        {accionPrincipal && (
+          <Button
+            variant={accionPrincipal.variant}
+            size="sm"
+            onClick={accionPrincipal.onClick}
+            disabled={loading}
+            className={`flex-1 mr-2 ${obtenerColorBoton(mesa.estado)} shadow-sm hover:shadow-md transition-all duration-200`}
+          >
+            {accionPrincipal.icon}
+            {accionPrincipal.label}
+          </Button>
+        )}
+
+        <ActionMenu
+          items={accionesSecundarias}
+          trigger={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          }
+        />
+      </div>
+
+      {/* Indicador de carga */}
+      {loading && (
+        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg backdrop-blur-sm">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dominican-blue"></div>
+            <span className="text-sm text-gray-600 font-medium">Procesando...</span>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };

@@ -14,6 +14,7 @@ namespace ElCriollo.API.Services
         private readonly IReservacionRepository _reservacionRepository;
         private readonly IMesaRepository _mesaRepository;
         private readonly IClienteRepository _clienteRepository;
+        private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly ILogger<ReservacionService> _logger;
 
@@ -29,12 +30,14 @@ namespace ElCriollo.API.Services
             IReservacionRepository reservacionRepository,
             IMesaRepository mesaRepository,
             IClienteRepository clienteRepository,
+            IEmailService emailService,
             IMapper mapper,
             ILogger<ReservacionService> logger)
         {
             _reservacionRepository = reservacionRepository;
             _mesaRepository = mesaRepository;
             _clienteRepository = clienteRepository;
+            _emailService = emailService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -648,6 +651,98 @@ namespace ElCriollo.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al liberar reservas vencidas");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Envía recordatorio por email para una reservación específica
+        /// </summary>
+        public async Task<bool> EnviarRecordatorioReservacionAsync(int reservacionId, int minutosAntes = 60)
+        {
+            try
+            {
+                _logger.LogInformation("📧 Enviando recordatorio para reservación {ReservacionId} ({MinutosAntes} minutos antes)", 
+                    reservacionId, minutosAntes);
+
+                // Obtener la reservación con detalles del cliente
+                var reservacion = await _reservacionRepository.GetByIdWithDetallesAsync(reservacionId);
+                if (reservacion == null)
+                {
+                    _logger.LogWarning("⚠️ Reservación {ReservacionId} no encontrada para enviar recordatorio", reservacionId);
+                    return false;
+                }
+
+                // Verificar que la reservación esté confirmada y no haya pasado
+                if (reservacion.Estado != "Confirmada" && reservacion.Estado != "Pendiente")
+                {
+                    _logger.LogWarning("⚠️ Reservación {ReservacionId} no está en estado válido para recordatorio: {Estado}", 
+                        reservacionId, reservacion.Estado);
+                    return false;
+                }
+
+                if (reservacion.FechaHora <= DateTime.UtcNow)
+                {
+                    _logger.LogWarning("⚠️ Reservación {ReservacionId} ya pasó, no se puede enviar recordatorio", reservacionId);
+                    return false;
+                }
+
+                // Verificar que el cliente tenga email
+                if (reservacion.Cliente?.Email == null)
+                {
+                    _logger.LogWarning("⚠️ Cliente de reservación {ReservacionId} no tiene email configurado", reservacionId);
+                    return false;
+                }
+
+                // Enviar el recordatorio usando el EmailService
+                var exito = await _emailService.EnviarRecordatorioReservaAsync(reservacion, minutosAntes);
+
+                if (exito)
+                {
+                    _logger.LogInformation("✅ Recordatorio enviado exitosamente para reservación {ReservacionId}", reservacionId);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ No se pudo enviar recordatorio para reservación {ReservacionId}", reservacionId);
+                }
+
+                return exito;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al enviar recordatorio para reservación {ReservacionId}", reservacionId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Envía recordatorios automáticos para todas las reservaciones que lo requieren
+        /// </summary>
+        public async Task<int> EnviarRecordatoriosAutomaticosAsync(int minutosAntes = 60)
+        {
+            try
+            {
+                _logger.LogInformation("📧 Enviando recordatorios automáticos ({MinutosAntes} minutos antes)", minutosAntes);
+
+                var reservasParaRecordatorio = await GetReservasParaRecordatorioAsync(minutosAntes);
+                int enviados = 0;
+
+                foreach (var reserva in reservasParaRecordatorio)
+                {
+                    var exito = await EnviarRecordatorioReservacionAsync(reserva.Id, minutosAntes);
+                    if (exito)
+                    {
+                        enviados++;
+                    }
+                }
+
+                _logger.LogInformation("✅ Enviados {Enviados} recordatorios automáticos", enviados);
+
+                return enviados;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al enviar recordatorios automáticos");
                 return 0;
             }
         }

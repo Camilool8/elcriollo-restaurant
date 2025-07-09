@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, AlertTriangle, Clock, Users, MapPin, Receipt } from 'lucide-react';
+import { BarChart3, AlertTriangle, Clock, Users, MapPin, Receipt, Calendar } from 'lucide-react';
 
 // Components
 import { MesaCard } from '@/components/mesas/MesaCard';
@@ -8,6 +8,7 @@ import { Card, Button, Badge } from '@/components';
 import { Modal } from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GestionMesaModal } from '@/components/mesas/GestionMesaModal';
+import { CrearReservacionModal } from '@/components/mesas/CrearReservacionModal';
 
 // Components de facturación y órdenes
 import { FacturaForm, ResumenFactura } from '@/components/facturacion';
@@ -36,6 +37,8 @@ export const MesasPageConFacturacion: React.FC = () => {
   // Estados de modales
   const [isVerFacturasModalOpen, setIsVerFacturasModalOpen] = useState(false);
   const [isCrearFacturaModalOpen, setIsCrearFacturaModalOpen] = useState(false);
+  const [isCrearReservacionModalOpen, setIsCrearReservacionModalOpen] = useState(false);
+  const [mesaParaReservar, setMesaParaReservar] = useState<Mesa | null>(null);
 
   // Hooks
   const {
@@ -157,6 +160,20 @@ export const MesasPageConFacturacion: React.FC = () => {
     }
   };
 
+  const handleReservarMesa = (mesa: Mesa) => {
+    if (mesa.estado !== 'Libre') {
+      toast.warning('Solo se pueden reservar mesas libres');
+      return;
+    }
+    setMesaParaReservar(mesa);
+    setIsCrearReservacionModalOpen(true);
+  };
+
+  const handleReservacionCreada = () => {
+    refrescar();
+    toast.success('Reservación creada exitosamente');
+  };
+
   // ============================================================================
   // HANDLERS DE FACTURACIÓN
   // ============================================================================
@@ -250,6 +267,8 @@ export const MesasPageConFacturacion: React.FC = () => {
     setMesaSeleccionada(null);
     setIsVerFacturasModalOpen(false);
     setIsCrearFacturaModalOpen(false);
+    setIsCrearReservacionModalOpen(false);
+    setMesaParaReservar(null);
   };
 
   const obtenerFacturasDelDiaPorMesa = (mesa: Mesa) => {
@@ -404,6 +423,7 @@ export const MesasPageConFacturacion: React.FC = () => {
                   mesa={mesa}
                   onGestionarOrden={() => handleMesaClick(mesa)}
                   onVerFacturas={() => handleVerFacturas(mesa)}
+                  onReservar={() => handleReservarMesa(mesa)}
                   onLiberar={() => handleLiberarMesa(mesa.mesaID)}
                   onOcupar={() => handleOcuparMesa(mesa.mesaID)}
                   onCambiarEstado={(mesaId, nuevoEstado, motivo) =>
@@ -419,6 +439,19 @@ export const MesasPageConFacturacion: React.FC = () => {
 
       {/* Modales */}
       {renderFacturacionModals()}
+
+      {/* Modal de crear reservación */}
+      {mesaParaReservar && (
+        <CrearReservacionModal
+          mesa={mesaParaReservar}
+          isOpen={isCrearReservacionModalOpen}
+          onClose={() => {
+            setIsCrearReservacionModalOpen(false);
+            setMesaParaReservar(null);
+          }}
+          onReservacionCreada={handleReservacionCreada}
+        />
+      )}
 
       {/* Nuevo Modal de Gestión de Mesa */}
       {mesaSeleccionada && (

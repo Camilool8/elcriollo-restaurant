@@ -428,6 +428,24 @@ namespace ElCriollo.API.Repositories
         // ============================================================================
 
         /// <summary>
+        /// Limpia el caché del contexto de Entity Framework
+        /// </summary>
+        public virtual void ClearChangeTracker()
+        {
+            try
+            {
+                _logger.LogDebug("Limpiando caché del contexto de Entity Framework");
+                _context.ChangeTracker.Clear();
+                _logger.LogDebug("Caché del contexto limpiado exitosamente");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al limpiar caché del contexto");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Obtiene entidades con relaciones incluidas
         /// </summary>
         public virtual async Task<IEnumerable<T>> GetWithIncludesAsync(params Expression<Func<T, object>>[] includeProperties)

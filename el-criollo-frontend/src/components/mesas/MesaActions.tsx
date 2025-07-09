@@ -8,6 +8,10 @@ import {
   Calendar,
   Users,
   Utensils,
+  Clock,
+  MapPin,
+  Star,
+  Zap,
 } from 'lucide-react';
 import type { Mesa } from '@/types/mesa';
 import { Button, Modal, Card } from '@/components';
@@ -20,6 +24,7 @@ interface MesaActionsProps {
   onOcupar: (mesaId: number) => Promise<boolean>;
   onCambiarEstado: (mesaId: number, nuevoEstado: string, motivo?: string) => Promise<boolean>;
   onMarcarMantenimiento: (mesaId: number, motivo: string) => Promise<boolean>;
+  onReservar?: (mesa: Mesa) => void;
 }
 
 export const MesaActions: React.FC<MesaActionsProps> = ({
@@ -30,6 +35,7 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
   onOcupar,
   onCambiarEstado,
   onMarcarMantenimiento,
+  onReservar,
 }) => {
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
   const [motivoMantenimiento, setMotivoMantenimiento] = useState('');
@@ -71,17 +77,25 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
         acciones.push({
           key: 'ocupar',
           label: 'Ocupar Mesa',
+          description: 'Iniciar servicio para nuevos clientes',
           icon: <PlayCircle className="w-5 h-5" />,
-          color: 'bg-dominican-red hover:bg-red-700',
+          color:
+            'bg-gradient-to-r from-dominican-red to-red-600 hover:from-red-600 hover:to-red-700',
           action: () => handleAccion(() => onOcupar(mesa.mesaID)),
+          priority: 'high',
         });
         acciones.push({
           key: 'reservar',
-          label: 'Marcar como Reservada',
+          label: 'Reservar Mesa',
+          description: 'Reservar para cliente específico',
           icon: <Calendar className="w-5 h-5" />,
-          color: 'bg-dominican-blue hover:bg-blue-700',
-          action: () =>
-            handleAccion(() => onCambiarEstado(mesa.mesaID, 'Reservada', 'Marcada manualmente')),
+          color:
+            'bg-gradient-to-r from-dominican-blue to-blue-600 hover:from-blue-600 hover:to-blue-700',
+          action: () => {
+            onReservar?.(mesa);
+            onClose();
+          },
+          priority: 'medium',
         });
         break;
 
@@ -89,9 +103,12 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
         acciones.push({
           key: 'liberar',
           label: 'Liberar Mesa',
+          description: 'Finalizar servicio y liberar mesa',
           icon: <CheckCircle className="w-5 h-5" />,
-          color: 'bg-palm-green hover:bg-green-700',
+          color:
+            'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700',
           action: () => handleAccion(() => onLiberar(mesa.mesaID)),
+          priority: 'high',
         });
         break;
 
@@ -99,8 +116,10 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
         acciones.push({
           key: 'ocupar',
           label: 'Confirmar Llegada',
+          description: 'Cliente llegó, iniciar servicio',
           icon: <PlayCircle className="w-5 h-5" />,
-          color: 'bg-dominican-red hover:bg-red-700',
+          color:
+            'bg-gradient-to-r from-dominican-red to-red-600 hover:from-red-600 hover:to-red-700',
           action: () =>
             handleAccion(async () => {
               const liberada = await onLiberar(mesa.mesaID);
@@ -109,13 +128,16 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
               }
               return false;
             }),
+          priority: 'high',
         });
         acciones.push({
           key: 'liberar',
           label: 'Cancelar Reserva',
+          description: 'Cliente no llegó, liberar mesa',
           icon: <XCircle className="w-5 h-5" />,
-          color: 'bg-gray-600 hover:bg-gray-700',
+          color: 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700',
           action: () => handleAccion(() => onLiberar(mesa.mesaID)),
+          priority: 'medium',
         });
         break;
 
@@ -123,10 +145,13 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
         acciones.push({
           key: 'liberar',
           label: 'Finalizar Mantenimiento',
+          description: 'Mesa lista para uso',
           icon: <CheckCircle className="w-5 h-5" />,
-          color: 'bg-palm-green hover:bg-green-700',
+          color:
+            'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700',
           action: () =>
             handleAccion(() => onCambiarEstado(mesa.mesaID, 'Libre', 'Mantenimiento completado')),
+          priority: 'high',
         });
         break;
     }
@@ -136,9 +161,12 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
       acciones.push({
         key: 'mantenimiento',
         label: 'Marcar Mantenimiento',
+        description: 'Mesa necesita reparación o limpieza',
         icon: <Settings className="w-5 h-5" />,
-        color: 'bg-amber-600 hover:bg-amber-700',
+        color:
+          'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700',
         action: () => setShowMantenimientoForm(true),
+        priority: 'low',
       });
     }
 
@@ -150,19 +178,35 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
   if (showMantenimientoForm) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Marcar Mesa en Mantenimiento" size="md">
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Información de la mesa */}
+          <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-yellow-100 rounded-full">
+                <Settings className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Mesa {mesa.numeroMesa}</h3>
+                <p className="text-sm text-gray-600">Marcar para mantenimiento</p>
+              </div>
+            </div>
+          </Card>
+
           <div>
-            <label className="block text-sm font-medium text-stone-gray mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Motivo del mantenimiento *
             </label>
             <textarea
               value={motivoMantenimiento}
               onChange={(e) => setMotivoMantenimiento(e.target.value)}
-              placeholder="Ej: Limpieza profunda, reparación de silla, etc."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent resize-none"
-              rows={3}
+              placeholder="Ej: Limpieza profunda, reparación de silla, cambio de mantel, etc."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dominican-blue focus:border-transparent resize-none text-sm"
+              rows={4}
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Describe el motivo para que el equipo sepa qué hacer
+            </p>
           </div>
 
           <div className="flex space-x-3">
@@ -171,9 +215,10 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
                 setShowMantenimientoForm(false);
                 setMotivoMantenimiento('');
               }}
-              variant="secondary"
+              variant="outline"
               fullWidth
               disabled={loading}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancelar
             </Button>
@@ -183,8 +228,9 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
               fullWidth
               disabled={loading || !motivoMantenimiento.trim()}
               isLoading={loading}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
             >
-              Confirmar
+              Confirmar Mantenimiento
             </Button>
           </div>
         </div>
@@ -193,122 +239,103 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Gestionar Mesa ${mesa.numeroMesa}`} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Gestionar Mesa ${mesa.numeroMesa}`} size="lg">
       <div className="space-y-6">
         {/* Información de la mesa */}
-        <Card className="bg-gray-50">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-stone-gray">Estado:</span>
-              <span
-                className={`ml-2 px-2 py-1 rounded-full text-xs font-medium
-                ${mesa.estado === 'Libre' ? 'bg-green-100 text-green-800' : ''}
-                ${mesa.estado === 'Ocupada' ? 'bg-red-100 text-red-800' : ''}
-                ${mesa.estado === 'Reservada' ? 'bg-blue-100 text-blue-800' : ''}
-                ${mesa.estado === 'Mantenimiento' ? 'bg-yellow-100 text-yellow-800' : ''}
-              `}
-              >
-                {mesa.estado}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium text-stone-gray">Capacidad:</span>
-              <span className="ml-2 text-gray-900">
-                <Users className="w-4 h-4 inline mr-1" />
-                {mesa.capacidad} personas
-              </span>
-            </div>
-            {mesa.ubicacion && (
-              <div className="col-span-2">
-                <span className="font-medium text-stone-gray">Ubicación:</span>
-                <span className="ml-2 text-gray-900">{mesa.ubicacion}</span>
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-sm border-2 border-dominican-blue">
+                <span className="text-lg font-bold text-dominican-blue">{mesa.numeroMesa}</span>
               </div>
-            )}
-          </div>
-
-          {/* Información específica del estado */}
-          {mesa.estado === 'Ocupada' && mesa.clienteActual && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex items-center space-x-2 text-sm">
-                <Users className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Cliente:</span>
-                <span>{mesa.clienteActual.nombreCompleto}</span>
-              </div>
-              {mesa.ordenActual && (
-                <div className="flex items-center space-x-2 text-sm mt-2">
-                  <Utensils className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Orden:</span>
-                  <span>{mesa.ordenActual.numeroOrden}</span>
-                  <span className="text-green-600 font-medium">
-                    RD${mesa.ordenActual.totalCalculado.toFixed(2)}
-                  </span>
-                </div>
-              )}
-              {mesa.tiempoOcupada && (
-                <div className="text-sm text-gray-600 mt-2">
-                  ⏱️ Tiempo ocupada: {mesa.tiempoOcupada}
-                </div>
-              )}
-            </div>
-          )}
-
-          {mesa.estado === 'Reservada' && mesa.reservacionActual && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="text-sm space-y-2">
-                <div>
-                  <span className="font-medium">Reserva:</span>{' '}
-                  {mesa.reservacionActual.numeroReservacion}
-                </div>
-                <div>
-                  <span className="font-medium">Personas:</span>{' '}
-                  {mesa.reservacionActual.cantidadPersonas}
-                </div>
-                {mesa.tiempoHastaReserva && (
-                  <div>
-                    <span className="font-medium">Tiempo:</span> En {mesa.tiempoHastaReserva}
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">Mesa {mesa.numeroMesa}</h3>
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                  <div className="flex items-center space-x-1">
+                    <Users className="w-4 h-4" />
+                    <span>{mesa.capacidad} personas</span>
                   </div>
-                )}
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="w-4 h-4" />
+                    <span className="capitalize">{mesa.ubicacion}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Alertas */}
-          {(mesa.necesitaLimpieza || mesa.requiereAtencion) && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                <span className="text-sm font-medium text-amber-700">Requiere atención:</span>
-              </div>
-              <div className="mt-1 text-sm text-gray-600">
-                {mesa.necesitaLimpieza && <div>• Necesita limpieza</div>}
-                {mesa.requiereAtencion && <div>• Atención especial requerida</div>}
+            {/* Estado actual */}
+            <div className="text-right">
+              <div
+                className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${
+                  mesa.estado === 'Libre'
+                    ? 'bg-green-100 text-green-800'
+                    : mesa.estado === 'Ocupada'
+                      ? 'bg-red-100 text-red-800'
+                      : mesa.estado === 'Reservada'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {mesa.estado === 'Libre' && <CheckCircle className="w-4 h-4" />}
+                {mesa.estado === 'Ocupada' && <XCircle className="w-4 h-4" />}
+                {mesa.estado === 'Reservada' && <Calendar className="w-4 h-4" />}
+                {mesa.estado === 'Mantenimiento' && <Settings className="w-4 h-4" />}
+                <span>{mesa.estado}</span>
               </div>
             </div>
-          )}
+          </div>
         </Card>
 
         {/* Acciones disponibles */}
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Acciones disponibles:</h4>
+          <h4 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+            <Zap className="w-5 h-5 text-dominican-blue" />
+            <span>Acciones Disponibles</span>
+          </h4>
 
-          {acciones.map((accion) => (
+          <div className="grid grid-cols-1 gap-3">
+            {acciones.map((accion) => (
+              <button
+                key={accion.key}
+                onClick={accion.action}
+                disabled={loading}
+                className={`${accion.color} text-white rounded-lg p-4 text-left transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0">{accion.icon}</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">{accion.label}</div>
+                    <div className="text-xs opacity-90 mt-1">{accion.description}</div>
+                  </div>
+                  {accion.priority === 'high' && <Star className="w-4 h-4 text-yellow-300" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Acciones secundarias */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex space-x-3">
             <Button
-              key={accion.key}
-              onClick={accion.action}
-              className={`w-full justify-start ${accion.color} text-white`}
+              onClick={onClose}
+              variant="outline"
+              fullWidth
               disabled={loading}
-              isLoading={loading}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
-              {accion.icon}
-              <span className="ml-3">{accion.label}</span>
+              Cancelar
             </Button>
-          ))}
-
-          {acciones.length === 0 && (
-            <div className="text-center text-gray-500 py-4">
-              No hay acciones disponibles para esta mesa
-            </div>
-          )}
+            <Button
+              onClick={() => window.location.reload()}
+              variant="ghost"
+              disabled={loading}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              Actualizar
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

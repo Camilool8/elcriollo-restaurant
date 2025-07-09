@@ -285,13 +285,16 @@ public class CategoriaService : ICategoriaService
     /// </summary>
     private CategoriaResponse MapToCategoriaResponse(Categoria categoria)
     {
+        // Como solo incluimos productos activos en el Include, todos los productos en la colección son activos
+        var totalProductos = categoria.Productos?.Count ?? 0;
+        
         return new CategoriaResponse
         {
             CategoriaID = categoria.CategoriaID,
             Nombre = categoria.Nombre,
             Descripcion = categoria.Descripcion,
-            TotalProductos = categoria.TotalProductos,
-            ProductosActivos = categoria.ProductosActivos,
+            TotalProductos = totalProductos,
+            ProductosActivos = totalProductos, // Todos los productos incluidos son activos
             RangoPrecios = categoria.ObtenerRangoPrecios(),
             Estado = categoria.Estado
         };

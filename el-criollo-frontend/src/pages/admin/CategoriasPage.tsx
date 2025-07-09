@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { categoriaService } from '@/services/categoriaService';
+import { useCategorias } from '@/hooks/useCategorias';
 import { Categoria } from '@/types';
 
 interface CreateCategoriaForm {
@@ -19,8 +19,19 @@ interface EditCategoriaForm {
 }
 
 const CategoriasPage: React.FC = () => {
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    categorias,
+    isLoading,
+    error,
+    loadCategorias,
+    createCategoria,
+    updateCategoria,
+    deleteCategoria,
+    searchCategorias,
+    totalCategorias,
+    totalProductos,
+  } = useCategorias({ autoRefresh: true, refreshInterval: 30000 });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -35,24 +46,6 @@ const CategoriasPage: React.FC = () => {
     descripcion: '',
   });
 
-  useEffect(() => {
-    loadCategorias();
-  }, []);
-
-  const loadCategorias = async () => {
-    setIsLoading(true);
-    try {
-      const response = await categoriaService.getCategorias();
-      setCategorias(response || []);
-    } catch (error: any) {
-      console.error('Error cargando categorías:', error);
-      toast.error('Error al cargar categorías');
-      setCategorias([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSearch = () => {
     const query = searchQuery.trim().toLowerCase();
     // La búsqueda se hace en el frontend ya que las categorías son pocas
@@ -64,18 +57,14 @@ const CategoriasPage: React.FC = () => {
       return;
     }
 
-    try {
-      await categoriaService.crearCategoria({
-        nombre: createForm.nombre.trim(),
-        descripcion: createForm.descripcion.trim(),
-      });
+    const success = await createCategoria({
+      nombre: createForm.nombre.trim(),
+      descripcion: createForm.descripcion.trim(),
+    });
 
-      toast.success('Categoría creada exitosamente');
+    if (success) {
       setShowCreateModal(false);
       setCreateForm({ nombre: '', descripcion: '' });
-      loadCategorias();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al crear categoría');
     }
   };
 
@@ -85,33 +74,25 @@ const CategoriasPage: React.FC = () => {
       return;
     }
 
-    try {
-      await categoriaService.actualizarCategoria(selectedCategoria.categoriaID, {
-        nombre: editForm.nombre.trim(),
-        descripcion: editForm.descripcion.trim(),
-      });
+    const success = await updateCategoria(selectedCategoria.categoriaID, {
+      nombre: editForm.nombre.trim(),
+      descripcion: editForm.descripcion.trim(),
+    });
 
-      toast.success('Categoría actualizada exitosamente');
+    if (success) {
       setShowEditModal(false);
       setSelectedCategoria(null);
       setEditForm({ nombre: '', descripcion: '' });
-      loadCategorias();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar categoría');
     }
   };
 
   const handleDeleteCategoria = async () => {
     if (!selectedCategoria) return;
 
-    try {
-      await categoriaService.eliminarCategoria(selectedCategoria.categoriaID);
-      toast.success('Categoría eliminada exitosamente');
+    const success = await deleteCategoria(selectedCategoria.categoriaID);
+    if (success) {
       setShowDeleteModal(false);
       setSelectedCategoria(null);
-      loadCategorias();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al eliminar categoría');
     }
   };
 
@@ -129,12 +110,7 @@ const CategoriasPage: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const filteredCategorias = categorias.filter(
-    (categoria) =>
-      categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (categoria.descripcion &&
-        categoria.descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredCategorias = searchCategorias(searchQuery);
 
   return (
     <div className="space-y-6">
@@ -145,33 +121,31 @@ const CategoriasPage: React.FC = () => {
             Gestión de Categorías
           </h1>
           <p className="text-stone-gray mt-1">Administra las categorías de productos</p>
+          {error && <p className="text-red-600 text-sm mt-1">Error: {error}</p>}
         </div>
-        <Button
-          variant="primary"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setShowCreateModal(true)}
-        >
-          Nueva Categoría
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadCategorias} disabled={isLoading}>
+            {isLoading ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+          <Button
+            variant="primary"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Nueva Categoría
+          </Button>
+        </div>
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-dominican-blue">{categorias.length}</p>
+          <p className="text-2xl font-bold text-dominican-blue">{totalCategorias}</p>
           <p className="text-sm text-stone-gray">Total Categorías</p>
         </Card>
         <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-green-600">
-            {categorias.reduce((sum, cat) => sum + cat.totalProductos, 0)}
-          </p>
+          <p className="text-2xl font-bold text-green-600">{totalProductos}</p>
           <p className="text-sm text-stone-gray">Total Productos</p>
-        </Card>
-        <Card className="text-center" padding="sm">
-          <p className="text-2xl font-bold text-blue-600">
-            {categorias.reduce((sum, cat) => sum + cat.productosActivos, 0)}
-          </p>
-          <p className="text-sm text-stone-gray">Productos Disponibles</p>
         </Card>
       </div>
 
@@ -211,9 +185,6 @@ const CategoriasPage: React.FC = () => {
                   Productos
                 </th>
                 <th className="text-center p-4 font-heading font-semibold text-dominican-blue">
-                  Disponibles
-                </th>
-                <th className="text-center p-4 font-heading font-semibold text-dominican-blue">
                   Acciones
                 </th>
               </tr>
@@ -221,13 +192,13 @@ const CategoriasPage: React.FC = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="text-center p-8 text-stone-gray">
+                  <td colSpan={4} className="text-center p-8 text-stone-gray">
                     Cargando categorías...
                   </td>
                 </tr>
               ) : filteredCategorias.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center p-8 text-stone-gray">
+                  <td colSpan={4} className="text-center p-8 text-stone-gray">
                     No se encontraron categorías
                   </td>
                 </tr>
@@ -246,18 +217,16 @@ const CategoriasPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-4 text-center">
-                      <span className="font-medium text-dominican-blue">
-                        {categoria.totalProductos}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span
-                        className={`font-medium ${
-                          categoria.productosActivos > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {categoria.productosActivos}
-                      </span>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="font-medium text-dominican-blue">
+                          {categoria.totalProductos}
+                        </span>
+                        {categoria.totalProductos > 0 && (
+                          <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                            No se puede eliminar
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
@@ -270,11 +239,15 @@ const CategoriasPage: React.FC = () => {
                           Editar
                         </Button>
                         <Button
-                          variant="outline"
+                          variant={categoria.totalProductos > 0 ? 'outline' : 'outline'}
                           size="sm"
                           leftIcon={<Trash2 className="w-4 h-4" />}
                           onClick={() => openDeleteModal(categoria)}
-                          disabled={categoria.totalProductos > 0}
+                          className={
+                            categoria.totalProductos > 0
+                              ? 'border-yellow-300 text-yellow-600 hover:bg-yellow-50'
+                              : ''
+                          }
                         >
                           Eliminar
                         </Button>
@@ -392,11 +365,25 @@ const CategoriasPage: React.FC = () => {
           </div>
 
           {selectedCategoria && (selectedCategoria.totalProductos || 0) > 0 && (
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                ⚠️ Esta categoría tiene {selectedCategoria.totalProductos || 0} productos. No se
-                puede eliminar hasta que se muevan o eliminen todos los productos.
-              </p>
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-yellow-800 mb-2">⚠️ Categoría con productos</h4>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    Esta categoría tiene{' '}
+                    <strong>{selectedCategoria.totalProductos || 0} productos</strong>. Para poder
+                    eliminarla, primero debes:
+                  </p>
+                  <ul className="text-sm text-yellow-700 space-y-1 ml-4">
+                    <li>• Eliminar todos los productos de esta categoría, o</li>
+                    <li>• Mover los productos a otra categoría</li>
+                  </ul>
+                  <p className="text-sm text-yellow-700 mt-3 font-medium">
+                    Una vez que no queden productos en esta categoría, podrás eliminarla.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -407,7 +394,9 @@ const CategoriasPage: React.FC = () => {
               fullWidth
               disabled={(selectedCategoria?.totalProductos || 0) > 0}
             >
-              Eliminar Categoría
+              {selectedCategoria && (selectedCategoria.totalProductos || 0) > 0
+                ? 'No se puede eliminar'
+                : 'Eliminar Categoría'}
             </Button>
             <Button variant="outline" onClick={() => setShowDeleteModal(false)} fullWidth>
               Cancelar

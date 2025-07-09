@@ -13,13 +13,16 @@ namespace ElCriollo.API.Services
     public class ProductoService : IProductoService
     {
         private readonly IProductoRepository _productoRepository;
+        private readonly IInventarioRepository _inventarioRepository;
         private readonly ILogger<ProductoService> _logger;
 
         public ProductoService(
             IProductoRepository productoRepository,
+            IInventarioRepository inventarioRepository,
             ILogger<ProductoService> logger)
         {
             _productoRepository = productoRepository;
+            _inventarioRepository = inventarioRepository;
             _logger = logger;
         }
 
@@ -127,6 +130,10 @@ namespace ElCriollo.API.Services
                     throw new InvalidOperationException($"Ya existe un producto con el nombre '{crearProductoRequest.Nombre}'");
                 }
 
+                // Generar stock aleatorio entre 4 y 100
+                var random = new Random();
+                var stockAleatorio = random.Next(4, 101); // 4 a 100 inclusive
+
                 var producto = new Producto
                 {
                     Nombre = crearProductoRequest.Nombre,
@@ -135,13 +142,25 @@ namespace ElCriollo.API.Services
                     Precio = crearProductoRequest.Precio,
                     TiempoPreparacion = crearProductoRequest.TiempoPreparacion,
                     Imagen = crearProductoRequest.Imagen,
-                    Estado = true
+                    Estado = true // Siempre disponible
                 };
 
                 var productoGuardado = await _productoRepository.AddAsync(producto);
                 await _productoRepository.SaveChangesAsync();
 
-                _logger.LogInformation("Producto creado exitosamente. ID: {ProductoId}", productoGuardado.ProductoID);
+                // Crear inventario con stock aleatorio
+                var inventario = new Inventario
+                {
+                    ProductoID = productoGuardado.ProductoID,
+                    CantidadDisponible = stockAleatorio,
+                    CantidadMinima = 4,
+                    UltimaActualizacion = DateTime.UtcNow
+                };
+
+                await _inventarioRepository.CreateAsync(inventario);
+                await _inventarioRepository.SaveChangesAsync();
+
+                _logger.LogInformation("Producto creado exitosamente. ID: {ProductoId}, Stock: {Stock}", productoGuardado.ProductoID, stockAleatorio);
                 return MapToProductoResponse(productoGuardado);
             }
             catch (Exception ex)
@@ -186,13 +205,14 @@ namespace ElCriollo.API.Services
                 if (actualizarRequest.CategoriaId.HasValue)
                     producto.CategoriaID = actualizarRequest.CategoriaId.Value;
 
-                if (actualizarRequest.Disponible.HasValue)
-                {
-                    if (actualizarRequest.Disponible.Value)
-                        producto.Activar();
-                    else
-                        producto.Desactivar();
-                }
+                // No permitir cambiar la disponibilidad - siempre debe estar disponible
+                // if (actualizarRequest.Disponible.HasValue)
+                // {
+                //     if (actualizarRequest.Disponible.Value)
+                //         producto.Activar();
+                //     else
+                //         producto.Desactivar();
+                // }
 
                 await _productoRepository.SaveChangesAsync();
 
