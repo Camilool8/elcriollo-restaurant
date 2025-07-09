@@ -110,16 +110,16 @@ const ProductosPage: React.FC = () => {
     }
 
     try {
-      const productoData: CreateProductoRequest = {
+      const productoData = {
         nombre: createForm.nombre.trim(),
         descripcion: createForm.descripcion.trim(),
-        categoriaID: createForm.categoriaID,
-        precio: createForm.precio,
-        precioNumerico,
-        tiempoPreparacion: createForm.tiempoPreparacion.trim(),
-        estaDisponible: createForm.estaDisponible,
+        categoriaId: createForm.categoriaID,
+        precio: precioNumerico,
+        tiempoPreparacion: createForm.tiempoPreparacion.trim()
+          ? parseInt(createForm.tiempoPreparacion)
+          : undefined,
       };
-      await productosService.crearProducto(productoData as any);
+      await productosService.crearProducto(productoData);
 
       toast.success('Producto creado exitosamente');
       setShowCreateModal(false);
@@ -158,13 +158,14 @@ const ProductosPage: React.FC = () => {
       const productoData = {
         nombre: editForm.nombre.trim(),
         descripcion: editForm.descripcion.trim(),
-        categoriaID: editForm.categoriaID,
-        precio: editForm.precio,
-        precioNumerico,
-        tiempoPreparacion: editForm.tiempoPreparacion.trim(),
-        estaDisponible: editForm.estaDisponible,
+        categoriaId: editForm.categoriaID,
+        precio: precioNumerico,
+        tiempoPreparacion: editForm.tiempoPreparacion.trim()
+          ? parseInt(editForm.tiempoPreparacion)
+          : undefined,
+        disponible: editForm.estaDisponible,
       };
-      await productosService.actualizarProducto(selectedProducto.productoID, productoData as any);
+      await productosService.actualizarProducto(selectedProducto.productoID, productoData);
 
       toast.success('Producto actualizado exitosamente');
       setShowEditModal(false);
@@ -276,7 +277,7 @@ const ProductosPage: React.FC = () => {
         </Card>
         <Card className="text-center" padding="sm">
           <p className="text-2xl font-bold text-blue-600">
-            {productos.filter((p) => p.inventario.stockBajo).length}
+            {productos.filter((p) => p.inventario?.stockBajo).length}
           </p>
           <p className="text-sm text-stone-gray">Stock Bajo</p>
         </Card>
@@ -406,12 +407,12 @@ const ProductosPage: React.FC = () => {
                     <td className="p-4 text-center">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          producto.inventario.stockBajo
+                          producto.inventario?.stockBajo
                             ? 'bg-red-100 text-red-800'
                             : 'bg-green-100 text-green-800'
                         }`}
                       >
-                        {producto.inventario.cantidadDisponible}
+                        {producto.inventario?.cantidadDisponible || 0}
                       </span>
                     </td>
                     <td className="p-4">
@@ -712,7 +713,7 @@ const ProductosPage: React.FC = () => {
                   Stock Disponible
                 </label>
                 <p className="font-medium text-dominican-blue">
-                  {selectedProducto.inventario.cantidadDisponible}
+                  {selectedProducto.inventario?.cantidadDisponible || 0}
                 </p>
               </div>
               <div>
@@ -721,12 +722,12 @@ const ProductosPage: React.FC = () => {
                 </label>
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedProducto.inventario.stockBajo
+                    selectedProducto.inventario?.stockBajo
                       ? 'bg-red-100 text-red-800'
                       : 'bg-green-100 text-green-800'
                   }`}
                 >
-                  {selectedProducto.inventario.nivelStock}
+                  {selectedProducto.inventario?.nivelStock || 'Sin información'}
                 </span>
               </div>
             </div>

@@ -99,7 +99,15 @@ class ProductosService {
   /**
    * Crear nuevo producto
    */
-  async crearProducto(producto: Omit<Producto, 'productoID'>): Promise<Producto> {
+  async crearProducto(producto: {
+    nombre: string;
+    descripcion?: string;
+    categoriaId: number;
+    precio: number;
+    tiempoPreparacion?: number;
+    imagen?: string;
+    costoPreparacion?: number;
+  }): Promise<Producto> {
     try {
       const response = await api.post<Producto>('/Productos', producto);
       return response;
@@ -112,7 +120,19 @@ class ProductosService {
   /**
    * Actualizar producto existente
    */
-  async actualizarProducto(id: number, producto: Partial<Producto>): Promise<Producto> {
+  async actualizarProducto(
+    id: number,
+    producto: {
+      nombre?: string;
+      descripcion?: string;
+      categoriaId?: number;
+      precio?: number;
+      tiempoPreparacion?: number;
+      imagen?: string;
+      costoPreparacion?: number;
+      disponible?: boolean;
+    }
+  ): Promise<Producto> {
     try {
       const response = await api.put<Producto>(`/Productos/${id}`, producto);
       return response;

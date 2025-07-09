@@ -32,12 +32,7 @@ class CategoriaService {
   /**
    * Crear nueva categoría
    */
-  async crearCategoria(
-    categoria: Omit<
-      Categoria,
-      'categoriaID' | 'totalProductos' | 'productosActivos' | 'rangoPrecios' | 'estado'
-    >
-  ): Promise<Categoria> {
+  async crearCategoria(categoria: { nombre: string; descripcion?: string }): Promise<Categoria> {
     try {
       const response = await api.post<Categoria>('/Categorias', categoria);
       return response;
@@ -50,7 +45,14 @@ class CategoriaService {
   /**
    * Actualizar categoría existente
    */
-  async actualizarCategoria(id: number, categoria: Partial<Categoria>): Promise<Categoria> {
+  async actualizarCategoria(
+    id: number,
+    categoria: {
+      nombre: string;
+      descripcion?: string;
+      estado?: boolean;
+    }
+  ): Promise<Categoria> {
     try {
       const response = await api.put<Categoria>(`/Categorias/${id}`, categoria);
       return response;
