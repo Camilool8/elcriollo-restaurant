@@ -20,6 +20,7 @@ import type { Mesa, Orden, Cliente } from '@/types';
 
 interface GestionMesaModalProps {
   mesa: Mesa | null;
+  clientes: Cliente[];
   onClose: () => void;
   onOrdenChange: () => void;
 }
@@ -28,6 +29,7 @@ type VistaModal = 'LISTA_ORDENES' | 'CREAR_ORDEN' | 'EDITAR_ORDEN' | 'FACTURAR';
 
 export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
   mesa,
+  clientes,
   onClose,
   onOrdenChange,
 }) => {

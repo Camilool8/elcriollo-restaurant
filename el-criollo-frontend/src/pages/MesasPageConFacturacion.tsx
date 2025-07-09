@@ -11,7 +11,6 @@ import { GestionMesaModal } from '@/components/mesas/GestionMesaModal';
 
 // Components de facturación y órdenes
 import { FacturaForm, ResumenFactura, DivisionFactura } from '@/components/facturacion';
-import { GestionarOrdenForm } from '@/components/ordenes/GestionarOrdenForm';
 
 // Hooks
 import { useMesas } from '@/hooks/useMesas';
