@@ -546,6 +546,30 @@ BEGIN
     WHERE c.Nombre = 'Platos Principales' 
     AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pollo al Carbon');
     
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Carne de Res Guisada', 'Carne de res guisada con vegetales', c.CategoriaID, 420.00, 230.00, 40
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Carne de Res Guisada');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pollo al Horno', 'Pollo al horno con hierbas y especias', c.CategoriaID, 350.00, 180.00, 45
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pollo al Horno');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Longaniza Dominicana', 'Longaniza dominicana a la parrilla', c.CategoriaID, 280.00, 140.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Longaniza Dominicana');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Chuleta Ahumada', 'Chuleta de cerdo ahumada dominicana', c.CategoriaID, 320.00, 160.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Platos Principales' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Chuleta Ahumada');
+    
     PRINT 'Platos principales verificados/insertados.';
 END
 GO
@@ -588,6 +612,36 @@ BEGIN
     FROM Categorias c 
     WHERE c.Nombre = 'Acompañamientos' 
     AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Moro de Habichuelas');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Arroz con Pollo', 'Arroz amarillo con pollo y vegetales', c.CategoriaID, 180.00, 85.00, 30
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Arroz con Pollo');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Habichuelas Negras', 'Habichuelas negras guisadas', c.CategoriaID, 105.00, 42.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Habichuelas Negras');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Puré de Papa', 'Puré de papa cremoso', c.CategoriaID, 85.00, 32.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Puré de Papa');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Aguacate', 'Aguacate fresco en rodajas', c.CategoriaID, 65.00, 35.00, 5
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Aguacate');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Vegetales Salteados', 'Vegetales mixtos salteados', c.CategoriaID, 95.00, 40.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Acompañamientos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Vegetales Salteados');
     
     PRINT 'Acompañamientos verificados/insertados.';
 END
@@ -635,7 +689,228 @@ BEGIN
     WHERE c.Nombre = 'Frituras' 
     AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Catibias');
     
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pastelitos', 'Pastelitos fritos rellenos de carne', c.CategoriaID, 55.00, 20.00, 12
+    FROM Categorias c 
+    WHERE c.Nombre = 'Frituras' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pastelitos');
+    
     PRINT 'Frituras verificadas/insertadas.';
+END
+GO
+
+-- Bebidas
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Bebidas')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Jugo de Chinola', 'Jugo natural de maracuyá fresco', c.CategoriaID, 90.00, 35.00, 5
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Jugo de Chinola');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Jugo de Naranja', 'Jugo natural de naranja recién exprimido', c.CategoriaID, 85.00, 30.00, 5
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Jugo de Naranja');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Morir Soñando', 'Bebida tradicional de leche con jugo de naranja', c.CategoriaID, 120.00, 50.00, 7
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Morir Soñando');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Jugo de Tamarindo', 'Jugo natural de tamarindo dominicano', c.CategoriaID, 95.00, 40.00, 6
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Jugo de Tamarindo');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Avena', 'Avena caliente tradicional dominicana', c.CategoriaID, 75.00, 25.00, 10
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Avena');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Café Negro', 'Café dominicano negro tradicional', c.CategoriaID, 45.00, 15.00, 5
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Café Negro');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Café con Leche', 'Café dominicano con leche caliente', c.CategoriaID, 60.00, 25.00, 6
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Café con Leche');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Coca Cola', 'Refresco Coca Cola 355ml', c.CategoriaID, 70.00, 30.00, 2
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Coca Cola');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Agua Mineral', 'Agua mineral 500ml', c.CategoriaID, 50.00, 20.00, 1
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Agua Mineral');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Presidente Cerveza', 'Cerveza Presidente 355ml', c.CategoriaID, 150.00, 80.00, 2
+    FROM Categorias c 
+    WHERE c.Nombre = 'Bebidas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Presidente Cerveza');
+    
+    PRINT 'Bebidas verificadas/insertadas.';
+END
+GO
+
+-- Postres
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Postres')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Tres Leches', 'Pastel tres leches tradicional dominicano', c.CategoriaID, 180.00, 80.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Tres Leches');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Flan de Coco', 'Flan casero de coco dominicano', c.CategoriaID, 150.00, 60.00, 10
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Flan de Coco');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Majarete', 'Postre de maíz con canela y coco', c.CategoriaID, 120.00, 45.00, 8
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Majarete');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Arroz con Dulce', 'Arroz con dulce tradicional dominicano', c.CategoriaID, 110.00, 40.00, 6
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Arroz con Dulce');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Dulce de Leche Cortada', 'Dulce tradicional de leche cortada', c.CategoriaID, 95.00, 35.00, 5
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Dulce de Leche Cortada');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Helado de Coco', 'Helado artesanal de coco', c.CategoriaID, 85.00, 30.00, 3
+    FROM Categorias c 
+    WHERE c.Nombre = 'Postres' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Helado de Coco');
+    
+    PRINT 'Postres verificados/insertados.';
+END
+GO
+
+-- Desayunos
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Desayunos')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Mangú', 'Puré de plátano verde con cebollitas', c.CategoriaID, 120.00, 50.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Desayunos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Mangú');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Tres Golpes', 'Mangú con huevo, queso y salami', c.CategoriaID, 220.00, 95.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Desayunos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Tres Golpes');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Arepa Dominicana', 'Arepa dulce dominicana tradicional', c.CategoriaID, 95.00, 35.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Desayunos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Arepa Dominicana');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Huevos Fritos', 'Huevos fritos dominicanos', c.CategoriaID, 80.00, 30.00, 8
+    FROM Categorias c 
+    WHERE c.Nombre = 'Desayunos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Huevos Fritos');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Tostada con Aguacate', 'Tostada con aguacate y sal', c.CategoriaID, 105.00, 40.00, 10
+    FROM Categorias c 
+    WHERE c.Nombre = 'Desayunos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Tostada con Aguacate');
+    
+    PRINT 'Desayunos verificados/insertados.';
+END
+GO
+
+-- Sopas
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Sopas')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Sancocho', 'Sancocho dominicano tradicional completo', c.CategoriaID, 350.00, 180.00, 90
+    FROM Categorias c 
+    WHERE c.Nombre = 'Sopas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Sancocho');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Sopa de Pollo', 'Sopa de pollo con vegetales', c.CategoriaID, 220.00, 100.00, 45
+    FROM Categorias c 
+    WHERE c.Nombre = 'Sopas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Sopa de Pollo');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Mondongo', 'Mondongo dominicano con vegetales', c.CategoriaID, 280.00, 140.00, 60
+    FROM Categorias c 
+    WHERE c.Nombre = 'Sopas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Mondongo');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Sopa de Habichuelas', 'Sopa espesa de habichuelas rojas', c.CategoriaID, 180.00, 75.00, 35
+    FROM Categorias c 
+    WHERE c.Nombre = 'Sopas' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Sopa de Habichuelas');
+    
+    PRINT 'Sopas verificadas/insertadas.';
+END
+GO
+
+-- Mariscos
+IF EXISTS (SELECT 1 FROM Categorias WHERE Nombre = 'Mariscos')
+BEGIN
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pescao Frito', 'Pescado frito entero estilo dominicano', c.CategoriaID, 420.00, 220.00, 25
+    FROM Categorias c 
+    WHERE c.Nombre = 'Mariscos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pescao Frito');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Filete de Pescado', 'Filete de pescado a la plancha', c.CategoriaID, 380.00, 200.00, 20
+    FROM Categorias c 
+    WHERE c.Nombre = 'Mariscos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Filete de Pescado');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Camarones al Ajillo', 'Camarones salteados con ajo', c.CategoriaID, 520.00, 280.00, 15
+    FROM Categorias c 
+    WHERE c.Nombre = 'Mariscos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Camarones al Ajillo');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Pulpo Guisado', 'Pulpo guisado con vegetales', c.CategoriaID, 480.00, 260.00, 35
+    FROM Categorias c 
+    WHERE c.Nombre = 'Mariscos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Pulpo Guisado');
+    
+    INSERT INTO Productos (Nombre, Descripcion, CategoriaID, Precio, CostoPreparacion, TiempoPreparacion)
+    SELECT 'Langosta al Vapor', 'Langosta al vapor con mantequilla', c.CategoriaID, 1200.00, 800.00, 30
+    FROM Categorias c 
+    WHERE c.Nombre = 'Mariscos' 
+    AND NOT EXISTS (SELECT 1 FROM Productos p WHERE p.Nombre = 'Langosta al Vapor');
+    
+    PRINT 'Mariscos verificados/insertados.';
 END
 GO
 
@@ -860,6 +1135,215 @@ ELSE
 BEGIN
     PRINT 'Cliente Roberto Luis ya existe.';
 END
+GO
+
+-- Clientes adicionales para pruebas
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-4321098-7')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-4321098-7', 'Maria Elena', 'Gonzalez Valdez', '809-555-1006', 'maria.gonzalez@gmail.com', 'Calle El Conde #56, Zona Colonial');
+    PRINT 'Cliente Maria Elena insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Maria Elena ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-3210987-6')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-3210987-6', 'Carlos Rafael', 'Mendoza Reyes', '829-555-1007', 'carlos.mendoza@yahoo.com', 'Av. John F. Kennedy #78, Piantini');
+    PRINT 'Cliente Carlos Rafael insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Carlos Rafael ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-2109876-5')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-2109876-5', 'Ana Sofia', 'Herrera Castillo', '849-555-1008', 'ana.herrera@hotmail.com', 'Calle Beller #23, Santiago');
+    PRINT 'Cliente Ana Sofia insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Ana Sofia ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-1098765-4')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-1098765-4', 'Miguel Angel', 'Vargas Rosario', '809-555-1009', 'miguel.vargas@gmail.com', 'Av. Máximo Gómez #145, Santo Domingo');
+    PRINT 'Cliente Miguel Angel insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Miguel Angel ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-0987654-3')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-0987654-3', 'Yolanda Isabel', 'Morales Jiménez', '829-555-1010', 'yolanda.morales@outlook.com', 'Calle Padre Billini #89, Zona Colonial');
+    PRINT 'Cliente Yolanda Isabel insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Yolanda Isabel ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-9876543-1')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-9876543-1', 'Rafael Antonio', 'Peña Rosario', '849-555-1011', 'rafael.pena@gmail.com', 'Av. Las Carreras #234, Santiago');
+    PRINT 'Cliente Rafael Antonio insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Rafael Antonio ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-8765432-9')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-8765432-9', 'Dalila Mercedes', 'Cruz Martínez', '809-555-1012', 'dalila.cruz@yahoo.com', 'Calle Mella #67, San Pedro de Macorís');
+    PRINT 'Cliente Dalila Mercedes insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Dalila Mercedes ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-7654321-8')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-7654321-8', 'Francisco Javier', 'Rodríguez Almonte', '829-555-1013', 'francisco.rodriguez@gmail.com', 'Av. Tiradentes #123, La Vega');
+    PRINT 'Cliente Francisco Javier insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Francisco Javier ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-6543210-7')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-6543210-7', 'Esperanza Dolores', 'García Valerio', '849-555-1014', 'esperanza.garcia@hotmail.com', 'Calle Restauración #45, Puerto Plata');
+    PRINT 'Cliente Esperanza Dolores insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Esperanza Dolores ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-5432109-6')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-5432109-6', 'Ramón Alberto', 'Santana Guerrero', '809-555-1015', 'ramon.santana@gmail.com', 'Av. Bolívar #78, Santo Domingo');
+    PRINT 'Cliente Ramón Alberto insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Ramón Alberto ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-4321098-5')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-4321098-5', 'Milagros Antonia', 'Féliz Taveras', '829-555-1016', 'milagros.felix@outlook.com', 'Calle Sánchez #234, Azua');
+    PRINT 'Cliente Milagros Antonia insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Milagros Antonia ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-3210987-4')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-3210987-4', 'Domingo Emilio', 'Núñez Familia', '849-555-1017', 'domingo.nunez@gmail.com', 'Av. Pedro Henríquez Ureña #456, Santo Domingo');
+    PRINT 'Cliente Domingo Emilio insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Domingo Emilio ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-2109876-3')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-2109876-3', 'Gladys Esperanza', 'Mejía Polanco', '809-555-1018', 'gladys.mejia@yahoo.com', 'Calle Hostos #89, Moca');
+    PRINT 'Cliente Gladys Esperanza insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Gladys Esperanza ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-1098765-2')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-1098765-2', 'Víctor Manuel', 'Cabrera Méndez', '829-555-1019', 'victor.cabrera@gmail.com', 'Av. Gregorio Luperón #123, Puerto Plata');
+    PRINT 'Cliente Víctor Manuel insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Víctor Manuel ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Cedula = '001-0987654-1')
+BEGIN
+    INSERT INTO Clientes (Cedula, Nombre, Apellido, Telefono, Email, Direccion) VALUES 
+    ('001-0987654-1', 'Soledad María', 'Peña Contreras', '849-555-1020', 'soledad.pena@hotmail.com', 'Calle Emilio Prud Homme #67, Santiago');
+    PRINT 'Cliente Soledad María insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Soledad María ya existe.';
+END
+GO
+
+-- Clientes sin cédula (eventuales)
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Nombre = 'Cliente' AND Apellido = 'Eventual')
+BEGIN
+    INSERT INTO Clientes (Nombre, Apellido, Email) VALUES 
+    ('Cliente', 'Eventual', 'josejoga.opx@gmail.com');
+    PRINT 'Cliente Eventual insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Eventual ya existe.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Clientes WHERE Nombre = 'Turista' AND Apellido = 'Extranjero')
+BEGIN
+    INSERT INTO Clientes (Nombre, Apellido, Email) VALUES 
+    ('Turista', 'Extranjero', 'josejoga.opx@gmail.com');
+    PRINT 'Cliente Turista Extranjero insertado.';
+END
+ELSE
+BEGIN
+    PRINT 'Cliente Turista Extranjero ya existe.';
+END
+GO
+
+PRINT 'Clientes dummy completados - Total: 22 clientes para pruebas.';
 GO
 
 -- =============================================
