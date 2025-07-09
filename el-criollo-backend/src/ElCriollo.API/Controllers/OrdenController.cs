@@ -262,49 +262,87 @@ namespace ElCriollo.API.Controllers
             try
             {
                 var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                _logger.LogInformation("📝 Actualizando estado de orden {OrdenId} a {NuevoEstado}", id, request.NuevoEstado);
+                _logger.LogInformation("🔄 Actualizando estado de orden {OrdenId} a {NuevoEstado} por usuario {UsuarioId}",
+                    id, request.NuevoEstado, usuarioId);
 
-                // Usar CambiarEstadoOrdenAsync en lugar de ActualizarEstadoOrdenAsync
                 var resultado = await _ordenService.CambiarEstadoOrdenAsync(id, request.NuevoEstado, usuarioId);
-                
-                OrdenResponse? ordenActualizada = null;
-                if (resultado)
-                {
-                    ordenActualizada = await _ordenService.GetOrdenByIdAsync(id);
-                }
 
-                if (ordenActualizada == null)
+                if (!resultado)
                 {
-                    return NotFound(new ProblemDetails
+                    return BadRequest(new ValidationProblemDetails
                     {
-                        Title = "Orden no encontrada",
-                        Detail = $"No se encontró la orden con ID {id}",
-                        Status = StatusCodes.Status404NotFound
+                        Title = "Error al actualizar estado",
+                        Detail = "No se pudo actualizar el estado. Verifique el estado actual y el nuevo estado.",
+                        Status = StatusCodes.Status400BadRequest
                     });
                 }
-
-                _logger.LogInformation("✅ Estado de orden {OrdenId} actualizado exitosamente", id);
+                
+                var ordenActualizada = await _ordenService.GetOrdenByIdAsync(id);
                 return Ok(ordenActualizada);
+
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ProblemDetails { Title = "Orden no encontrada", Detail = ex.Message, Status = StatusCodes.Status404NotFound });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("⚠️ Error al actualizar estado: {Mensaje}", ex.Message);
-                return BadRequest(new ValidationProblemDetails
-                {
-                    Title = "Error al actualizar estado",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return BadRequest(new ValidationProblemDetails { Title = "Operación inválida", Detail = ex.Message, Status = StatusCodes.Status400BadRequest });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error al actualizar estado de orden {OrdenId}", id);
+                _logger.LogError(ex, "❌ Error inesperado al actualizar estado de orden {OrdenId}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
 
         /// <summary>
-        /// Agregar items a una orden existente
+        /// Actualiza una orden existente, incluyendo sus items.
+        /// </summary>
+        /// <param name="id">ID de la orden a actualizar</param>
+        /// <param name="request">Datos de la orden con la lista completa y actualizada de items</param>
+        /// <returns>La orden completamente actualizada</returns>
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Administrador,Mesero")]
+        [SwaggerOperation(
+            Summary = "Actualizar orden completa",
+            Description = "Actualiza una orden existente. Permite añadir, modificar y eliminar items de la orden.",
+            OperationId = "Orden.Actualizar",
+            Tags = new[] { "Gestión de Órdenes" }
+        )]
+        [ProducesResponseType(typeof(OrdenResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<OrdenResponse>> ActualizarOrden(int id, [FromBody] ActualizarOrdenRequest request)
+        {
+            if (id != request.OrdenID)
+            {
+                return BadRequest(new ValidationProblemDetails { Title = "ID de orden no coincide", Detail = "El ID en la URL no coincide con el ID en el cuerpo de la solicitud." });
+            }
+
+            try
+            {
+                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var ordenActualizada = await _ordenService.ActualizarOrdenAsync(request, usuarioId);
+                return Ok(ordenActualizada);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ProblemDetails { Title = "Recurso no encontrado", Detail = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ValidationProblemDetails { Title = "Operación inválida", Detail = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error inesperado al actualizar la orden {OrdenId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails { Title = "Error interno", Detail = "Ocurrió un error inesperado al procesar la solicitud." });
+            }
+        }
+
+        /// <summary>
+        /// Agregar items a una orden
         /// </summary>
         /// <param name="id">ID de la orden</param>
         /// <param name="request">Items a agregar</param>

@@ -6,7 +6,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '4xl';
   closeOnOverlayClick?: boolean;
   showCloseButton?: boolean;
 }
@@ -25,6 +25,7 @@ const Modal: React.FC<ModalProps> = ({
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    '4xl': 'max-w-7xl',
   };
 
   // Cerrar con ESC

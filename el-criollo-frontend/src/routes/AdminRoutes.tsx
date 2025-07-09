@@ -14,32 +14,6 @@ const AdminRoutes: React.FC = () => {
         <Route path="usuarios" element={<UsuariosPage />} />
         <Route path="clientes" element={<ClientesPage />} />
         <Route path="empleados" element={<EmpleadosPage />} />
-
-        {/* TODO: Próximas implementaciones */}
-        <Route
-          path="productos"
-          element={
-            <div className="p-8 text-center text-stone-gray">
-              Gestión de Productos - Próximamente
-            </div>
-          }
-        />
-        <Route
-          path="reportes"
-          element={
-            <div className="p-8 text-center text-stone-gray">
-              Reportes y Analytics - Próximamente
-            </div>
-          }
-        />
-        <Route
-          path="configuracion"
-          element={
-            <div className="p-8 text-center text-stone-gray">
-              Configuración del Sistema - Próximamente
-            </div>
-          }
-        />
       </Routes>
     </AdminLayout>
   );

@@ -893,12 +893,12 @@ namespace ElCriollo.API.Services
                 ProductoID = producto.ProductoID,
                 Nombre = producto.Nombre,
                 Descripcion = producto.Descripcion,
-                Categoria = new CategoriaBasicaResponse
+                Categoria = producto.Categoria != null ? new CategoriaBasicaResponse
                 {
-                    CategoriaID = producto.Categoria?.CategoriaID ?? 0,
-                    NombreCategoria = producto.Categoria?.Nombre ?? "Sin categoría", // Cambiar Nombre por NombreCategoria
-                    Descripcion = producto.Categoria?.Descripcion
-                },
+                    CategoriaID = producto.Categoria.CategoriaID,
+                    NombreCategoria = producto.Categoria.Nombre,
+                    Descripcion = producto.Categoria.Descripcion
+                } : null,
                 Precio = producto.PrecioFormateado,
                 PrecioNumerico = producto.Precio,
                 TiempoPreparacion = producto.TiempoPreparacionFormateado,

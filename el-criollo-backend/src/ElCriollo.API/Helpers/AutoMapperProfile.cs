@@ -132,8 +132,11 @@ public class AutoMapperProfile : Profile
 
         // Orden
         CreateMap<Orden, OrdenResponse>()
-            .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.TotalFormateado))
+            .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.SubtotalFormateado))
             .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalFormateado))
+            .ForMember(dest => dest.SubtotalCalculado, opt => opt.MapFrom(src => src.SubtotalCalculado))
+            .ForMember(dest => dest.Impuesto, opt => opt.MapFrom(src => src.Impuesto))
+            .ForMember(dest => dest.TotalCalculado, opt => opt.MapFrom(src => src.TotalCalculado))
             .ForMember(dest => dest.TiempoTranscurrido, opt => opt.MapFrom(src => 
                 $"{src.TiempoTranscurrido.Hours:D2}:{src.TiempoTranscurrido.Minutes:D2}"))
             .ForMember(dest => dest.TiempoPreparacionEstimado, opt => opt.MapFrom(src => $"{src.TiempoPreparacionEstimado} min"))
@@ -148,6 +151,7 @@ public class AutoMapperProfile : Profile
 
         // DetalleOrden
         CreateMap<DetalleOrden, DetalleOrdenResponse>()
+            .ForMember(dest => dest.Producto, opt => opt.MapFrom(src => src.Producto)) // Incluir objeto producto completo
             .ForMember(dest => dest.TipoItem, opt => opt.MapFrom(src => src.TipoItem))
             .ForMember(dest => dest.NombreItem, opt => opt.MapFrom(src => src.NombreItem))
             .ForMember(dest => dest.DescripcionItem, opt => opt.MapFrom(src => src.DescripcionItem))

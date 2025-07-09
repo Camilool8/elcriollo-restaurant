@@ -338,6 +338,9 @@ public class ElCriolloDbContext : DbContext
                   .WithMany(emp => emp.Ordenes)
                   .HasForeignKey(e => e.EmpleadoID)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            // Indicar a EF Core que esta tabla tiene triggers
+            entity.ToTable("Ordenes", tb => tb.HasTrigger("tr_GenerarNumeroOrden"));
         });
 
         // Configurar DetalleOrdenes
@@ -370,6 +373,9 @@ public class ElCriolloDbContext : DbContext
             // Constraint: debe tener ProductoID o ComboID pero no ambos
             entity.ToTable(t => t.HasCheckConstraint("CK_DetalleOrden_ProductoOrCombo", 
                 "([ProductoID] IS NOT NULL AND [ComboID] IS NULL) OR ([ProductoID] IS NULL AND [ComboID] IS NOT NULL)"));
+
+            // Indicar a EF Core que esta tabla tiene triggers
+            entity.ToTable("DetalleOrdenes", tb => tb.HasTrigger("tr_DetalleOrden_ActualizarInventario"));
         });
 
         // Configurar Facturas
@@ -404,6 +410,9 @@ public class ElCriolloDbContext : DbContext
                   .WithMany(emp => emp.Facturas)
                   .HasForeignKey(e => e.EmpleadoID)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            // Indicar a EF Core que esta tabla tiene triggers
+            entity.ToTable("Facturas", tb => tb.HasTrigger("tr_GenerarNumeroFactura"));
         });
 
         // Configurar EmailTransacciones

@@ -21,9 +21,9 @@ public class ProductoResponse
     public string? Descripcion { get; set; }
 
     /// <summary>
-    /// Categoría del producto
+    /// Categoría a la que pertenece el producto
     /// </summary>
-    public CategoriaBasicaResponse Categoria { get; set; } = null!;
+    public CategoriaBasicaResponse? Categoria { get; set; }
 
     /// <summary>
     /// Precio formateado

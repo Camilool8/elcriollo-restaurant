@@ -12,7 +12,7 @@ import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import AdminRoutes from '@/routes/AdminRoutes';
 import { useAuth } from '@/contexts/AuthContext';
-import { MesasPage } from '@/pages/MesasPage';
+import { MesasPageConFacturacion } from '@/pages/MesasPageConFacturacion';
 import { AuthenticatedLayout } from '@/components/layout/AuthenticatedLayout';
 
 // ====================================
@@ -38,7 +38,7 @@ const App: React.FC = () => {
               }
             >
               <Route path="/" element={<SmartRedirect />} />
-              <Route path="/mesas" element={<MesasPage />} />
+              <Route path="/mesas" element={<MesasPageConFacturacion />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route
                 path="/admin/*"

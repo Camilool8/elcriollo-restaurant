@@ -123,7 +123,10 @@ export const formatearTelefono = (telefono: string): string => {
   return numeros;
 };
 
-export const formatearPrecio = (precio: number): string => {
+export const formatearPrecio = (precio: number | undefined | null): string => {
+  if (precio === undefined || precio === null || isNaN(precio)) {
+    return 'RD$ 0.00';
+  }
   return `RD$ ${precio.toLocaleString('es-DO', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

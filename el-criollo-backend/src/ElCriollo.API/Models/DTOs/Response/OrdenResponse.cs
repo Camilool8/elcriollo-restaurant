@@ -73,6 +73,21 @@ public class OrdenResponse
     public string Total { get; set; } = string.Empty;
 
     /// <summary>
+    /// Subtotal calculado (valor numérico)
+    /// </summary>
+    public decimal SubtotalCalculado { get; set; }
+
+    /// <summary>
+    /// Impuesto calculado (valor numérico)
+    /// </summary>
+    public decimal Impuesto { get; set; }
+
+    /// <summary>
+    /// Total calculado (valor numérico)
+    /// </summary>
+    public decimal TotalCalculado { get; set; }
+
+    /// <summary>
     /// Tiempo transcurrido desde creación
     /// </summary>
     public string TiempoTranscurrido { get; set; } = string.Empty;
@@ -112,6 +127,11 @@ public class DetalleOrdenResponse
     /// ID del detalle
     /// </summary>
     public int DetalleOrdenID { get; set; }
+
+    /// <summary>
+    /// Producto completo (para edición de órdenes)
+    /// </summary>
+    public ProductoResponse? Producto { get; set; }
 
     /// <summary>
     /// Tipo de item (Producto o Combo)

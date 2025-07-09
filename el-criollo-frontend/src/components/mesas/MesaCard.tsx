@@ -1,238 +1,322 @@
-// ====================================
-// src/components/mesas/MesaCard.tsx - Componente de tarjeta de mesa
-// ====================================
-
 import React, { useState } from 'react';
 import {
   Users,
   Clock,
   MapPin,
   AlertTriangle,
-  MoreVertical,
   CheckCircle,
   XCircle,
-  PlayCircle,
-  PauseCircle,
   Settings,
+  RefreshCw,
+  Receipt,
+  DollarSign,
+  Split,
+  FileText,
+  Eye,
+  Wrench,
+  ConciergeBell,
 } from 'lucide-react';
-import type { Mesa } from '@/types/mesa';
-import { COLORES_ESTADO_MESA } from '@/types/mesa';
-import { Button, Card } from '@/components';
-import { MesaActions } from './MesaActions';
+import { toast } from 'react-toastify';
+
+// Components
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+
+// Services
+import { ordenesService } from '@/services/ordenesService';
+
+// Types
+import type { Mesa, EstadoMesa } from '@/types/mesa';
+import type { Orden } from '@/types/orden';
+import type { ActionMenuItem } from '@/types';
 
 interface MesaCardProps {
   mesa: Mesa;
-  onLiberar: (mesaId: number) => Promise<boolean>;
-  onOcupar: (mesaId: number) => Promise<boolean>;
-  onCambiarEstado: (mesaId: number, nuevoEstado: string, motivo?: string) => Promise<boolean>;
-  onMarcarMantenimiento: (mesaId: number, motivo: string) => Promise<boolean>;
+  onCambiarEstado?: (mesaId: number, nuevoEstado: EstadoMesa, motivo?: string) => Promise<void>;
+  onMantenimiento?: (mesaId: number, motivo: string) => Promise<void>;
+  onOcupar?: (mesaId: number) => Promise<void>;
+  onLiberar?: (mesaId: number) => Promise<void>;
+  onGestionarOrden?: (mesa: Mesa) => void;
+  onVerFacturas?: (mesa: Mesa) => void;
   className?: string;
 }
 
 export const MesaCard: React.FC<MesaCardProps> = ({
   mesa,
-  onLiberar,
-  onOcupar,
   onCambiarEstado,
-  onMarcarMantenimiento,
+  onMantenimiento,
+  onOcupar,
+  onLiberar,
+  onGestionarOrden,
+  onVerFacturas,
   className = '',
 }) => {
-  const [showActions, setShowActions] = useState(false);
-  const colores = COLORES_ESTADO_MESA[mesa.estado];
+  // Estados
+  const [loading, setLoading] = useState(false);
+  const [mostrarDetalles, setMostrarDetalles] = useState(false);
+  const [ordenesActivas, setOrdenesActivas] = useState<Orden[]>([]);
+  const [loadingOrdenes, setLoadingOrdenes] = useState(false);
 
-  const getIconoEstado = () => {
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  const handleCargarOrdenes = async () => {
+    if (!mesa.mesaID) return;
+
+    try {
+      setLoadingOrdenes(true);
+      const ordenes = await ordenesService.getOrdenesByMesa(mesa.mesaID);
+      setOrdenesActivas(
+        ordenes.filter((o: Orden) => o.estado !== 'Entregada' && o.estado !== 'Cancelada')
+      );
+    } catch (error: any) {
+      console.error('Error cargando órdenes:', error);
+      toast.error('Error al cargar las órdenes de la mesa');
+    } finally {
+      setLoadingOrdenes(false);
+    }
+  };
+
+  const handleVerDetalles = async () => {
+    setMostrarDetalles(true);
+    await handleCargarOrdenes();
+  };
+
+  const handleCambiarEstado = async (nuevoEstado: EstadoMesa, motivo?: string) => {
+    if (!onCambiarEstado) return;
+
+    try {
+      setLoading(true);
+      await onCambiarEstado(mesa.mesaID, nuevoEstado, motivo);
+      toast.success(`Mesa ${mesa.numeroMesa} cambiada a ${nuevoEstado}`);
+    } catch (error: any) {
+      console.error('Error cambiando estado:', error);
+      toast.error(error.message || 'Error al cambiar el estado de la mesa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMantenimiento = async () => {
+    if (!onMantenimiento) return;
+
+    const motivo = prompt('Motivo del mantenimiento:');
+    if (!motivo) return;
+
+    try {
+      setLoading(true);
+      await onMantenimiento(mesa.mesaID, motivo);
+      toast.success(`Mesa ${mesa.numeroMesa} marcada para mantenimiento`);
+    } catch (error: any) {
+      console.error('Error en mantenimiento:', error);
+      toast.error(error.message || 'Error al marcar la mesa para mantenimiento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOcupar = async () => {
+    if (!onOcupar) return;
+
+    try {
+      setLoading(true);
+      await onOcupar(mesa.mesaID);
+      toast.success(`Mesa ${mesa.numeroMesa} ocupada`);
+    } catch (error: any) {
+      console.error('Error ocupando mesa:', error);
+      toast.error(error.message || 'Error al ocupar la mesa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLiberar = async () => {
+    if (!onLiberar) return;
+
+    const confirmado = confirm(`¿Está seguro que desea liberar la mesa ${mesa.numeroMesa}?`);
+    if (!confirmado) return;
+
+    try {
+      setLoading(true);
+      await onLiberar(mesa.mesaID);
+      toast.success(`Mesa ${mesa.numeroMesa} liberada`);
+    } catch (error: any) {
+      console.error('Error liberando mesa:', error);
+      toast.error(error.message || 'Error al liberar la mesa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================================================
+  // LÓGICA DE ACCIONES DINÁMICAS
+  // ============================================================================
+
+  const getAccionPrincipal = () => {
     switch (mesa.estado) {
       case 'Libre':
-        return <CheckCircle className="w-4 h-4 text-white" />;
-      case 'Ocupada':
-        return <PlayCircle className="w-4 h-4 text-white" />;
       case 'Reservada':
-        return <PauseCircle className="w-4 h-4 text-white" />;
+        return {
+          label: 'Ocupar / Gestionar',
+          onClick: () => onGestionarOrden?.(mesa),
+          icon: <ConciergeBell className="w-4 h-4 mr-2" />,
+        };
+      case 'Ocupada':
+        return {
+          label: 'Gestionar Órdenes',
+          onClick: () => onGestionarOrden?.(mesa),
+          icon: <Receipt className="w-4 h-4 mr-2" />,
+        };
       case 'Mantenimiento':
-        return <Settings className="w-4 h-4 text-white" />;
+        return {
+          label: 'Quitar Mantenimiento',
+          onClick: () => handleCambiarEstado('Libre'),
+          icon: <Wrench className="w-4 h-4 mr-2" />,
+          variant: 'default',
+        };
       default:
         return null;
     }
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Solo abrir acciones si no se hizo click en un botón
-    if (!(e.target as HTMLElement).closest('button')) {
-      setShowActions(true);
+  const getAccionesSecundarias = (): ActionMenuItem[] => {
+    const items: ActionMenuItem[] = [];
+
+    if (mesa.estado === 'Ocupada') {
+      items.push({
+        label: 'Ver Facturas',
+        icon: <Eye className="w-4 h-4" />,
+        onClick: () => onVerFacturas?.(mesa),
+      });
+      items.push({
+        label: 'Liberar Mesa',
+        icon: <XCircle className="w-4 h-4" />,
+        onClick: handleLiberar,
+        variant: 'danger',
+      });
+    }
+
+    if (mesa.estado !== 'Mantenimiento') {
+      items.push({
+        label: 'Poner en Mantenimiento',
+        icon: <Settings className="w-4 h-4" />,
+        onClick: handleMantenimiento,
+        variant: 'warning',
+      });
+    }
+
+    return items;
+  };
+
+  const accionPrincipal = getAccionPrincipal();
+  const accionesSecundarias = getAccionesSecundarias();
+
+  // ============================================================================
+  // FUNCIONES AUXILIARES
+  // ============================================================================
+
+  const obtenerColorEstado = (estado: EstadoMesa) => {
+    switch (estado) {
+      case 'Libre':
+        return 'bg-green-100 border-green-200 text-green-800';
+      case 'Ocupada':
+        return 'bg-blue-100 border-blue-200 text-blue-800';
+      case 'Reservada':
+        return 'bg-amber-100 border-amber-200 text-amber-800';
+      case 'Mantenimiento':
+        return 'bg-red-100 border-red-200 text-red-800';
+      default:
+        return 'bg-gray-100 border-gray-200 text-gray-800';
     }
   };
+
+  const obtenerIconoEstado = (estado: EstadoMesa) => {
+    switch (estado) {
+      case 'Libre':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'Ocupada':
+        return <Users className="w-4 h-4" />;
+      case 'Reservada':
+        return <Clock className="w-4 h-4" />;
+      case 'Mantenimiento':
+        return <AlertTriangle className="w-4 h-4" />;
+      default:
+        return <XCircle className="w-4 h-4" />;
+    }
+  };
+
+  const puedeFacturar = () => {
+    return mesa.estado === 'Ocupada' && mesa.ordenActual;
+  };
+
+  const puedeAbrirOrden = () => {
+    return mesa.estado === 'Libre' || mesa.estado === 'Reservada';
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <>
       <Card
-        className={`
-          relative overflow-hidden transition-all duration-200 cursor-pointer
-          ${colores.bg} ${colores.border} border-2
-          hover:shadow-lg hover:scale-105 transform
-          ${mesa.requiereAtencion ? 'ring-2 ring-amber-400 ring-opacity-60' : ''}
-          ${className}
-        `}
-        onClick={handleCardClick}
+        className={`flex flex-col justify-between h-full group ${className} ${
+          loading ? 'opacity-70 pointer-events-none' : ''
+        }`}
       >
-        {/* Header de la mesa */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            {getIconoEstado()}
-            <span className={`font-bold text-lg ${colores.text}`}>Mesa {mesa.numeroMesa}</span>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <div className="text-xl font-bold text-dominican-blue">Mesa {mesa.numeroMesa}</div>
+              <Badge className={`${obtenerColorEstado(mesa.estado)} text-xs`}>
+                {obtenerIconoEstado(mesa.estado)}
+                <span className="ml-1">{mesa.estado}</span>
+              </Badge>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-1">
-            {/* Indicadores de alerta */}
-            {mesa.necesitaLimpieza && (
-              <div
-                className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"
-                title="Necesita limpieza"
-              />
-            )}
-            {mesa.requiereAtencion && (
-              <AlertTriangle
-                className="w-4 h-4 text-yellow-300 animate-pulse"
-                aria-label="Requiere atención"
-              />
-            )}
+          <div className="text-sm text-gray-600 space-y-3">
+            {/* Descripción o estado actual */}
+            <p className="line-clamp-2">{mesa.descripcion || 'Sin descripción adicional.'}</p>
 
-            {/* Botón de acciones */}
+            {/* Detalles rápidos */}
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center">
+                <Users className="w-3 h-3 mr-1" />
+                <span>Capacidad: {mesa.capacidad}</span>
+              </div>
+              <div className="flex items-center">
+                <MapPin className="w-3 h-3 mr-1" />
+                <span>{mesa.ubicacion}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+          {accionPrincipal && (
             <Button
-              variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowActions(true);
-              }}
-              className="text-white hover:bg-white hover:bg-opacity-20 p-1"
+              onClick={accionPrincipal.onClick}
+              variant={accionPrincipal.variant as any}
+              className="flex-grow"
+              disabled={loading}
             >
-              <MoreVertical className="w-4 h-4" />
+              {accionPrincipal.icon}
+              {accionPrincipal.label}
             </Button>
-          </div>
-        </div>
-
-        {/* Información de capacidad y ubicación */}
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center space-x-1">
-            <Users className={`w-4 h-4 ${colores.text}`} />
-            <span className={`text-sm ${colores.text}`}>{mesa.capacidad} personas</span>
-          </div>
-
-          {mesa.ubicacion && (
-            <div className="flex items-center space-x-1">
-              <MapPin className={`w-4 h-4 ${colores.text}`} />
-              <span className={`text-sm ${colores.text}`}>{mesa.ubicacion}</span>
+          )}
+          {accionesSecundarias.length > 0 && (
+            <div className="ml-2">
+              <ActionMenu items={accionesSecundarias} />
             </div>
           )}
         </div>
-
-        {/* Contenido específico por estado */}
-        <div className="space-y-2">
-          {mesa.estado === 'Ocupada' && mesa.clienteActual && (
-            <div className={`text-sm ${colores.text}`}>
-              <div className="font-medium">👤 {mesa.clienteActual.nombreCompleto}</div>
-              {mesa.ordenActual && <div>🍽️ {mesa.ordenActual.numeroOrden}</div>}
-              {mesa.tiempoOcupada && (
-                <div className="flex items-center space-x-1 mt-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{mesa.tiempoOcupada}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {mesa.estado === 'Reservada' && mesa.reservacionActual && (
-            <div className={`text-sm ${colores.text}`}>
-              <div className="font-medium">📅 {mesa.reservacionActual.numeroReservacion}</div>
-              <div>👥 {mesa.reservacionActual.cantidadPersonas} personas</div>
-              {mesa.tiempoHastaReserva && (
-                <div className="flex items-center space-x-1 mt-1">
-                  <Clock className="w-3 h-3" />
-                  <span>En {mesa.tiempoHastaReserva}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {mesa.estado === 'Libre' && (
-            <div className={`text-sm ${colores.text} text-center font-medium`}>✅ Disponible</div>
-          )}
-
-          {mesa.estado === 'Mantenimiento' && (
-            <div className={`text-sm ${colores.text} text-center`}>🔧 En mantenimiento</div>
-          )}
-        </div>
-
-        {/* Botones de acción rápida para mesa libre */}
-        {mesa.estado === 'Libre' && (
-          <div className="mt-3 pt-3 border-t border-white border-opacity-30">
-            <div className="flex space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOcupar(mesa.mesaID);
-                }}
-                className="flex-1 text-white hover:bg-white hover:bg-opacity-20 text-xs"
-              >
-                Ocupar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowActions(true);
-                }}
-                className="flex-1 text-white hover:bg-white hover:bg-opacity-20 text-xs"
-              >
-                Más...
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Botón de liberación para mesa ocupada */}
-        {mesa.estado === 'Ocupada' && (
-          <div className="mt-3 pt-3 border-t border-white border-opacity-30">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onLiberar(mesa.mesaID);
-              }}
-              className="w-full text-white hover:bg-white hover:bg-opacity-20 text-xs"
-            >
-              <XCircle className="w-3 h-3 mr-1" />
-              Liberar Mesa
-            </Button>
-          </div>
-        )}
-
-        {/* Indicador de estado en la esquina */}
-        <div
-          className={`
-          absolute top-2 right-2 w-3 h-3 rounded-full
-          ${mesa.estado === 'Libre' ? 'bg-green-400' : ''}
-          ${mesa.estado === 'Ocupada' ? 'bg-red-400' : ''}
-          ${mesa.estado === 'Reservada' ? 'bg-blue-400' : ''}
-          ${mesa.estado === 'Mantenimiento' ? 'bg-yellow-400' : ''}
-        `}
-        />
       </Card>
-
-      {/* Modal de acciones */}
-      <MesaActions
-        mesa={mesa}
-        isOpen={showActions}
-        onClose={() => setShowActions(false)}
-        onLiberar={onLiberar}
-        onOcupar={onOcupar}
-        onCambiarEstado={onCambiarEstado}
-        onMarcarMantenimiento={onMarcarMantenimiento}
-      />
     </>
   );
 };

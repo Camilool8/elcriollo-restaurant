@@ -61,6 +61,11 @@ public class EmailSettings
     public string EmailOutputPath { get; set; } = "logs/emails/";
 
     /// <summary>
+    /// Email por defecto para clientes anónimos cuando no proporcionan email
+    /// </summary>
+    public string DefaultEmailForAnonymousClients { get; set; } = string.Empty;
+
+    /// <summary>
     /// Validar si la configuración de email es válida
     /// </summary>
     public bool IsValid()

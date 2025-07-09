@@ -126,10 +126,19 @@ namespace ElCriollo.API.Services
             try
             {
                 var email = emailDestino ?? factura.Cliente?.Email;
+                
+                // Si no hay email específico, usar el email por defecto para clientes anónimos
                 if (string.IsNullOrEmpty(email))
                 {
-                    _logger.LogWarning("⚠️ No hay email para enviar factura {FacturaId}", factura.FacturaID);
-                    return false;
+                    email = _emailSettings.DefaultEmailForAnonymousClients;
+                    
+                    if (string.IsNullOrEmpty(email))
+                    {
+                        _logger.LogWarning("⚠️ No hay email para enviar factura {FacturaId} y no hay email por defecto configurado", factura.FacturaID);
+                        return false;
+                    }
+                    
+                    _logger.LogInformation("📧 Enviando factura {FacturaId} a email por defecto para cliente anónimo: {Email}", factura.FacturaID, email);
                 }
 
                 var asunto = $"🧾 Factura #{factura.NumeroFactura} - El Criollo";
@@ -153,13 +162,27 @@ namespace ElCriollo.API.Services
         {
             try
             {
-                if (factura.Cliente?.Email == null) return false;
+                var email = factura.Cliente?.Email;
+                
+                // Si no hay email específico, usar el email por defecto para clientes anónimos
+                if (string.IsNullOrEmpty(email))
+                {
+                    email = _emailSettings.DefaultEmailForAnonymousClients;
+                    
+                    if (string.IsNullOrEmpty(email))
+                    {
+                        _logger.LogWarning("⚠️ No hay email para enviar comprobante de pago {FacturaId} y no hay email por defecto configurado", factura.FacturaID);
+                        return false;
+                    }
+                    
+                    _logger.LogInformation("📧 Enviando comprobante de pago {FacturaId} a email por defecto para cliente anónimo: {Email}", factura.FacturaID, email);
+                }
 
                 var asunto = $"✅ Comprobante de Pago #{factura.NumeroFactura} - El Criollo";
                 var contenidoHtml = GenerarPlantillaComprobantePago(factura);
 
                 return await EnviarEmailInternoAsync(
-                    factura.Cliente.Email,
+                    email,
                     asunto,
                     contenidoHtml,
                     "ComprobantePago",

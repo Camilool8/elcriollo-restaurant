@@ -5,6 +5,8 @@ using ElCriollo.API.Models.DTOs.Response;
 using ElCriollo.API.Models.ViewModels;
 using ElCriollo.API.Models.Entities;
 using Microsoft.Extensions.Logging;
+using ElCriollo.API.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ElCriollo.API.Services
 {
@@ -17,6 +19,7 @@ namespace ElCriollo.API.Services
         private readonly IProductoRepository _productoRepository;
         private readonly IMesaRepository _mesaRepository;
         private readonly IInventarioRepository _inventarioRepository;
+        private readonly ElCriolloDbContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<OrdenService> _logger;
 
@@ -30,6 +33,7 @@ namespace ElCriollo.API.Services
             IProductoRepository productoRepository,
             IMesaRepository mesaRepository,
             IInventarioRepository inventarioRepository,
+            ElCriolloDbContext context,
             IMapper mapper,
             ILogger<OrdenService> logger)
         {
@@ -37,6 +41,7 @@ namespace ElCriollo.API.Services
             _productoRepository = productoRepository;
             _mesaRepository = mesaRepository;
             _inventarioRepository = inventarioRepository;
+            _context = context;
             _mapper = mapper;
             _logger = logger;
         }
@@ -126,6 +131,82 @@ namespace ElCriollo.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al crear orden");
+                throw;
+            }
+        }
+
+        public async Task<OrdenResponse> ActualizarOrdenAsync(ActualizarOrdenRequest request, int usuarioId)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _logger.LogInformation("🔄 Actualizando orden {OrdenId} por usuario {UsuarioId}", request.OrdenID, usuarioId);
+
+                var orden = await _ordenRepository.GetByIdWithIncludesAsync(request.OrdenID);
+                if (orden == null)
+                    throw new KeyNotFoundException($"Orden con ID {request.OrdenID} no encontrada.");
+
+                if (orden.Estado != "Pendiente" && orden.Estado != "En Preparacion")
+                    throw new InvalidOperationException($"No se puede modificar una orden en estado '{orden.Estado}'.");
+
+                orden.Observaciones = request.Observaciones;
+                orden.FechaActualizacion = DateTime.Now;
+
+                var itemsActuales = orden.DetalleOrdenes.ToDictionary(d => d.ProductoID ?? -1);
+                var itemsRequest = request.Items.ToDictionary(i => i.ProductoId);
+
+                // Eliminar o actualizar items existentes
+                foreach (var itemActual in orden.DetalleOrdenes.ToList())
+                {
+                    if (itemActual.ProductoID.HasValue && !itemsRequest.ContainsKey(itemActual.ProductoID.Value))
+                    {
+                        await _ordenRepository.RemoveDetalleOrdenAsync(itemActual);
+                    }
+                    else if (itemActual.ProductoID.HasValue)
+                    {
+                        var itemNuevo = itemsRequest[itemActual.ProductoID.Value];
+                        if (itemActual.Cantidad != itemNuevo.Cantidad)
+                        {
+                            itemActual.Cantidad = itemNuevo.Cantidad;
+                            itemActual.Subtotal = itemActual.Cantidad * itemActual.PrecioUnitario;
+                        }
+                        itemActual.NotasEspeciales = itemNuevo.NotasEspeciales;
+                    }
+                }
+                
+                // Agregar nuevos items
+                foreach (var itemNuevo in request.Items)
+                {
+                    if (!itemsActuales.ContainsKey(itemNuevo.ProductoId))
+                    {
+                        var producto = await _productoRepository.GetByIdAsync(itemNuevo.ProductoId);
+                        if (producto == null) continue;
+
+                        var nuevoDetalle = new DetalleOrden
+                        {
+                            OrdenID = orden.OrdenID,
+                            ProductoID = itemNuevo.ProductoId,
+                            Cantidad = itemNuevo.Cantidad,
+                            PrecioUnitario = producto.Precio,
+                            NotasEspeciales = itemNuevo.NotasEspeciales,
+                        };
+                        await _ordenRepository.AddDetalleOrdenAsync(nuevoDetalle);
+                    }
+                }
+
+                await _ordenRepository.UpdateAsync(orden);
+                await RecalcularTotalesAsync(orden.OrdenID);
+                await transaction.CommitAsync();
+                
+                _logger.LogInformation("✅ Orden {OrdenId} actualizada correctamente.", request.OrdenID);
+                
+                var ordenActualizada = await _ordenRepository.GetByIdWithIncludesAsync(request.OrdenID);
+                return _mapper.Map<OrdenResponse>(ordenActualizada);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "❌ Error al actualizar la orden {OrdenId}", request.OrdenID);
                 throw;
             }
         }

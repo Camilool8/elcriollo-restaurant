@@ -175,6 +175,11 @@ namespace ElCriollo.API.Interfaces
         Task<DetalleOrden> AddDetalleOrdenAsync(DetalleOrden detalle);
 
         /// <summary>
+        /// Remueve un detalle de orden
+        /// </summary>
+        Task RemoveDetalleOrdenAsync(DetalleOrden detalle);
+
+        /// <summary>
         /// Agrega una nueva orden (alias de CreateAsync)
         /// </summary>
         new Task<Orden> AddAsync(Orden orden);

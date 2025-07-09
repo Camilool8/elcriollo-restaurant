@@ -1127,12 +1127,18 @@ namespace ElCriollo.API.Repositories
             }
         }
 
+        public async Task RemoveDetalleOrdenAsync(DetalleOrden detalle)
+        {
+            _context.DetalleOrdenes.Remove(detalle);
+            await _context.SaveChangesAsync();
+        }
+
         /// <summary>
         /// Agrega una nueva orden (alias de CreateAsync)
         /// </summary>
         public new async Task<Orden> AddAsync(Orden orden)
         {
-            return await CreateAsync(orden);
+            return await base.AddAsync(orden);
         }
     }
 }

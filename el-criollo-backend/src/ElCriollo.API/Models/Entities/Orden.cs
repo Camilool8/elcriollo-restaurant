@@ -216,7 +216,9 @@ public class Orden
     [NotMapped]
     public int TiempoPreparacionEstimado => DetalleOrdenes?
         .Where(d => d.Producto != null)
-        .Max(d => d.Producto!.TiempoPreparacion ?? 0) ?? 0;
+        .Select(d => d.Producto!.TiempoPreparacion ?? 0)
+        .DefaultIfEmpty(0)
+        .Max() ?? 0;
 
     /// <summary>
     /// Hora estimada de finalización
@@ -250,6 +252,12 @@ public class Orden
     /// </summary>
     [NotMapped]
     public string TotalFormateado => $"RD$ {Total:N2}";
+
+    /// <summary>
+    /// Subtotal formateado en pesos dominicanos
+    /// </summary>
+    [NotMapped]
+    public string SubtotalFormateado => $"RD$ {Subtotal:N2}";
 
     // ============================================================================
     // PROPIEDADES ALIAS PARA COMPATIBILIDAD

@@ -1,7 +1,5 @@
 using ElCriollo.API.Models.DTOs.Request;
 using ElCriollo.API.Models.DTOs.Response;
-using ElCriollo.API.Models.ViewModels;
-using ElCriollo.API.Models.Entities;
 
 namespace ElCriollo.API.Services
 {
@@ -21,6 +19,14 @@ namespace ElCriollo.API.Services
         /// <param name="usuarioId">ID del usuario que crea la orden</param>
         /// <returns>Orden creada</returns>
         Task<OrdenResponse> CrearOrdenAsync(CreateOrdenRequest crearOrdenRequest, int usuarioId);
+
+        /// <summary>
+        /// Actualiza una orden existente, incluyendo sus items.
+        /// </summary>
+        /// <param name="request">Datos de la orden a actualizar</param>
+        /// <param name="usuarioId">ID del usuario que realiza la actualización</param>
+        /// <returns>Orden actualizada</returns>
+        Task<OrdenResponse> ActualizarOrdenAsync(ActualizarOrdenRequest request, int usuarioId);
 
         /// <summary>
         /// Obtiene una orden por su ID
