@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { productosService } from '@/services/productosService';
-import { categoriaService } from '@/services/categoriaService';
-import { Producto, Categoria, CategoriaBasica } from '@/types';
+import { Producto, CategoriaBasica } from '@/types';
 
 interface UseProductosOptions {
   autoRefresh?: boolean;

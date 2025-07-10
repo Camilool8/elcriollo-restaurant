@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AlertTriangle, Clock, MapPin, Receipt } from 'lucide-react';
 
 // Components
@@ -12,7 +12,7 @@ import { CrearReservacionModal } from '@/components/mesas/CrearReservacionModal'
 import { UnifiedAutoRefreshControl } from '@/components/ui/UnifiedAutoRefreshControl';
 
 // Components de facturación y órdenes
-import { FacturaForm, ResumenFactura } from '@/components/facturacion';
+import { ResumenFactura } from '@/components/facturacion';
 
 // Hooks
 import { useMesas } from '@/hooks/useMesas';
@@ -20,8 +20,6 @@ import { useFacturacion } from '@/hooks/useFacturacion';
 
 // Types
 import type { FiltrosMesa, Mesa, EstadoMesa } from '@/types/mesa';
-import type { Orden, Cliente } from '@/types';
-import { clienteService } from '@/services/clienteService';
 
 // Toast notifications
 import {
@@ -35,17 +33,12 @@ export const MesasPageConFacturacion: React.FC = () => {
   // Estados básicos
   const [filtros, setFiltros] = useState<FiltrosMesa>({});
   const [mesaSeleccionada, setMesaSeleccionada] = useState<Mesa | null>(null);
-  const [ordenActiva, setOrdenActiva] = useState<Orden | null>(null);
-  const [loadingOrden, setLoadingOrden] = useState(false);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
 
   // Estados de modales
   const [isVerFacturasModalOpen, setIsVerFacturasModalOpen] = useState(false);
   const [isCrearFacturaModalOpen, setIsCrearFacturaModalOpen] = useState(false);
   const [isCrearReservacionModalOpen, setIsCrearReservacionModalOpen] = useState(false);
   const [mesaParaReservar, setMesaParaReservar] = useState<Mesa | null>(null);
-  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
-  const [mesaParaDebug, setMesaParaDebug] = useState<Mesa | null>(null);
 
   // Hooks
   const {
@@ -57,7 +50,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     ocuparMesa,
     cambiarEstadoMesa,
     marcarMantenimiento,
-    getOrdenesDetalladas,
     mesasQueNecesitanAtencion,
     autoRefresh,
   } = useMesas({ autoRefresh: true, refreshInterval: 30000 });
@@ -69,20 +61,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     limpiarError,
     autoRefresh: facturacionAutoRefresh,
   } = useFacturacion({ autoRefresh: true, refreshInterval: 30000 });
-
-  useEffect(() => {
-    const fetchClientes = async () => {
-      try {
-        const data = await clienteService.getClientes();
-        setClientes(data);
-      } catch (error) {
-        console.error('Error fetching clients', error);
-        showErrorToast('No se pudieron cargar los clientes.');
-      }
-    };
-
-    fetchClientes();
-  }, []);
 
   // Obtener mesas que necesitan atención (función llamada)
   const mesasConAtencion = useMemo(() => {
@@ -182,11 +160,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     showSuccessToast('Reservación creada exitosamente');
   };
 
-  const handleDebugMesa = (mesa: Mesa) => {
-    setMesaParaDebug(mesa);
-    setIsDebugModalOpen(true);
-  };
-
   // ============================================================================
   // HANDLERS DE FACTURACIÓN
   // ============================================================================
@@ -224,8 +197,6 @@ export const MesasPageConFacturacion: React.FC = () => {
     setIsCrearFacturaModalOpen(false);
     setIsCrearReservacionModalOpen(false);
     setMesaParaReservar(null);
-    setIsDebugModalOpen(false);
-    setMesaParaDebug(null);
   };
 
   const renderFacturacionModals = () => {
@@ -240,30 +211,13 @@ export const MesasPageConFacturacion: React.FC = () => {
             title={`Crear Factura - Mesa ${mesaSeleccionada.numeroMesa}`}
             size="xl"
           >
-            {loadingOrden ? (
-              <div className="flex justify-center items-center p-8">
-                <LoadingSpinner />
-              </div>
-            ) : ordenActiva ? (
-              <FacturaForm
-                orden={ordenActiva}
-                onFacturaCreada={() => {
-                  cerrarModales();
-                  refrescar();
-                }}
-                onClose={cerrarModales}
-              />
-            ) : (
-              <div className="p-8 text-center">
-                <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  No se pudo cargar la orden
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Intente cerrar esta ventana y volver a abrirla.
-                </p>
-              </div>
-            )}
+            <div className="p-8 text-center">
+              <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Función no disponible</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                La creación de facturas desde esta vista no está implementada.
+              </p>
+            </div>
           </Modal>
         )}
 
@@ -400,7 +354,6 @@ export const MesasPageConFacturacion: React.FC = () => {
                     handleCambiarEstado(mesaId, nuevoEstado, motivo)
                   }
                   onMantenimiento={(mesaId, motivo) => handleMantenimiento(mesaId, motivo)}
-                  onDebug={() => handleDebugMesa(mesa)}
                 />
               ))}
             </div>

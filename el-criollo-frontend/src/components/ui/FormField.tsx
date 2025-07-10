@@ -34,7 +34,6 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
     },
     ref
   ) => {
-    const [internalValue, setInternalValue] = React.useState(props.value || '');
     const [internalError, setInternalError] = React.useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,8 +50,6 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
             break;
         }
       }
-
-      setInternalValue(value);
 
       // Validación en tiempo real
       if (validation && value) {

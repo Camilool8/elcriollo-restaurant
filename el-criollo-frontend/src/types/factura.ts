@@ -1,8 +1,6 @@
 import type { Orden } from './orden';
 import type { Cliente } from './cliente';
 import type { Empleado } from './empleado';
-import type { DetalleOrden } from './orden';
-import type { Mesa } from './mesa';
 
 export interface Factura {
   facturaID: number;

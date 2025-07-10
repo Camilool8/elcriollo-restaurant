@@ -1,5 +1,5 @@
 import React from 'react';
-import { Filter, X, Calendar, User, Package, Tag, DollarSign } from 'lucide-react';
+import { Filter, X, Calendar, Package, Tag, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';

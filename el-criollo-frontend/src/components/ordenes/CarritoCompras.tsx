@@ -1,15 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  Users,
-  Calculator,
-  AlertCircle,
-  Check,
-  X,
-} from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Calculator, AlertCircle, Check, X } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -40,7 +30,6 @@ interface CarritoComprasProps {
 
 export const CarritoCompras: React.FC<CarritoComprasProps> = ({
   carrito,
-  mesas,
   clientes,
   onActualizarCantidad,
   onEliminarProducto,

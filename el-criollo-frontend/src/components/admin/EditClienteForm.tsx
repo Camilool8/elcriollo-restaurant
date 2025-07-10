@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Mail, Phone, User, MapPin, Calendar, Heart } from 'lucide-react';
+import { Mail, Phone, User, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';

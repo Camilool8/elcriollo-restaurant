@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from './Button';
-import { RefreshCw, Play, Pause, Clock, Database } from 'lucide-react';
+import { RefreshCw, Play, Pause, Database } from 'lucide-react';
 
 interface RefreshControl {
   isEnabled: boolean;

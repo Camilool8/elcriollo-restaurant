@@ -6,9 +6,6 @@ import {
   UserPlus,
   Briefcase,
   BarChart3,
-  Settings,
-  LogOut,
-  Coffee,
   ClipboardList,
   Package,
   UtensilsCrossed,
@@ -20,7 +17,7 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { state, logout, hasAnyRole } = useAuth();
+  const { hasAnyRole } = useAuth();
   const location = useLocation();
 
   const allNavigation = [
@@ -55,10 +52,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   ];
 
   const navigation = allNavigation.filter((item) => hasAnyRole(item.roles));
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   return (
     <div className="min-h-screen bg-warm-beige flex">

@@ -1,8 +1,7 @@
 import React from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Heart, Award, Hash } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Award } from 'lucide-react';
 import { Cliente } from '@/types';
 import { Modal } from '@/components/ui/Modal';
-import { Badge } from '@/components/ui/Badge';
 
 interface ClienteDetailsProps {
   cliente: Cliente;

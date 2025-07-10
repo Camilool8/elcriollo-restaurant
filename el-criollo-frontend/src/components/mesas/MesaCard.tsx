@@ -23,13 +23,8 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 
-// Services
-import { ordenesService } from '@/services/ordenesService';
-import { mesasService } from '@/services/mesasService';
-
 // Types
 import type { Mesa, EstadoMesa } from '@/types/mesa';
-import type { Orden } from '@/types/orden';
 import type { ActionMenuItem } from '@/types';
 
 interface MesaCardProps {
@@ -49,7 +44,6 @@ export const MesaCard: React.FC<MesaCardProps> = ({
   mesa,
   onCambiarEstado,
   onMantenimiento,
-  onOcupar,
   onLiberar,
   onGestionarOrden,
   onVerFacturas,
@@ -59,35 +53,10 @@ export const MesaCard: React.FC<MesaCardProps> = ({
 }) => {
   // Estados
   const [loading, setLoading] = useState(false);
-  const [mostrarDetalles, setMostrarDetalles] = useState(false);
-  const [ordenesActivas, setOrdenesActivas] = useState<Orden[]>([]);
-  const [loadingOrdenes, setLoadingOrdenes] = useState(false);
 
   // ============================================================================
   // HANDLERS
   // ============================================================================
-
-  const handleCargarOrdenes = async () => {
-    if (!mesa.mesaID) return;
-
-    try {
-      setLoadingOrdenes(true);
-      const ordenes = await ordenesService.getOrdenesByMesa(mesa.mesaID);
-      setOrdenesActivas(
-        ordenes.filter((o: Orden) => o.estado !== 'Entregada' && o.estado !== 'Cancelada')
-      );
-    } catch (error: any) {
-      console.error('Error cargando órdenes:', error);
-      showErrorToast('Error al cargar las órdenes de la mesa');
-    } finally {
-      setLoadingOrdenes(false);
-    }
-  };
-
-  const handleVerDetalles = async () => {
-    setMostrarDetalles(true);
-    await handleCargarOrdenes();
-  };
 
   const handleCambiarEstado = async (nuevoEstado: EstadoMesa, motivo?: string) => {
     if (!onCambiarEstado) return;

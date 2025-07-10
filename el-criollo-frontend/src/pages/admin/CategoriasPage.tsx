@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Search, Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -20,7 +20,6 @@ interface EditCategoriaForm {
 
 const CategoriasPage: React.FC = () => {
   const {
-    categorias,
     isLoading,
     error,
     loadCategorias,
@@ -45,11 +44,6 @@ const CategoriasPage: React.FC = () => {
     nombre: '',
     descripcion: '',
   });
-
-  const handleSearch = () => {
-    const query = searchQuery.trim().toLowerCase();
-    // La búsqueda se hace en el frontend ya que las categorías son pocas
-  };
 
   const handleCreateCategoria = async () => {
     if (!createForm.nombre.trim()) {

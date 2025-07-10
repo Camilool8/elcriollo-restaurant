@@ -1,22 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Package,
-  Clock,
-  DollarSign,
-  AlertTriangle,
-  Eye,
-} from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Package, Clock, AlertTriangle, Eye } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useProductos } from '@/hooks/useProductos';
-import { Producto, Categoria } from '@/types';
+import { Producto } from '@/types';
 import { formatearPrecio } from '@/utils/dominicanValidations';
 
 interface CreateProductoForm {
@@ -35,18 +25,8 @@ interface EditProductoForm {
   tiempoPreparacion: string;
 }
 
-interface CreateProductoRequest {
-  nombre: string;
-  descripcion: string;
-  categoriaID: number;
-  precio: string;
-  precioNumerico: number;
-  tiempoPreparacion: string;
-}
-
 const ProductosPage: React.FC = () => {
   const {
-    productos,
     categorias,
     isLoading,
     error,
@@ -59,7 +39,6 @@ const ProductosPage: React.FC = () => {
     productosActivos,
     productosInactivos,
     productosStockBajo,
-    productosAgotados,
   } = useProductos({ autoRefresh: true, refreshInterval: 30000 });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -193,11 +172,6 @@ const ProductosPage: React.FC = () => {
   };
 
   const filteredProductos = searchProductos(searchQuery, selectedCategoria || undefined);
-
-  const getCategoriaName = (categoriaID: number) => {
-    const categoria = categorias.find((c) => c.categoriaID === categoriaID);
-    return categoria?.nombreCategoria || 'Categoría no encontrada';
-  };
 
   return (
     <div className="space-y-6">

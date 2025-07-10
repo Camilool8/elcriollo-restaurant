@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
-import { UserPlus, UserIcon, Phone, Mail, MapPin, Calendar, Heart } from 'lucide-react';
+import { UserPlus, UserIcon, Phone, Mail, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';

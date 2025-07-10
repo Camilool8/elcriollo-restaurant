@@ -241,7 +241,7 @@ export const MesaFilters: React.FC<MesaFiltersProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Filtro por capacidad */}
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
                 <Users className="w-4 h-4 text-dominican-blue" />
                 <span>Capacidad</span>
               </label>
@@ -276,7 +276,7 @@ export const MesaFilters: React.FC<MesaFiltersProps> = ({
 
             {/* Filtro por ubicación */}
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
                 <MapPin className="w-4 h-4 text-dominican-blue" />
                 <span>Ubicación</span>
               </label>

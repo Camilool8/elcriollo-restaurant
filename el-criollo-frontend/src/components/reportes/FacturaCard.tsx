@@ -1,8 +1,5 @@
 import React from 'react';
-import { Calendar, DollarSign, Eye, Download, Receipt, MapPin, Package } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DollarSign, Eye, Receipt } from 'lucide-react';
 import type { Factura, Orden, Cliente } from '@/types';
 
 interface FacturaCardProps {
@@ -35,7 +32,6 @@ const formatDate = (dateString: string): string => {
 export const FacturaCard: React.FC<FacturaCardProps> = ({
   factura,
   orden,
-  cliente,
   onVerDetalle,
   className = '',
 }) => {

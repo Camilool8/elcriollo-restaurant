@@ -1,5 +1,11 @@
 import { api, getErrorMessage } from './api';
-import { CreateUsuarioRequest, UsuarioResponse, ResetPasswordRequest } from '@/types/requests';
+import {
+  CreateUsuarioRequest,
+  UsuarioResponse,
+  ResetPasswordRequest,
+  SearchUsuarioParams,
+  Rol,
+} from '@/types/requests';
 
 class AdminUserService {
   async createUser(userData: CreateUsuarioRequest): Promise<UsuarioResponse> {
@@ -9,6 +15,49 @@ class AdminUserService {
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error creando usuario: ${message}`);
+    }
+  }
+
+  async getUsers(
+    params?: SearchUsuarioParams
+  ): Promise<{ usuarios: UsuarioResponse[]; total: number }> {
+    try {
+      const response = await api.get<{ usuarios: UsuarioResponse[]; total: number }>(
+        '/auth/users',
+        { params }
+      );
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error obteniendo usuarios: ${message}`);
+    }
+  }
+
+  async getRoles(): Promise<Rol[]> {
+    try {
+      const response = await api.get<Rol[]>('/auth/roles');
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error obteniendo roles: ${message}`);
+    }
+  }
+
+  async deactivateUser(userId: number): Promise<void> {
+    try {
+      await api.put(`/auth/${userId}/deactivate`);
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error desactivando usuario: ${message}`);
+    }
+  }
+
+  async activateUser(userId: number): Promise<void> {
+    try {
+      await api.put(`/auth/${userId}/activate`);
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error activando usuario: ${message}`);
     }
   }
 

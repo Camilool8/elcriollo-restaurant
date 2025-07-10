@@ -50,7 +50,7 @@ interface FiltrosFacturacion {
 export const FacturacionSimplePage: React.FC = () => {
   // Hook de facturación
   const {
-    state: { facturas, facturasDelDia, estadisticas, facturaActual, isLoading, error, lastUpdated },
+    state: { facturasDelDia, estadisticas, facturaActual, isLoading, error, lastUpdated },
     anularFactura,
     seleccionarFactura,
     refrescarDatos,

@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
-import { toast } from 'react-toastify';
 import { authService } from './authService';
 import { showErrorToast, showErrorToastAlways } from '@/utils/toastUtils';
 

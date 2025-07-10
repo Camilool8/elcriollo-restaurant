@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  X,
-  Receipt,
-  User,
-  Calendar,
-  CreditCard,
-  DollarSign,
-  Package,
-  MapPin,
-  Phone,
-  Mail,
-} from 'lucide-react';
+import { Receipt, Calendar, DollarSign } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { Factura, Orden, Cliente } from '@/types';
 
@@ -56,7 +45,6 @@ const formatDate = (dateString: string): string => {
 export const FacturaDetalleModal: React.FC<FacturaDetalleModalProps> = ({
   factura,
   orden,
-  cliente,
   isOpen,
   onClose,
 }) => {
@@ -72,19 +60,6 @@ export const FacturaDetalleModal: React.FC<FacturaDetalleModalProps> = ({
         return 'text-red-600 bg-red-50 border-red-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getMetodoPagoIcon = (metodo: string) => {
-    switch (metodo.toLowerCase()) {
-      case 'efectivo':
-        return <DollarSign className="w-4 h-4" />;
-      case 'tarjeta':
-        return <CreditCard className="w-4 h-4" />;
-      case 'transferencia':
-        return <Receipt className="w-4 h-4" />;
-      default:
-        return <DollarSign className="w-4 h-4" />;
     }
   };
 

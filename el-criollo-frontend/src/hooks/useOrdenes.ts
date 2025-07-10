@@ -391,6 +391,9 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
     loading,
     error,
     lastUpdated,
+    estadisticas,
+    carritoActivo,
+    setCarritoActivo,
     cargarOrdenes,
     crearOrden,
     actualizarOrden,
@@ -403,5 +406,10 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
 
     // Utilidades de actualización
     actualizarOrdenLocal,
+    buscarOrdenPorId,
+    buscarOrdenPorNumero,
+    filtrarOrdenesPorEstado,
+    ordenesUrgentes,
+    getOrdenesPorMesa,
   };
 };

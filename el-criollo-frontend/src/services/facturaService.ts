@@ -1,10 +1,6 @@
 import { api } from './api';
 import { getErrorMessage } from './api';
-import {
-  calcularITBIS,
-  desglosarFactura,
-  generarNumeroFactura,
-} from '@/utils/dominicanValidations';
+import { desglosarFactura, generarNumeroFactura } from '@/utils/dominicanValidations';
 import type {
   Factura,
   CrearFacturaRequest,
@@ -14,10 +10,6 @@ import type {
   ReporteFacturacion,
   MetodoPago,
   FacturaEstado,
-  Orden,
-  DetalleOrden,
-  Cliente,
-  ClienteOcasional,
 } from '@/types';
 
 class FacturaService {
@@ -154,17 +146,6 @@ class FacturaService {
     } catch (error: any) {
       const message = getErrorMessage(error);
       throw new Error(`Error enviando factura por email: ${message}`);
-    }
-  }
-
-  /**
-   * Obtener el nombre completo de un cliente (registrado u ocasional)
-   */
-  private obtenerNombreCliente(cliente: Cliente | ClienteOcasional): string {
-    if ('esOcasional' in cliente) {
-      return `${cliente.nombre} ${cliente.apellido || ''}`.trim();
-    } else {
-      return cliente.nombreCompleto;
     }
   }
 

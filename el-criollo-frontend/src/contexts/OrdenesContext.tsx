@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import type { Orden } from '@/types';
 
 interface OrdenesContextType {
   // Estado

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail, Phone, Briefcase, Calendar, DollarSign, Info } from 'lucide-react';
+import { User, Mail, Phone, Calendar, DollarSign, Info } from 'lucide-react';
 import { Empleado } from '@/types';
 import { formatearFechaCorta } from '@/utils/dominicanValidations';
 

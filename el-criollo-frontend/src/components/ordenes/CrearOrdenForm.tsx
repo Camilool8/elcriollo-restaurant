@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -20,7 +20,6 @@ import type {
   Cliente,
 } from '@/types';
 import { AlertTriangle, ChefHat } from 'lucide-react';
-import { parsePrice } from '@/utils/priceUtils';
 
 // ============================================================================
 // COMPONENTE INTERNO PARA BÚSQUEDA DE PRODUCTOS

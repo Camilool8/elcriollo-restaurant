@@ -1,6 +1,3 @@
-import type { Cliente } from './cliente';
-import type { Mesa } from './mesa';
-
 export interface Reservacion {
   reservacionID: number;
   numeroReservacion: string;

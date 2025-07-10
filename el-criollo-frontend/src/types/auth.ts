@@ -3,8 +3,10 @@ import type { Empleado } from './empleado';
 export interface UsuarioResponse {
   usuarioId: number;
   usuario: string;
+  username: string;
   email: string;
   rol: string;
+  nombreRol: string;
   empleado: Empleado;
 }
 

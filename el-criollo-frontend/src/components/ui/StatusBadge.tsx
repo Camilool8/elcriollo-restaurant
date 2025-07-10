@@ -5,7 +5,7 @@ interface StatusBadgeProps {
   type?: 'user' | 'client' | 'employee' | 'order' | 'payment';
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'user' }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getVariant = () => {
     const statusLower = status.toLowerCase();
 

@@ -39,7 +39,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
 
     // Dimensiones del menú (aproximadas)
     const menuWidth = 192; // w-48 = 12rem = 192px
