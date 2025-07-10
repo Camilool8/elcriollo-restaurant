@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import type { Orden, EstadoOrden } from '@/types/orden';
 import { COLORES_ESTADO_ORDEN, ICONOS_TIPO_ORDEN } from '@/types/orden';
-import { parsePrice } from '@/utils/priceUtils';
 import { formatearPrecio } from '@/utils/dominicanValidations';
 import { useOrdenesContext } from '@/contexts/OrdenesContext';
 
@@ -55,6 +54,108 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
   // Aplicar estilo especial si la orden fue actualizada recientemente
   const esReciente = esOrdenReciente(orden.ordenID);
   const estiloReciente = esReciente ? 'ring-2 ring-blue-500 ring-opacity-50' : '';
+
+  // Calcular totales en tiempo real para asegurar que estén actualizados
+  const totalCalculado = React.useMemo(() => {
+    // Calcular la suma real de los items (subtotal sin ITBIS)
+    let subtotalSinITBIS = 0;
+    if (orden.detalles && orden.detalles.length > 0) {
+      subtotalSinITBIS = orden.detalles.reduce((acc, detalle) => {
+        let subtotal = 0;
+
+        // Intentar usar subtotalNumerico primero
+        if (detalle.subtotalNumerico && detalle.subtotalNumerico > 0) {
+          subtotal = detalle.subtotalNumerico;
+        } else if (typeof detalle.subtotal === 'string') {
+          // Parsear el string del subtotal
+          subtotal = parseFloat(detalle.subtotal.replace(/[^\d.-]/g, '')) || 0;
+        } else if (detalle.producto && detalle.producto.precioNumerico) {
+          // Calcular basado en precio y cantidad
+          subtotal = detalle.producto.precioNumerico * detalle.cantidad;
+        }
+
+        return acc + subtotal;
+      }, 0);
+    }
+
+    // Calcular el total con ITBIS (18%)
+    const totalConITBIS = subtotalSinITBIS * 1.18;
+
+    // Si el servidor tiene un total y es mayor o igual al total calculado, usarlo
+    if (orden.totalCalculado && orden.totalCalculado >= totalConITBIS) {
+      return orden.totalCalculado;
+    }
+
+    // Si el total del servidor es menor que el total calculado, usar el total calculado
+    if (totalConITBIS > 0) {
+      console.log(
+        `⚠️ Total del servidor (${orden.totalCalculado}) es menor que total calculado con ITBIS (${totalConITBIS}). Usando total calculado.`
+      );
+      return totalConITBIS;
+    }
+
+    return 0;
+  }, [orden.totalCalculado, orden.detalles]);
+
+  const subtotalCalculado = React.useMemo(() => {
+    // Calcular subtotal sin ITBIS (dividir el total por 1.18)
+    const subtotalCalculado = totalCalculado / 1.18;
+
+    // Si el servidor tiene un subtotal y es mayor o igual al calculado, usarlo
+    if (orden.subtotalCalculado && orden.subtotalCalculado >= subtotalCalculado) {
+      return orden.subtotalCalculado;
+    }
+
+    // Usar el subtotal calculado
+    return subtotalCalculado;
+  }, [orden.subtotalCalculado, totalCalculado]);
+
+  const totalItems = React.useMemo(() => {
+    return (
+      orden.totalItems || orden.detalles?.reduce((acc, detalle) => acc + detalle.cantidad, 0) || 0
+    );
+  }, [orden.totalItems, orden.detalles]);
+
+  // Debug: Log cuando cambian los totales
+  React.useEffect(() => {
+    console.log(
+      `🔄 OrdenCard ${orden.ordenID} - Total: ${totalCalculado}, Subtotal: ${subtotalCalculado}, Items: ${totalItems}`
+    );
+
+    // Debug detallado de los detalles
+    if (orden.detalles) {
+      console.log('📋 Detalles de la orden:');
+      let sumaItems = 0;
+      orden.detalles.forEach((detalle, index) => {
+        const subtotalCalculado =
+          detalle.subtotalNumerico ||
+          (typeof detalle.subtotal === 'string'
+            ? parseFloat(detalle.subtotal.replace(/[^\d.-]/g, ''))
+            : 0);
+        sumaItems += subtotalCalculado;
+        console.log(
+          `  ${index + 1}. ${detalle.cantidad}x ${detalle.nombreItem} - Subtotal: ${detalle.subtotal} (numérico: ${subtotalCalculado})`
+        );
+      });
+      console.log(`📊 Subtotal sin ITBIS: ${sumaItems}`);
+      console.log(`📊 Total con ITBIS (18%): ${sumaItems * 1.18}`);
+    }
+
+    console.log(
+      `💰 Total del servidor: ${orden.totalCalculado}, Subtotal del servidor: ${orden.subtotalCalculado}`
+    );
+    console.log(
+      `✅ Total final usado: ${totalCalculado}, Subtotal final usado: ${subtotalCalculado}`
+    );
+  }, [
+    orden.ordenID,
+    totalCalculado,
+    subtotalCalculado,
+    totalItems,
+    orden.detalles,
+    orden.totalCalculado,
+    orden.subtotalCalculado,
+  ]);
 
   const handleEstadoChange = (nuevoEstado: EstadoOrden) => {
     if (onEstadoChange) {
@@ -147,8 +248,8 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <div className="font-bold text-sm">{formatearPrecio(orden.totalCalculado || 0)}</div>
-            <div className="text-xs opacity-75">{orden.totalItems} items</div>
+            <div className="font-bold text-sm">{formatearPrecio(totalCalculado)}</div>
+            <div className="text-xs opacity-75">{totalItems} items</div>
           </div>
         </div>
       </div>
@@ -214,7 +315,7 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
 
           <div className="flex items-center space-x-2 text-sm">
             <Utensils className="w-4 h-4 text-gray-500" />
-            <span>{orden.totalItems} items</span>
+            <span>{totalItems} items</span>
           </div>
         </div>
 
@@ -223,10 +324,10 @@ export const OrdenCard: React.FC<OrdenCardProps> = ({
             <DollarSign className="w-4 h-4 text-gray-500" />
             <div>
               <div className="font-bold text-lg text-gray-900">
-                {formatearPrecio(orden.totalCalculado || 0)}
+                {formatearPrecio(totalCalculado)}
               </div>
               <div className="text-xs text-gray-600">
-                Subtotal: {formatearPrecio(orden.subtotalCalculado || 0)}
+                Subtotal: {formatearPrecio(subtotalCalculado)}
               </div>
             </div>
           </div>

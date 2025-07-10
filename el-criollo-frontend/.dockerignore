@@ -1,0 +1,9 @@
+# Directorios de build y output
+**/dist/
+**/build/
+**/node_modules/
+
+# Archivos de configuración local
+**/.vs/
+**/.vscode/
+**/.idea/

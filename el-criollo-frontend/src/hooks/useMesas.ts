@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 import { mesasService } from '@/services/mesasService';
 import { useAutoRefresh } from './useAutoRefresh';
 import type {
@@ -57,7 +57,7 @@ export const useMesas = (options: UseMesasOptions = {}) => {
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error al cargar mesas';
       setError(mensaje);
-      toast.error(`Error: ${mensaje}`);
+      showErrorToast(`Error: ${mensaje}`);
     } finally {
       setLoading(false);
     }
@@ -76,16 +76,16 @@ export const useMesas = (options: UseMesasOptions = {}) => {
         const resultado = await mesasService.liberarMesa(mesaId);
 
         if (resultado.success) {
-          toast.success(`Mesa liberada: ${resultado.message}`);
+          showSuccessToast(`Mesa liberada: ${resultado.message}`);
           await cargarMesas(); // Refrescar después del cambio
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al liberar mesa';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -99,16 +99,16 @@ export const useMesas = (options: UseMesasOptions = {}) => {
         const resultado = await mesasService.ocuparMesa(mesaId);
 
         if (resultado.success) {
-          toast.success(`Mesa ocupada: ${resultado.message}`);
+          showSuccessToast(`Mesa ocupada: ${resultado.message}`);
           await cargarMesas();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al ocupar mesa';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -122,16 +122,16 @@ export const useMesas = (options: UseMesasOptions = {}) => {
         const resultado = await mesasService.cambiarEstadoMesa(mesaId, request);
 
         if (resultado.success) {
-          toast.success(`Estado cambiado: ${resultado.message}`);
+          showSuccessToast(`Estado cambiado: ${resultado.message}`);
           await cargarMesas();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al cambiar estado';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -145,16 +145,16 @@ export const useMesas = (options: UseMesasOptions = {}) => {
         const resultado = await mesasService.marcarMantenimiento(mesaId, request);
 
         if (resultado.success) {
-          toast.success(`Mesa en mantenimiento: ${resultado.message}`);
+          showSuccessToast(`Mesa en mantenimiento: ${resultado.message}`);
           await cargarMesas();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al marcar mantenimiento';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -187,6 +187,19 @@ export const useMesas = (options: UseMesasOptions = {}) => {
     );
   }, [mesas]);
 
+  // Obtener información detallada de órdenes de una mesa (para debugging)
+  const getOrdenesDetalladas = useCallback(async (mesaId: number) => {
+    try {
+      const resultado = await mesasService.getOrdenesDetalladas(mesaId);
+      console.log('🔍 Información detallada de mesa', mesaId, ':', resultado);
+      return resultado;
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error obteniendo información detallada';
+      showErrorToast(`Error: ${mensaje}`);
+      return null;
+    }
+  }, []);
+
   // Auto-refresh control
   const autoRefreshControl = useAutoRefresh({
     enabled: autoRefresh,
@@ -217,6 +230,7 @@ export const useMesas = (options: UseMesasOptions = {}) => {
     buscarMesaPorNumero,
     filtrarMesasPorEstado,
     mesasQueNecesitanAtencion,
+    getOrdenesDetalladas,
 
     // Auto-refresh control
     autoRefresh: autoRefreshControl,

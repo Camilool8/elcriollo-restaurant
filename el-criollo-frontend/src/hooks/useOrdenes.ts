@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 import { ordenesService } from '@/services/ordenesService';
 import type {
   Orden,
@@ -24,8 +24,8 @@ interface UseOrdenesOptions {
 
 export const useOrdenes = (options: UseOrdenesOptions = {}) => {
   const {
-    autoRefresh = true,
-    refreshInterval = 15000, // 15 segundos para órdenes en tiempo real
+    autoRefresh = false,
+    refreshInterval = 30000, // 30 segundos para órdenes en tiempo real
     filtroEstado,
     filtroTipo,
     mesaId,
@@ -36,6 +36,7 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [estadisticas, setEstadisticas] = useState<EstadisticasOrdenes>({
     totalOrdenes: 0,
     ordenesPendientes: 0,
@@ -92,9 +93,10 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error al cargar órdenes';
       setError(mensaje);
-      toast.error(`Error: ${mensaje}`);
+      showErrorToast(`Error: ${mensaje}`);
     } finally {
       setLoading(false);
+      setLastUpdated(new Date());
     }
   }, [filtroEstado, filtroTipo, mesaId, soloActivas]);
 
@@ -127,13 +129,13 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
       try {
         const nuevaOrden = await ordenesService.crearOrden(request);
 
-        toast.success(`Orden ${nuevaOrden.numeroOrden} creada exitosamente`);
+        showSuccessToast(`Orden ${nuevaOrden.numeroOrden} creada exitosamente`);
         await cargarOrdenes(); // Refrescar lista
 
         return nuevaOrden;
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al crear orden';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         throw err;
       }
     },
@@ -165,7 +167,7 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         return ordenActualizada;
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al actualizar la orden';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         throw err;
       }
     },
@@ -186,16 +188,16 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         const resultado = await ordenesService.actualizarEstadoOrden(ordenId, request);
 
         if (resultado.success) {
-          toast.success(`Estado actualizado: ${resultado.message}`);
+          showSuccessToast(`Estado actualizado: ${resultado.message}`);
           await cargarOrdenes();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al actualizar estado';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -211,16 +213,16 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         const resultado = await ordenesService.cancelarOrden(ordenId, motivo);
 
         if (resultado.success) {
-          toast.success(`Orden cancelada: ${resultado.message}`);
+          showSuccessToast(`Orden cancelada: ${resultado.message}`);
           await cargarOrdenes();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al cancelar orden';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -236,16 +238,16 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
         const resultado = await ordenesService.marcarOrdenLista(ordenId);
 
         if (resultado.success) {
-          toast.success(`Orden marcada como lista: ${resultado.message}`);
+          showSuccessToast(`Orden marcada como lista: ${resultado.message}`);
           await cargarOrdenes();
           return true;
         } else {
-          toast.error(`Error: ${resultado.message}`);
+          showErrorToast(`Error: ${resultado.message}`);
           return false;
         }
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al marcar como lista';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         return false;
       }
     },
@@ -260,18 +262,32 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
       try {
         const ordenActualizada = await ordenesService.agregarItemsOrden(ordenId, request);
 
-        toast.success('Items agregados a la orden exitosamente');
+        showSuccessToast('Items agregados a la orden exitosamente');
         await cargarOrdenes();
 
         return ordenActualizada;
       } catch (err) {
         const mensaje = err instanceof Error ? err.message : 'Error al agregar items';
-        toast.error(`Error: ${mensaje}`);
+        showErrorToast(`Error: ${mensaje}`);
         throw err;
       }
     },
     [cargarOrdenes]
   );
+
+  /**
+   * Obtiene estadísticas de órdenes
+   */
+  const obtenerEstadisticas = useCallback(async () => {
+    try {
+      const resultado = await ordenesService.getEstadisticasOrdenes();
+      return resultado;
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error al obtener estadísticas';
+      showErrorToast(`Error: ${mensaje}`);
+      throw err;
+    }
+  }, []);
 
   // ============================================================================
   // UTILIDADES Y BÚSQUEDAS
@@ -371,17 +387,11 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
   // ============================================================================
 
   return {
-    // Datos principales
     ordenes,
-    estadisticas,
     loading,
     error,
-
-    // Estados de carrito
-    carritoActivo,
-    setCarritoActivo,
-
-    // Acciones CRUD
+    lastUpdated,
+    cargarOrdenes,
     crearOrden,
     actualizarOrden,
     actualizarEstadoOrden,
@@ -389,30 +399,9 @@ export const useOrdenes = (options: UseOrdenesOptions = {}) => {
     marcarOrdenLista,
     agregarItemsOrden,
     refrescar,
+    obtenerEstadisticas,
 
     // Utilidades de actualización
     actualizarOrdenLocal,
-
-    // Utilidades de búsqueda
-    buscarOrdenPorId,
-    buscarOrdenPorNumero,
-    filtrarOrdenesPorEstado,
-    getOrdenesPorMesa,
-
-    // Órdenes categorizadas
-    ordenesPendientes: filtrarOrdenesPorEstado('Pendiente'),
-    ordenesEnPreparacion: filtrarOrdenesPorEstado('En Preparacion'),
-    ordenesListas: filtrarOrdenesPorEstado('Lista'),
-    ordenesEntregadas: filtrarOrdenesPorEstado('Entregada'),
-    ordenesCanceladas: filtrarOrdenesPorEstado('Cancelada'),
-
-    // Órdenes especiales
-    ordenesUrgentes: ordenesUrgentes(),
-
-    // Funciones de utilidad
-    puedeModificarseOrden: (orden: Orden) => ordenesService.puedeModificarseOrden(orden),
-    getTransicionesPosibles: (estado: EstadoOrden) =>
-      ordenesService.getTransicionesPosibles(estado),
-    getResumenOrden: (orden: Orden) => ordenesService.getResumenOrden(orden),
   };
 };

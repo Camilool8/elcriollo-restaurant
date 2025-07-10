@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { toast } from 'react-toastify';
 import { authService } from './authService';
+import { showErrorToast, showErrorToastAlways } from '@/utils/toastUtils';
 
 // Configuración base de la API
 const API_BASE_URL = 'https://elcriolloapi.cjoga.cloud/api';
@@ -85,7 +86,8 @@ apiClient.interceptors.response.use(
         console.error('❌ Token refresh failed:', refreshError);
         authService.logout(); // Centralizar el logout
         window.location.href = '/login';
-        toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+        // Para el error de sesión expirada, siempre mostrar el toast
+        showErrorToastAlways('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
         return Promise.reject(refreshError);
       }
     }
@@ -93,27 +95,27 @@ apiClient.interceptors.response.use(
     // Manejar otros errores HTTP
     switch (error.response?.status) {
       case 400:
-        toast.error('Datos inválidos. Verifica la información ingresada.');
+        showErrorToast('Datos inválidos. Verifica la información ingresada.');
         break;
       case 403:
-        toast.error('No tienes permisos para realizar esta acción.');
+        showErrorToast('No tienes permisos para realizar esta acción.');
         break;
       case 404:
-        toast.error('Recurso no encontrado.');
+        showErrorToast('Recurso no encontrado.');
         break;
       case 500:
-        toast.error('Error interno del servidor. Intenta más tarde.');
+        showErrorToast('Error interno del servidor. Intenta más tarde.');
         break;
       case 503:
-        toast.error('Servicio no disponible. Intenta más tarde.');
+        showErrorToast('Servicio no disponible. Intenta más tarde.');
         break;
       default:
         if (error.code === 'ECONNABORTED') {
-          toast.error('Tiempo de espera agotado. Verifica tu conexión.');
+          showErrorToast('Tiempo de espera agotado. Verifica tu conexión.');
         } else if (error.code === 'ERR_NETWORK') {
-          toast.error('Error de conexión. Verifica tu internet.');
+          showErrorToast('Error de conexión. Verifica tu internet.');
         } else {
-          toast.error('Error inesperado. Intenta nuevamente.');
+          showErrorToast('Error inesperado. Intenta nuevamente.');
         }
     }
 

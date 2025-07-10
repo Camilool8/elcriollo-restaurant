@@ -7,7 +7,6 @@ import type { Factura, Orden, Cliente, Producto, Categoria } from './index';
 export interface FiltrosReporteVentas {
   fechaInicio?: Date;
   fechaFin?: Date;
-  clienteId?: number;
   productoId?: number;
   categoriaId?: number;
   metodoPago?: string;
@@ -112,7 +111,6 @@ export interface FiltrosReporteProps {
   filtros: FiltrosReporteVentas;
   onFiltrosChange: (filtros: FiltrosReporteVentas) => void;
   onLimpiarFiltros: () => void;
-  clientes: Cliente[];
   productos: Producto[];
   categorias: Categoria[];
   loading?: boolean;

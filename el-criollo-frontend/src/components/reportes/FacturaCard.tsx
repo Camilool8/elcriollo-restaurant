@@ -1,12 +1,35 @@
 import React from 'react';
-import { Receipt, User, Calendar, CreditCard, DollarSign, Package, MapPin } from 'lucide-react';
-import type { FacturaCardProps } from '@/types/reportes';
+import { Calendar, DollarSign, Eye, Download, Receipt, MapPin, Package } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import type { Factura, Orden, Cliente } from '@/types';
+
+interface FacturaCardProps {
+  factura: Factura;
+  orden: Orden | null;
+  cliente: Cliente | null;
+  onVerDetalle: (factura: Factura) => void;
+  onExportar: () => void;
+  className?: string;
+}
+
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-DO', {
     style: 'currency',
     currency: 'DOP',
     minimumFractionDigits: 2,
   }).format(amount);
+};
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('es-DO', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 export const FacturaCard: React.FC<FacturaCardProps> = ({
@@ -33,137 +56,104 @@ export const FacturaCard: React.FC<FacturaCardProps> = ({
     switch (metodo.toLowerCase()) {
       case 'efectivo':
         return <DollarSign className="w-4 h-4" />;
-      case 'tarjeta':
-        return <CreditCard className="w-4 h-4" />;
-      case 'transferencia':
+      case 'tarjeta de débito':
+      case 'tarjeta de crédito':
+        return <Receipt className="w-4 h-4" />;
+      case 'transferencia bancaria':
         return <Receipt className="w-4 h-4" />;
       default:
         return <DollarSign className="w-4 h-4" />;
     }
   };
 
+  // Asegurar que los valores numéricos sean correctos
+  const subtotal = typeof factura.subtotal === 'number' ? factura.subtotal : 0;
+  const total = typeof factura.total === 'number' ? factura.total : 0;
+  const descuento = typeof factura.descuento === 'number' ? factura.descuento : 0;
+  const propina = typeof factura.propina === 'number' ? factura.propina : 0;
+
   return (
     <div
-      className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer ${className}`}
-      onClick={() => onVerDetalle?.(factura)}
+      className={`bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105 ${className}`}
+      onClick={() => onVerDetalle(factura)}
     >
-      {/* Header de la factura */}
-      <div className="bg-gradient-to-r from-dominican-blue to-dominican-blue-dark text-white p-4 rounded-t-lg">
-        <div className="flex justify-between items-start">
+      {/* Header con información principal */}
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <h3 className="text-lg font-bold">🇩🇴 El Criollo</h3>
-            <p className="text-sm opacity-90">Restaurante Dominicano</p>
-            <p className="text-xs opacity-75 mt-1">
-              <MapPin className="w-3 h-3 inline mr-1" />
-              Santo Domingo, República Dominicana
-            </p>
+            <h3 className="text-xl font-bold text-gray-900">Factura #{factura.numeroFactura}</h3>
+            <p className="text-sm text-gray-500 mt-1">{formatDate(factura.fechaFactura)}</p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">#{factura.numeroFactura}</div>
-            <div className="text-xs opacity-75">FACTURA</div>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(factura.estado)}`}
+            >
+              {factura.estado}
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Información del cliente y fecha */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="grid grid-cols-2 gap-4">
+        {/* Información de pago */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {cliente?.nombreCompleto || 'Cliente General'}
-              </p>
-              <p className="text-xs text-gray-500">{cliente?.email || 'Sin email'}</p>
-            </div>
+            {getMetodoPagoIcon(factura.metodoPago)}
+            <span className="text-sm font-medium text-gray-700">{factura.metodoPago}</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {new Date(factura.fechaFactura).toLocaleDateString('es-DO')}
-              </p>
-              <p className="text-xs text-gray-500">
-                {new Date(factura.fechaFactura).toLocaleTimeString('es-DO')}
-              </p>
-            </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-dominican-blue">{formatCurrency(total)}</div>
+            <div className="text-xs text-gray-500">Total</div>
           </div>
         </div>
       </div>
 
       {/* Detalles de la factura */}
-      <div className="p-4">
+      <div className="p-6">
         <div className="space-y-3">
-          {/* Método de pago */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {getMetodoPagoIcon(factura.metodoPago)}
-              <span className="text-sm font-medium text-gray-700">Método de Pago:</span>
-            </div>
-            <span className="text-sm text-gray-900 capitalize">{factura.metodoPago}</span>
-          </div>
-
-          {/* Estado */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Estado:</span>
-            <span
-              className={`text-xs px-2 py-1 rounded-full border ${getEstadoColor(factura.estado)}`}
-            >
-              {factura.estado}
-            </span>
-          </div>
-
-          {/* Mesa */}
-          {orden?.mesaID && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Mesa:</span>
-              <span className="text-sm text-gray-900">#{orden.mesaID}</span>
-            </div>
-          )}
-
           {/* Subtotal */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-            <span className="text-sm text-gray-900">{formatCurrency(factura.subtotal)}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Subtotal</span>
+            <span className="text-sm font-medium text-gray-900">{formatCurrency(subtotal)}</span>
           </div>
 
           {/* Descuento */}
-          {factura.descuento > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Descuento:</span>
-              <span className="text-sm text-red-600">-{formatCurrency(factura.descuento)}</span>
+          {descuento > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Descuento</span>
+              <span className="text-sm font-medium text-red-600">-{formatCurrency(descuento)}</span>
             </div>
           )}
 
           {/* Propina */}
-          {factura.propina > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Propina:</span>
-              <span className="text-sm text-gray-900">{formatCurrency(factura.propina)}</span>
+          {propina > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Propina</span>
+              <span className="text-sm font-medium text-gray-900">{formatCurrency(propina)}</span>
             </div>
           )}
 
-          {/* Total */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-            <span className="text-lg font-bold text-gray-900">TOTAL:</span>
-            <span className="text-lg font-bold text-dominican-blue">
-              {formatCurrency(factura.total)}
+          {/* Mesa */}
+          {orden?.mesaID && (
+            <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+              <span className="text-sm text-gray-600">Mesa</span>
+              <span className="text-sm font-medium text-gray-900">#{orden.mesaID}</span>
+            </div>
+          )}
+
+          {/* Productos */}
+          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+            <span className="text-sm text-gray-600">Productos</span>
+            <span className="text-sm font-medium text-gray-900">
+              {orden?.detalles?.length || 0} items
             </span>
           </div>
         </div>
       </div>
 
-      {/* Footer con información adicional */}
-      <div className="bg-gray-50 p-3 rounded-b-lg">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center space-x-1">
-            <Package className="w-3 h-3" />
-            <span>{orden?.detalles?.length || 0} productos</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Receipt className="w-3 h-3" />
-            <span>Orden #{orden?.ordenID}</span>
-          </div>
+      {/* Footer con acción */}
+      <div className="px-6 py-4 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-center text-sm text-dominican-blue font-medium">
+          <Eye className="w-4 h-4 mr-2" />
+          Ver detalles completos
         </div>
       </div>
     </div>

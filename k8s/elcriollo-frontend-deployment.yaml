@@ -1,0 +1,281 @@
+---
+# ConfigMap para configuración del frontend
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elcriollo-frontend-config
+  namespace: elcriollo
+data:
+  # Configuración de la aplicación React
+  REACT_APP_API_URL: "https://elcriolloapi.cjoga.cloud"
+  REACT_APP_ENVIRONMENT: "production"
+  REACT_APP_VERSION: "2.0.0"
+  REACT_APP_BUILD_DATE: "2024-12-19"
+
+---
+# Deployment de El Criollo Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elcriollo-frontend-deployment
+  namespace: elcriollo
+  labels:
+    app: elcriollo-frontend
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: elcriollo-frontend
+  template:
+    metadata:
+      labels:
+        app: elcriollo-frontend
+    spec:
+      containers:
+        - name: elcriollo-frontend
+          image: cjoga/elcriollo-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            # Configuración desde ConfigMap
+            - name: REACT_APP_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-frontend-config
+                  key: REACT_APP_API_URL
+            - name: REACT_APP_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-frontend-config
+                  key: REACT_APP_ENVIRONMENT
+            - name: REACT_APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-frontend-config
+                  key: REACT_APP_VERSION
+            - name: REACT_APP_BUILD_DATE
+              valueFrom:
+                configMapKeyRef:
+                  name: elcriollo-frontend-config
+                  key: REACT_APP_BUILD_DATE
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Configuración de seguridad
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      # Configuración de seguridad del pod
+      securityContext:
+        fsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+
+      # Esperar a que la API esté disponible
+      initContainers:
+        - name: wait-for-api
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command:
+            - "sh"
+            - "-c"
+            - 'until wget --spider -q http://elcriollo-api-service/health; do echo "Esperando API..."; sleep 5; done; echo "API está disponible!"'
+
+---
+# Service para El Criollo Frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: elcriollo-frontend-service
+  namespace: elcriollo
+  labels:
+    app: elcriollo-frontend
+spec:
+  selector:
+    app: elcriollo-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+
+---
+# IngressRoute para acceso externo al frontend
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: elcriollo-frontend-ingress
+  namespace: elcriollo
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`elcriollo.cjoga.cloud`)
+      kind: Rule
+      services:
+        - name: elcriollo-frontend-service
+          port: 80
+      middlewares:
+        - name: frontend-cors
+          namespace: elcriollo
+
+---
+# Middleware para CORS del frontend
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: frontend-cors
+  namespace: elcriollo
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+    accessControlAllowHeaders:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+    accessControlAllowCredentials: true
+    accessControlMaxAge: 86400
+    # Configuración de seguridad adicional
+    frameDeny: true
+    contentTypeNosniff: true
+    browserXssFilter: true
+    referrerPolicy: "same-origin"
+    contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://elcriolloapi.cjoga.cloud;"
+
+---
+# ConfigMap para configuración de nginx personalizada
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: elcriollo
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        # Configuración de logs
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log /var/log/nginx/access.log main;
+        error_log /var/log/nginx/error.log warn;
+
+        # Configuración de compresión
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+
+        # Configuración de caché para archivos estáticos
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            add_header X-Content-Type-Options nosniff;
+        }
+
+        # Configuración principal del servidor
+        server {
+            listen 80;
+            server_name localhost;
+            root /usr/share/nginx/html;
+            index index.html;
+
+            # Configuración de seguridad
+            add_header X-Frame-Options "SAMEORIGIN" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "no-referrer-when-downgrade" always;
+            add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+
+            # Configuración para SPA routing (React Router)
+            location / {
+                try_files $uri $uri/ /index.html;
+            }
+
+            # Configuración para health check
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+
+            # Configuración para archivos estáticos con caché
+            location /assets/ {
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+
+            # Configuración para archivos de configuración
+            location ~* \.(json|xml)$ {
+                expires 1h;
+                add_header Cache-Control "public";
+            }
+
+            # Configuración de error pages
+            error_page 404 /index.html;
+            error_page 500 502 503 504 /50x.html;
+            location = /50x.html {
+                root /usr/share/nginx/html;
+            }
+        }
+    }

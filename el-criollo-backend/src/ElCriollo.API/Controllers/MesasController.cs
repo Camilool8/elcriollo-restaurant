@@ -4,6 +4,7 @@ using ElCriollo.API.Models.DTOs.Response;
 using ElCriollo.API.Models.DTOs.Common;
 using ElCriollo.API.Models.ViewModels;
 using ElCriollo.API.Services;
+using ElCriollo.API.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
@@ -763,6 +764,96 @@ namespace ElCriollo.API.Controllers
                 {
                     Title = "Error interno del servidor",
                     Detail = "Ocurrió un error al obtener el estado detallado de la mesa",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Obtener información detallada de órdenes de una mesa (para debugging)
+        /// </summary>
+        /// <param name="id">ID de la mesa</param>
+        /// <returns>Información detallada de todas las órdenes de la mesa</returns>
+        [HttpGet("{id}/ordenes-detalladas")]
+        [Authorize(Roles = "Administrador,Cajero")]
+        [SwaggerOperation(
+            Summary = "Obtener órdenes detalladas de mesa",
+            Description = "Obtiene información detallada de todas las órdenes de una mesa incluyendo facturas",
+            OperationId = "Mesas.GetOrdenesDetalladas",
+            Tags = new[] { "Debugging" }
+        )]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<object>> GetOrdenesDetalladas(int id)
+        {
+            try
+            {
+                var mesa = await _mesaService.GetMesaByIdAsync(id);
+                if (mesa == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Mesa no encontrada",
+                        Detail = $"No se encontró una mesa con ID {id}",
+                        Status = StatusCodes.Status404NotFound
+                    });
+                }
+
+                // Obtener órdenes de la mesa usando el repositorio directamente
+                var ordenRepository = HttpContext.RequestServices.GetRequiredService<IOrdenRepository>();
+                var facturaRepository = HttpContext.RequestServices.GetRequiredService<IFacturaRepository>();
+                
+                var ordenes = await ordenRepository.GetByMesaAsync(id);
+                var ordenesDetalladas = new List<object>();
+
+                foreach (var orden in ordenes)
+                {
+                    var facturas = await facturaRepository.GetByOrdenAsync(orden.OrdenID);
+                    var facturasInfo = facturas.Select(f => new
+                    {
+                        f.FacturaID,
+                        f.NumeroFactura,
+                        f.Estado,
+                        f.Total,
+                        f.FechaFactura,
+                        f.FechaPago
+                    }).ToList();
+
+                    ordenesDetalladas.Add(new
+                    {
+                        OrdenID = orden.OrdenID,
+                        NumeroOrden = orden.NumeroOrden,
+                        Estado = orden.Estado,
+                        FechaCreacion = orden.FechaCreacion,
+                        FechaActualizacion = orden.FechaActualizacion,
+                        Facturas = facturasInfo
+                    });
+                }
+
+                var resultado = new
+                {
+                    Mesa = new
+                    {
+                        mesa.MesaID,
+                        mesa.NumeroMesa,
+                        mesa.Estado,
+                        mesa.Capacidad
+                    },
+                    Ordenes = ordenesDetalladas,
+                    TotalOrdenes = ordenes.Count(),
+                    FechaVerificacion = DateTime.Now
+                };
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener órdenes detalladas de mesa: {MesaId}", id);
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Error interno del servidor",
+                    Detail = "Ocurrió un error al obtener las órdenes detalladas de la mesa",
                     Status = StatusCodes.Status500InternalServerError
                 });
             }

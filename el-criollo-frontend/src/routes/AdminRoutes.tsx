@@ -7,6 +7,7 @@ import ClientesPage from '@/pages/admin/ClientesPage';
 import EmpleadosPage from '@/pages/admin/EmpleadosPage';
 import ProductosPage from '@/pages/admin/ProductosPage';
 import CategoriasPage from '@/pages/admin/CategoriasPage';
+import ReportesVentasPage from '@/pages/admin/ReportesVentasPage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -18,6 +19,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="empleados" element={<EmpleadosPage />} />
         <Route path="productos" element={<ProductosPage />} />
         <Route path="categorias" element={<CategoriasPage />} />
+        <Route path="reportes" element={<ReportesVentasPage />} />
       </Routes>
     </AdminLayout>
   );

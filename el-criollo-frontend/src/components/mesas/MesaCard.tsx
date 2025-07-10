@@ -15,7 +15,7 @@ import {
   Calendar,
   Star,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 
 // Components
 import { Card } from '@/components/ui/Card';
@@ -41,6 +41,7 @@ interface MesaCardProps {
   onGestionarOrden?: (mesa: Mesa) => void;
   onVerFacturas?: (mesa: Mesa) => void;
   onReservar?: (mesa: Mesa) => void;
+  onDebug?: (mesa: Mesa) => void;
   className?: string;
 }
 
@@ -53,6 +54,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
   onGestionarOrden,
   onVerFacturas,
   onReservar,
+  onDebug,
   className = '',
 }) => {
   // Estados
@@ -76,7 +78,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       );
     } catch (error: any) {
       console.error('Error cargando órdenes:', error);
-      toast.error('Error al cargar las órdenes de la mesa');
+      showErrorToast('Error al cargar las órdenes de la mesa');
     } finally {
       setLoadingOrdenes(false);
     }
@@ -93,46 +95,40 @@ export const MesaCard: React.FC<MesaCardProps> = ({
     try {
       setLoading(true);
       await onCambiarEstado(mesa.mesaID, nuevoEstado, motivo);
-      toast.success(`Mesa ${mesa.numeroMesa} cambiada a ${nuevoEstado}`);
+      showSuccessToast(`Mesa ${mesa.numeroMesa} cambiada a ${nuevoEstado}`);
     } catch (error: any) {
       console.error('Error cambiando estado:', error);
-      toast.error(error.message || 'Error al cambiar el estado de la mesa');
+      showErrorToast(error.message || 'Error al cambiar el estado de la mesa');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMantenimiento = async () => {
+  const handleMarcarMantenimiento = async (motivo: string) => {
     if (!onMantenimiento) return;
-
-    const motivo = prompt('Motivo del mantenimiento:');
-    if (!motivo) return;
 
     try {
       setLoading(true);
       await onMantenimiento(mesa.mesaID, motivo);
-      toast.success(`Mesa ${mesa.numeroMesa} marcada para mantenimiento`);
+      showSuccessToast(`Mesa ${mesa.numeroMesa} marcada para mantenimiento`);
     } catch (error: any) {
-      console.error('Error en mantenimiento:', error);
-      toast.error(error.message || 'Error al marcar la mesa para mantenimiento');
+      console.error('Error marcando mantenimiento:', error);
+      showErrorToast(error.message || 'Error al marcar la mesa para mantenimiento');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLiberar = async () => {
+  const handleLiberarMesa = async () => {
     if (!onLiberar) return;
-
-    const confirmado = confirm(`¿Está seguro que desea liberar la mesa ${mesa.numeroMesa}?`);
-    if (!confirmado) return;
 
     try {
       setLoading(true);
       await onLiberar(mesa.mesaID);
-      toast.success(`Mesa ${mesa.numeroMesa} liberada`);
+      showSuccessToast(`Mesa ${mesa.numeroMesa} liberada exitosamente`);
     } catch (error: any) {
       console.error('Error liberando mesa:', error);
-      toast.error(error.message || 'Error al liberar la mesa');
+      showErrorToast(error.message || 'Error al liberar la mesa');
     } finally {
       setLoading(false);
     }
@@ -199,7 +195,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       items.push({
         label: 'Liberar Mesa',
         icon: <XCircle className="w-4 h-4" />,
-        onClick: handleLiberar,
+        onClick: handleLiberarMesa,
         variant: 'danger',
       });
     }
@@ -208,7 +204,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       items.push({
         label: 'Cancelar Reserva',
         icon: <XCircle className="w-4 h-4" />,
-        onClick: handleLiberar,
+        onClick: handleLiberarMesa,
         variant: 'danger',
       });
     }
@@ -217,7 +213,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       items.push({
         label: 'Poner en Mantenimiento',
         icon: <Settings className="w-4 h-4" />,
-        onClick: handleMantenimiento,
+        onClick: () => handleMarcarMantenimiento(''),
         variant: 'warning',
       });
     }
@@ -227,18 +223,7 @@ export const MesaCard: React.FC<MesaCardProps> = ({
       items.push({
         label: 'Debug Estado',
         icon: <Bug className="w-4 h-4" />,
-        onClick: async () => {
-          try {
-            const estadoDetallado = await mesasService.getEstadoDetallado(mesa.mesaID);
-            console.log('Estado detallado de la mesa:', estadoDetallado);
-            alert(
-              `Estado detallado:\nPuede liberarse: ${estadoDetallado.puedeLiberarse}\nVer consola para más detalles`
-            );
-          } catch (error) {
-            console.error('Error obteniendo estado detallado:', error);
-            alert('Error obteniendo estado detallado');
-          }
-        },
+        onClick: () => onDebug?.(mesa),
         variant: 'default',
       });
     }

@@ -75,6 +75,19 @@ class MesasService {
   }
 
   /**
+   * Obtiene información detallada de las órdenes de una mesa (para debugging)
+   */
+  async getOrdenesDetalladas(mesaId: number): Promise<any> {
+    try {
+      const response = await api.get(`/Mesas/${mesaId}/ordenes-detalladas`);
+      return response;
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      throw new Error(`Error obteniendo órdenes detalladas: ${message}`);
+    }
+  }
+
+  /**
    * Ocupa una mesa (la marca como ocupada)
    */
   async ocuparMesa(mesaId: number): Promise<{ success: boolean; message: string }> {

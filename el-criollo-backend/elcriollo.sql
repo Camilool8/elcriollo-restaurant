@@ -1487,7 +1487,7 @@ BEGIN
 END
 GO
 
--- Trigger para liberar mesa cuando se genera factura
+-- Trigger para liberar mesa cuando se genera factura (SOLO cuando todas las órdenes estén facturadas y pagadas)
 IF NOT EXISTS (SELECT * FROM sys.triggers WHERE name = 'tr_FacturaGenerada_LiberarMesa')
 BEGIN
     EXEC('
@@ -1496,20 +1496,37 @@ BEGIN
     AFTER INSERT
     AS
     BEGIN
-        -- Liberar mesa
+        -- Marcar orden como facturada
+        UPDATE Ordenes 
+        SET Estado = ''Facturada'', FechaActualizacion = GETDATE()
+        WHERE OrdenID IN (SELECT OrdenID FROM inserted);
+        
+        -- Verificar si se puede liberar la mesa (solo si todas las órdenes están facturadas y pagadas)
         UPDATE Mesas 
         SET Estado = ''Libre'', FechaUltimaActualizacion = GETDATE()
         WHERE MesaID IN (
-            SELECT o.MesaID 
+            SELECT DISTINCT o.MesaID 
             FROM inserted i
             INNER JOIN Ordenes o ON i.OrdenID = o.OrdenID
             WHERE o.MesaID IS NOT NULL
+        )
+        AND NOT EXISTS (
+            -- Verificar que no hay órdenes activas (pendientes, en preparación, etc.)
+            SELECT 1 FROM Ordenes o2
+            WHERE o2.MesaID = Mesas.MesaID
+            AND o2.Estado NOT IN (''Facturada'', ''Cancelada'', ''Completada'')
+        )
+        AND NOT EXISTS (
+            -- Verificar que todas las órdenes facturadas tengan facturas pagadas
+            SELECT 1 FROM Ordenes o3
+            WHERE o3.MesaID = Mesas.MesaID
+            AND o3.Estado = ''Facturada''
+            AND NOT EXISTS (
+                SELECT 1 FROM Facturas f
+                WHERE f.OrdenID = o3.OrdenID
+                AND f.Estado = ''Pagada''
+            )
         );
-        
-        -- Marcar orden como completada
-        UPDATE Ordenes 
-        SET Estado = ''Entregada'', FechaActualizacion = GETDATE()
-        WHERE OrdenID IN (SELECT OrdenID FROM inserted);
     END');
     PRINT 'Trigger tr_FacturaGenerada_LiberarMesa creado.';
 END

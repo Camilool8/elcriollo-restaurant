@@ -20,11 +20,20 @@ export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = 
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
 
   const fetchOrdenes = useCallback(async () => {
+    // Evitar refrescos muy frecuentes (mínimo 1 segundo entre refrescos)
+    const now = Date.now();
+    if (now - lastRefreshTime < 1000) {
+      console.log('🔄 Evitando refresco muy frecuente');
+      return;
+    }
+
     try {
       setError(null);
       setLoading(true);
+      setLastRefreshTime(now);
 
       const data = await ordenesService.getOrdenesByMesa(mesaId);
       const ordenesActivas = data.filter(
@@ -43,7 +52,7 @@ export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = 
     } finally {
       setLoading(false);
     }
-  }, [mesaId]);
+  }, [mesaId, lastRefreshTime]);
 
   // Refrescar datos
   const refrescar = useCallback(() => {
@@ -57,30 +66,24 @@ export const useOrdenesMesa = (mesaId: number, options: UseOrdenesMesaOptions = 
     }
   }, [mesaId, fetchOrdenes]);
 
-  // Efecto para auto-refresh cuando hay cambios en el contexto
+  // Efecto para refrescar cuando hay cambios en órdenes de esta mesa
   useEffect(() => {
     if (ordenesActualizadas.size > 0) {
-      // Refrescar cuando se detectan cambios en órdenes
-      console.log(
-        '🔄 Refrescando órdenes por cambios en contexto:',
-        Array.from(ordenesActualizadas)
+      const ordenesDeEstaMesa = ordenes.map((o) => o.ordenID);
+      const hayCambiosEnEstaMesa = Array.from(ordenesActualizadas).some((ordenId) =>
+        ordenesDeEstaMesa.includes(ordenId)
       );
-      fetchOrdenes();
-    }
-  }, [ordenesActualizadas, fetchOrdenes]);
 
-  // Efecto para refrescar inmediatamente cuando se actualiza una orden de esta mesa
-  useEffect(() => {
-    const ordenesDeEstaMesa = ordenes.map((o) => o.ordenID);
-    const hayCambiosEnEstaMesa = Array.from(ordenesActualizadas).some((ordenId) =>
-      ordenesDeEstaMesa.includes(ordenId)
-    );
-
-    if (hayCambiosEnEstaMesa) {
-      console.log('🔄 Refrescando inmediatamente por cambio en orden de esta mesa');
-      fetchOrdenes();
+      if (hayCambiosEnEstaMesa && !loading) {
+        console.log(
+          '🔄 Refrescando inmediatamente por cambio en orden de esta mesa:',
+          Array.from(ordenesActualizadas)
+        );
+        // Refrescar inmediatamente solo si no está ya cargando
+        fetchOrdenes();
+      }
     }
-  }, [ordenesActualizadas, ordenes, fetchOrdenes]);
+  }, [ordenesActualizadas, ordenes, fetchOrdenes, loading]);
 
   // Auto-refresh control
   const autoRefreshControl = useAutoRefresh({

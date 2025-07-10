@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { toast } from 'react-toastify';
-import { Eye, EyeOff, User, Lock, Coffee } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Coffee } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginRequest, UsuarioResponse } from '@/types';
+import { showErrorToastAlways, showInfoToast } from '@/utils/toastUtils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { LoginRequest, UsuarioResponse } from '@/types';
 import { authService } from '@/services/authService';
 
 // ====================================
@@ -98,7 +98,7 @@ const LoginForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error en login:', error);
-      toast.error('Error inesperado en el login');
+      showErrorToastAlways('Error inesperado en el login');
     } finally {
       setIsSubmitting(false);
     }
@@ -111,7 +111,7 @@ const LoginForm: React.FC = () => {
   const fillDemoCredentials = () => {
     setValue('username', 'thecuevas0123_');
     setValue('password', 'thepikachu0123_');
-    toast.info('Credenciales demo cargadas');
+    showInfoToast('Credenciales demo cargadas');
   };
 
   // ====================================

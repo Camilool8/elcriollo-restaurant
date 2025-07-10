@@ -1,5 +1,4 @@
 ---
-# ConfigMap actualizado para Cloudflare Tunnel incluyendo El Criollo
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,6 +10,10 @@ data:
     credentials-file: /etc/cloudflared/creds/credentials.json
 
     ingress:
+      # El Criollo Frontend
+      - hostname: elcriollo.cjoga.cloud
+        service: http://elcriollo-frontend-service.elcriollo.svc.cluster.local:80
+
       # El Criollo API
       - hostname: elcriolloapi.cjoga.cloud
         service: http://elcriollo-api-service.elcriollo.svc.cluster.local:80

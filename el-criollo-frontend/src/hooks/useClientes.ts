@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 import { Cliente } from '@/types';
 import { clienteService } from '@/services/clienteService';
 
@@ -34,11 +34,11 @@ export const useClientes = () => {
       const newCliente = await clienteService.createCliente(clienteData);
       setClientes((prev) => [newCliente, ...prev]);
       setTotalCount((prev) => prev + 1);
-      toast.success('¡Cliente registrado exitosamente! 🎉');
+      showSuccessToast('¡Cliente registrado exitosamente! 🎉');
       return newCliente;
     } catch (error: any) {
       const errorMessage = error.message || 'Error al registrar cliente';
-      toast.error(errorMessage);
+      showErrorToast(errorMessage);
       return null;
     }
   }, []);
@@ -61,7 +61,7 @@ export const useClientes = () => {
       const frecuentes = await clienteService.getClientesFrecuentes();
       return frecuentes;
     } catch (error: any) {
-      toast.error('Error al obtener clientes frecuentes');
+      showErrorToast('Error al obtener clientes frecuentes');
       return [];
     }
   }, []);
@@ -72,7 +72,7 @@ export const useClientes = () => {
       const cumpleanos = await clienteService.getClientesCumpleanos();
       return cumpleanos;
     } catch (error: any) {
-      toast.error('Error al obtener cumpleañeros');
+      showErrorToast('Error al obtener cumpleañeros');
       return [];
     }
   }, []);

@@ -12,3 +12,4 @@ export { usePagination } from './usePagination';
 export { useCategorias } from './useCategorias';
 export { useProductos } from './useProductos';
 export { useReservaciones } from './useReservaciones';
+export { useReporteVentas } from './useReporteVentas';

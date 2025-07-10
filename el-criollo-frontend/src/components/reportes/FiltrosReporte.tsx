@@ -9,7 +9,6 @@ export const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
   filtros,
   onFiltrosChange,
   onLimpiarFiltros,
-  clientes,
   productos,
   categorias,
   loading = false,
@@ -104,27 +103,6 @@ export const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
             className="w-full"
             disabled={loading}
           />
-        </div>
-
-        {/* Filtro por cliente */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <User className="w-4 h-4 inline mr-1" />
-            Cliente
-          </label>
-          <select
-            value={filtros.clienteId || ''}
-            onChange={(e) => handleSelectChange('clienteId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-dominican-blue focus:border-transparent"
-            disabled={loading}
-          >
-            <option value="">Todos los clientes</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.clienteID} value={cliente.clienteID}>
-                {cliente.nombreCompleto}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Filtro por producto */}

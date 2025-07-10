@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { showErrorToast, showSuccessToast } from '@/utils/toastUtils';
 import { reservacionService } from '@/services/reservacionService';
 import type {
   ReservacionConDetalles,
@@ -49,7 +49,7 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error al cargar reservaciones';
       setError(mensaje);
-      toast.error(`Error: ${mensaje}`);
+      showErrorToast(`Error: ${mensaje}`);
     } finally {
       setLoading(false);
     }
@@ -68,11 +68,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
     try {
       const nuevaReservacion = await reservacionService.crearReservacion(data);
       setReservaciones((prev) => [nuevaReservacion, ...prev]);
-      toast.success('Reservación creada exitosamente');
+      showSuccessToast('Reservación creada exitosamente');
       return nuevaReservacion;
     } catch (error: any) {
       const mensaje = error.message || 'Error al crear la reservación';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);
@@ -84,11 +84,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
         setReservaciones((prev) =>
           prev.map((r) => (r.reservacionID === id ? reservacionActualizada : r))
         );
-        toast.success('Reservación actualizada exitosamente');
+        showSuccessToast('Reservación actualizada exitosamente');
         return reservacionActualizada;
       } catch (error: any) {
         const mensaje = error.message || 'Error al actualizar la reservación';
-        toast.error(mensaje);
+        showErrorToast(mensaje);
         throw error;
       }
     },
@@ -101,11 +101,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
       setReservaciones((prev) =>
         prev.map((r) => (r.reservacionID === id ? { ...r, estado: 'Cancelada' } : r))
       );
-      toast.success('Reservación cancelada exitosamente');
+      showSuccessToast('Reservación cancelada exitosamente');
       return true;
     } catch (error: any) {
       const mensaje = error.message || 'Error al cancelar la reservación';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);
@@ -120,11 +120,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
       setReservaciones((prev) =>
         prev.map((r) => (r.reservacionID === id ? reservacionConfirmada : r))
       );
-      toast.success('Reservación confirmada exitosamente');
+      showSuccessToast('Reservación confirmada exitosamente');
       return reservacionConfirmada;
     } catch (error: any) {
       const mensaje = error.message || 'Error al confirmar la reservación';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);
@@ -135,11 +135,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
       setReservaciones((prev) =>
         prev.map((r) => (r.reservacionID === id ? reservacionIniciada : r))
       );
-      toast.success('Reservación iniciada exitosamente');
+      showSuccessToast('Reservación iniciada exitosamente');
       return reservacionIniciada;
     } catch (error: any) {
       const mensaje = error.message || 'Error al iniciar la reservación';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);
@@ -150,11 +150,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
       setReservaciones((prev) =>
         prev.map((r) => (r.reservacionID === id ? reservacionCompletada : r))
       );
-      toast.success('Reservación completada exitosamente');
+      showSuccessToast('Reservación completada exitosamente');
       return reservacionCompletada;
     } catch (error: any) {
       const mensaje = error.message || 'Error al completar la reservación';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);
@@ -163,11 +163,11 @@ export const useReservaciones = (options: UseReservacionesOptions = {}) => {
     try {
       const reservacionNoShow = await reservacionService.marcarNoShow(id);
       setReservaciones((prev) => prev.map((r) => (r.reservacionID === id ? reservacionNoShow : r)));
-      toast.success('Reservación marcada como No Show');
+      showSuccessToast('Reservación marcada como No Show');
       return reservacionNoShow;
     } catch (error: any) {
       const mensaje = error.message || 'Error al marcar como No Show';
-      toast.error(mensaje);
+      showErrorToast(mensaje);
       throw error;
     }
   }, []);

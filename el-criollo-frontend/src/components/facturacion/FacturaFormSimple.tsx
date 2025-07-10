@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Receipt, Calculator, AlertCircle, Check, X } from 'lucide-react';
+import { Receipt, Calculator, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Components
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -173,9 +172,6 @@ export const FacturaFormSimple: React.FC<FacturaFormSimpleProps> = ({
               Orden #{orden.numeroOrden} - Mesa {orden.mesa?.numeroMesa}
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
         </div>
 
         {/* Detalles de la orden */}

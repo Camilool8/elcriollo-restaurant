@@ -24,6 +24,19 @@ const estadoInicial: ReporteVentasState = {
   error: null,
 };
 
+// Función auxiliar para convertir strings de moneda a números
+const parseCurrency = (value: string | number): number => {
+  if (typeof value === 'number') return value;
+  if (!value) return 0;
+
+  // Remover "RD$ " y convertir a número
+  const cleanValue = value
+    .toString()
+    .replace(/RD\$\s*/g, '')
+    .replace(/,/g, '');
+  return parseFloat(cleanValue) || 0;
+};
+
 export const useReporteVentas = () => {
   const [state, setState] = useState<ReporteVentasState>(estadoInicial);
 
@@ -58,11 +71,23 @@ export const useReporteVentas = () => {
       } else {
         facturas = await facturaService.obtenerFacturasDelDia();
       }
+
+      // Procesar facturas para asegurar que los valores numéricos sean correctos
+      const facturasProcesadas = facturas.map((factura) => ({
+        ...factura,
+        subtotal: parseCurrency(factura.subtotal),
+        total: parseCurrency(factura.total),
+        descuento: parseCurrency(factura.descuento),
+        propina: parseCurrency(factura.propina),
+        impuesto: parseCurrency(factura.impuesto),
+      }));
+
       // Fetch órdenes relacionadas - obtener individualmente
-      const ordenIds = Array.from(new Set(facturas.map((f) => f.ordenID)));
+      const ordenIds = Array.from(new Set(facturasProcesadas.map((f) => f.ordenID)));
       const ordenes = await Promise.all(ordenIds.map((id) => ordenesService.getOrdenById(id)));
-      setState((prev) => ({ ...prev, facturas, ordenes, loading: false }));
-      return { facturas, ordenes };
+
+      setState((prev) => ({ ...prev, facturas: facturasProcesadas, ordenes, loading: false }));
+      return { facturas: facturasProcesadas, ordenes };
     } catch (error) {
       setState((prev) => ({ ...prev, loading: false, error: 'Error cargando datos' }));
       return { facturas: [], ordenes: [] };
@@ -78,22 +103,27 @@ export const useReporteVentas = () => {
       productos: Producto[]
     ) => {
       return facturas.filter((factura: Factura) => {
-        // Cliente
-        if (filtros.clienteId && factura.clienteID !== filtros.clienteId) return false;
         // Estado
         if (filtros.estadoFactura && factura.estado !== filtros.estadoFactura) return false;
+
         // Método de pago
         if (filtros.metodoPago && factura.metodoPago !== filtros.metodoPago) return false;
+
         // Monto
         if (filtros.montoMinimo && factura.total < filtros.montoMinimo) return false;
         if (filtros.montoMaximo && factura.total > filtros.montoMaximo) return false;
+
         // Producto
         if (filtros.productoId) {
           const orden = ordenes.find((o: Orden) => o.ordenID === factura.ordenID);
-          if (!orden || !orden.detalles?.some((d: any) => d.productoID === filtros.productoId))
+          if (
+            !orden ||
+            !orden.detalles?.some((d: any) => d.producto?.productoID === filtros.productoId)
+          )
             return false;
         }
-        // Categoría - usar productos para filtrar
+
+        // Categoría
         if (filtros.categoriaId) {
           const orden = ordenes.find((o: Orden) => o.ordenID === factura.ordenID);
           if (!orden) return false;
@@ -105,12 +135,14 @@ export const useReporteVentas = () => {
           const productoIdsDeCategoria = productosDeCategoria.map((p) => p.productoID);
 
           // Verificar si la orden contiene algún producto de esa categoría
-          const tieneProductoDeCategoria = orden.detalles?.some((d: any) =>
-            productoIdsDeCategoria.includes(d.productoID)
-          );
+          const tieneProductoDeCategoria = orden.detalles?.some((d: any) => {
+            // Verificar si el detalle tiene un producto y si ese producto está en la categoría
+            return d.producto && productoIdsDeCategoria.includes(d.producto.productoID);
+          });
 
           if (!tieneProductoDeCategoria) return false;
         }
+
         return true;
       });
     },
@@ -130,7 +162,7 @@ export const useReporteVentas = () => {
     const cantidadOrdenes = new Set(facturas.map((f: Factura) => f.ordenID)).size;
     const promedioPorFactura = cantidadFacturas ? totalFacturado / cantidadFacturas : 0;
     const promedioPorOrden = cantidadOrdenes ? totalFacturado / cantidadOrdenes : 0;
-    // ...otros cálculos (puedes expandir aquí)
+
     return {
       totalFacturado,
       totalPagado,

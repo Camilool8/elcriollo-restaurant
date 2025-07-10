@@ -64,19 +64,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-warm-beige flex">
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-lg border-r">
-        {/* Logo */}
-        <div className="p-6 border-b">
-          <Link to="/admin" className="flex items-center">
-            <div className="w-10 h-10 bg-dominican-red rounded-lg flex items-center justify-center mr-3">
-              <Coffee className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-heading font-bold text-dominican-blue">El Criollo</h1>
-              <p className="text-xs text-stone-gray">Admin Panel</p>
-            </div>
-          </Link>
-        </div>
-
         {/* Navigation */}
         <nav className="mt-6 px-4">
           <div className="space-y-2">

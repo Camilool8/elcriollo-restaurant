@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { toast } from 'react-toastify';
+import {
+  showErrorToast,
+  showSuccessToast,
+  showInfoToast,
+  showWarningToast,
+} from '@/utils/toastUtils';
 import { authService } from '@/services/authService';
 import { UsuarioResponse, LoginRequest, AuthState } from '@/types';
 
@@ -207,10 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Mostrar notificación de bienvenida
       const userName = response.usuario.usuario || 'Usuario';
-      toast.success(`¡Bienvenido, ${userName}! 🇩🇴`, {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      showSuccessToast(`¡Bienvenido, ${userName}! 🇩🇴`);
 
       console.log('✅ Login exitoso en contexto:', response.usuario);
       return true;
@@ -223,10 +225,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // Mostrar toast de error
-      toast.error(errorMessage, {
-        position: 'top-right',
-        autoClose: 5000,
-      });
+      showErrorToast(errorMessage);
 
       console.error('❌ Error en login:', errorMessage);
       return false;
@@ -241,10 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       dispatch({ type: 'AUTH_LOGOUT' });
 
-      toast.info('Sesión cerrada correctamente. ¡Hasta luego! 👋', {
-        position: 'top-right',
-        autoClose: 2000,
-      });
+      showInfoToast('Sesión cerrada correctamente. ¡Hasta luego! 👋');
 
       console.log('✅ Logout exitoso');
     } catch (error: any) {
@@ -253,10 +249,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Incluso si hay error, forzar logout local
       dispatch({ type: 'AUTH_LOGOUT' });
 
-      toast.warning('Sesión cerrada localmente debido a un error.', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      showWarningToast('Sesión cerrada localmente debido a un error.');
+
+      console.log('✅ Logout local exitoso');
     }
   };
 
@@ -283,15 +278,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       dispatch({ type: 'AUTH_SET_LOADING', payload: false });
 
-      toast.success('Contraseña cambiada exitosamente. 🔐', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      showSuccessToast('Contraseña cambiada exitosamente. 🔐');
 
       return true;
     } catch (error: any) {
       const errorMessage = error.message || 'Error desconocido';
-      toast.error(errorMessage);
+      showErrorToast(errorMessage);
       return false;
     }
   };

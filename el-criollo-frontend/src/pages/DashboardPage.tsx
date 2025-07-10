@@ -43,7 +43,7 @@ const DashboardPage: React.FC = () => {
 
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{state.user?.usuario}</p>
-                <p className="text-xs text-dominican-red">{state.user?.nombreRol}</p>
+                <p className="text-xs text-dominican-red">{state.user?.rol}</p>
               </div>
 
               <Button
@@ -69,27 +69,18 @@ const DashboardPage: React.FC = () => {
           <p className="text-stone-gray">
             Panel de control del Sistema POS - Restaurante Dominicano El Criollo
           </p>
-          <p className="text-sm text-dominican-red mt-1">Rol: {state.user?.nombreRol}</p>
+          <p className="text-sm text-dominican-red mt-1">Rol: {state.user?.rol}</p>
         </div>
 
         {/* Métricas rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="text-center" hover>
             <div className="w-12 h-12 bg-dominican-red bg-opacity-10 rounded-lg flex items-center justify-center mx-auto mb-3">
               <BarChart3 className="w-6 h-6 text-dominican-red" />
             </div>
-            <h3 className="font-heading font-semibold text-dominican-blue">Ventas Hoy</h3>
-            <p className="text-2xl font-bold text-dominican-red">RD$ 15,240</p>
-            <p className="text-sm text-stone-gray">+12% vs ayer</p>
-          </Card>
-
-          <Card className="text-center" hover>
-            <div className="w-12 h-12 bg-dominican-blue bg-opacity-10 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <UtensilsCrossed className="w-6 h-6 text-dominican-blue" />
-            </div>
-            <h3 className="font-heading font-semibold text-dominican-blue">Órdenes</h3>
-            <p className="text-2xl font-bold text-dominican-blue">23</p>
-            <p className="text-sm text-stone-gray">8 activas</p>
+            <h3 className="font-heading font-semibold text-dominican-blue">Facturas Hoy</h3>
+            <p className="text-2xl font-bold text-dominican-red">24</p>
+            <p className="text-sm text-stone-gray">RD$ 15,240 total</p>
           </Card>
 
           <Card className="text-center" hover>

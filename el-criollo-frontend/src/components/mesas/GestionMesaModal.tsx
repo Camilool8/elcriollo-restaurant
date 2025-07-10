@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, FileText, X, Loader, Check } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { PlusCircle, FileText, Check } from 'lucide-react';
+import { showErrorToast } from '@/utils/toastUtils';
 
 // Components
 import { Modal } from '@/components/ui/Modal';
@@ -11,11 +11,9 @@ import { CrearOrdenForm } from '@/components/ordenes/CrearOrdenForm';
 import { EditarOrdenForm } from '@/components/ordenes/EditarOrdenForm';
 import { FacturaFormSimple } from '@/components/facturacion/FacturaFormSimple';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { AutoRefreshControl } from '@/components/ui/AutoRefreshControl';
 
 // Hooks y servicios
 import { ordenesService } from '@/services/ordenesService';
-import { useOrdenesContext } from '@/contexts/OrdenesContext';
 import { useOrdenesMesa } from '@/hooks/useOrdenesMesa';
 
 // Types
@@ -36,14 +34,15 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
 }) => {
   if (!mesa) return null;
 
-  const { ordenesActualizadas } = useOrdenesContext();
-  const { ordenes, loading, error, refrescar, autoRefresh } = useOrdenesMesa(mesa.mesaID, {
-    autoRefresh: true,
-    refreshInterval: 30000, // Refrescar cada 30 segundos (reducido para evitar parpadeo)
+  const { ordenes, loading, refrescar } = useOrdenesMesa(mesa.mesaID, {
+    autoRefresh: false, // Desactivar auto-refresh para evitar múltiples llamadas
+    refreshInterval: 30000,
   });
 
   const [vista, setVista] = useState<VistaModal>('LISTA_ORDENES');
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<Orden | null>(null);
+  const [ordenActualizada, setOrdenActualizada] = useState<Orden | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleCrearNuevaOrden = () => {
     setVista('CREAR_ORDEN');
@@ -55,16 +54,58 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
       setOrdenSeleccionada(ordenCompleta);
       setVista('EDITAR_ORDEN');
     } catch (error) {
-      toast.error('No se pudo cargar el detalle de la orden para editar.');
+      showErrorToast('No se pudo cargar el detalle de la orden para editar.');
       console.error('Error fetching order details:', error);
     }
   };
 
   const handleVolverALista = async () => {
+    console.log('🔄 Volviendo a la lista de órdenes');
     setVista('LISTA_ORDENES');
     setOrdenSeleccionada(null); // Limpiar selección
-    refrescar(); // Refrescar órdenes para obtener precios actualizados
+    setOrdenActualizada(null); // Limpiar orden actualizada
+
+    // Solo refrescar si no está ya refrescando
+    if (!isRefreshing && !loading) {
+      setIsRefreshing(true);
+      try {
+        await refrescar();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+
     onOrdenChange(); // Notificar cambio para actualizar otros componentes
+  };
+
+  // Efecto para limpiar la orden actualizada cuando cambia la vista
+  useEffect(() => {
+    if (vista !== 'EDITAR_ORDEN') {
+      setOrdenActualizada(null);
+    }
+  }, [vista]);
+
+  const handleOrdenActualizada = async (orden: Orden) => {
+    console.log('🔄 Orden actualizada recibida:', orden.ordenID);
+
+    // Guardar la orden actualizada para mostrarla inmediatamente
+    setOrdenActualizada(orden);
+
+    // Refrescar los datos solo si no está ya refrescando
+    if (!isRefreshing && !loading) {
+      setIsRefreshing(true);
+      try {
+        await refrescar();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+
+    // Volver a la lista después de un pequeño delay
+    setTimeout(() => {
+      console.log('🔄 Volviendo a la lista después de actualizar orden');
+      handleVolverALista();
+    }, 200); // Reducido de 300ms a 200ms
   };
 
   const handleFacturarOrden = async (orden: Orden) => {
@@ -73,9 +114,66 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
       setOrdenSeleccionada(ordenCompleta);
       setVista('FACTURAR');
     } catch (error) {
-      toast.error('No se pudo cargar el detalle de la orden para facturar.');
+      showErrorToast('No se pudo cargar el detalle de la orden para facturar.');
       console.error('Error fetching order details for billing:', error);
     }
+  };
+
+  // Función para obtener la orden más actualizada
+  const getOrdenActualizada = (orden: Orden): Orden => {
+    // Si hay una orden actualizada para este ID, usarla
+    if (ordenActualizada && ordenActualizada.ordenID === orden.ordenID) {
+      console.log('🔄 Usando orden actualizada local:', ordenActualizada.ordenID);
+      return ordenActualizada;
+    }
+
+    // Buscar en las órdenes actuales (que pueden estar más actualizadas)
+    const ordenActual = ordenes.find((o) => o.ordenID === orden.ordenID);
+    if (ordenActual) {
+      console.log('🔄 Usando orden actualizada del servidor:', ordenActual.ordenID);
+      return ordenActual;
+    }
+
+    // Si no se encuentra, usar la orden original pero con totales recalculados
+    console.log('🔄 Recalculando totales para orden:', orden.ordenID);
+
+    // Calcular la suma real de los items (subtotal sin ITBIS)
+    let subtotalSinITBIS = 0;
+    if (orden.detalles && orden.detalles.length > 0) {
+      subtotalSinITBIS = orden.detalles.reduce((acc, detalle) => {
+        const subtotal =
+          detalle.subtotalNumerico ||
+          (typeof detalle.subtotal === 'string'
+            ? parseFloat(detalle.subtotal.replace(/[^\d.-]/g, ''))
+            : 0);
+        return acc + subtotal;
+      }, 0);
+    }
+
+    // Calcular el total con ITBIS (18%)
+    const totalConITBIS = subtotalSinITBIS * 1.18;
+
+    // Usar el total del servidor solo si es mayor o igual al total calculado
+    const totalCalculado =
+      orden.totalCalculado && orden.totalCalculado >= totalConITBIS
+        ? orden.totalCalculado
+        : totalConITBIS;
+
+    const subtotalCalculado = totalCalculado / 1.18; // Sin ITBIS
+    const totalItems = orden.detalles?.reduce((acc, detalle) => acc + detalle.cantidad, 0) || 0;
+
+    if (orden.totalCalculado && orden.totalCalculado < totalConITBIS) {
+      console.log(
+        `⚠️ Modal: Total del servidor (${orden.totalCalculado}) es menor que total calculado con ITBIS (${totalConITBIS}). Usando total calculado.`
+      );
+    }
+
+    return {
+      ...orden,
+      totalCalculado,
+      subtotalCalculado,
+      totalItems,
+    };
   };
 
   const renderContent = () => {
@@ -100,7 +198,7 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
           <EditarOrdenForm
             orden={ordenSeleccionada}
             onClose={handleVolverALista}
-            onOrdenActualizada={handleVolverALista}
+            onOrdenActualizada={handleOrdenActualizada}
           />
         );
       case 'FACTURAR':
@@ -128,20 +226,7 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Gestionar Mesa {mesa.numeroMesa}</h2>
-        <div className="flex items-center space-x-2">
-          <AutoRefreshControl
-            isEnabled={autoRefresh.isEnabled}
-            isRefreshing={autoRefresh.isRefreshing}
-            lastRefresh={autoRefresh.lastRefresh}
-            onToggle={autoRefresh.toggleAutoRefresh}
-            onRefresh={autoRefresh.refreshNow}
-            interval={30000}
-            className="bg-gray-50"
-          />
-          <Button onClick={onClose} variant="ghost" size="sm">
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        <div className="flex items-center space-x-2"></div>
       </div>
 
       <div className="flex justify-end">
@@ -156,40 +241,52 @@ export const GestionMesaModal: React.FC<GestionMesaModalProps> = ({
 
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">Órdenes Activas</h3>
-        {loading ? (
+        {loading || isRefreshing ? (
           <div className="flex justify-center p-8">
             <LoadingSpinner />
           </div>
         ) : ordenes.length > 0 ? (
-          ordenes.map((orden) => (
-            <Card key={orden.ordenID} className="p-4">
-              <OrdenCard
-                orden={orden}
-                showActions={false}
-                onEditarOrden={() => handleEditarOrden(orden)}
-                onFacturarOrden={() => handleFacturarOrden(orden)}
-              />
-              <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
-                {orden.estado !== 'Facturada' && (
-                  <Button variant="outline" size="sm" onClick={() => handleFacturarOrden(orden)}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Facturar
-                  </Button>
-                )}
-                {orden.estado !== 'Facturada' && (
-                  <Button size="sm" onClick={() => handleEditarOrden(orden)}>
-                    Editar Orden
-                  </Button>
-                )}
-                {orden.estado === 'Facturada' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" disabled>
-                    <Check className="w-4 h-4 mr-2" />
-                    Facturada
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))
+          ordenes.map((orden) => {
+            // Usar la orden más actualizada disponible
+            const ordenActualizada = getOrdenActualizada(orden);
+            return (
+              <Card key={orden.ordenID} className="p-4">
+                <OrdenCard
+                  orden={ordenActualizada}
+                  showActions={false}
+                  onEditarOrden={() => handleEditarOrden(ordenActualizada)}
+                  onFacturarOrden={() => handleFacturarOrden(ordenActualizada)}
+                />
+                <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+                  {ordenActualizada.estado !== 'Facturada' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFacturarOrden(ordenActualizada)}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Facturar
+                    </Button>
+                  )}
+                  {ordenActualizada.estado !== 'Facturada' && (
+                    <Button size="sm" onClick={() => handleEditarOrden(ordenActualizada)}>
+                      Editar Orden
+                    </Button>
+                  )}
+                  {ordenActualizada.estado === 'Facturada' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      disabled
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Facturada
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })
         ) : (
           <p className="text-gray-500 text-center py-4">No hay órdenes activas para esta mesa.</p>
         )}

@@ -8,3 +8,4 @@ export * from './mesa';
 export * from './orden';
 export * from './producto';
 export * from './reservacion';
+export * from './reportes';

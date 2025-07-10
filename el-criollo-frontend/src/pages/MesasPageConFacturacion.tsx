@@ -24,7 +24,12 @@ import type { Orden, Cliente } from '@/types';
 import { clienteService } from '@/services/clienteService';
 
 // Toast notifications
-import { toast } from 'react-toastify';
+import {
+  showErrorToast,
+  showSuccessToast,
+  showInfoToast,
+  showWarningToast,
+} from '@/utils/toastUtils';
 
 export const MesasPageConFacturacion: React.FC = () => {
   // Estados básicos
@@ -39,6 +44,8 @@ export const MesasPageConFacturacion: React.FC = () => {
   const [isCrearFacturaModalOpen, setIsCrearFacturaModalOpen] = useState(false);
   const [isCrearReservacionModalOpen, setIsCrearReservacionModalOpen] = useState(false);
   const [mesaParaReservar, setMesaParaReservar] = useState<Mesa | null>(null);
+  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+  const [mesaParaDebug, setMesaParaDebug] = useState<Mesa | null>(null);
 
   // Hooks
   const {
@@ -50,6 +57,7 @@ export const MesasPageConFacturacion: React.FC = () => {
     ocuparMesa,
     cambiarEstadoMesa,
     marcarMantenimiento,
+    getOrdenesDetalladas,
     mesasQueNecesitanAtencion,
     autoRefresh,
   } = useMesas({ autoRefresh: true, refreshInterval: 30000 });
@@ -69,7 +77,7 @@ export const MesasPageConFacturacion: React.FC = () => {
         setClientes(data);
       } catch (error) {
         console.error('Error fetching clients', error);
-        toast.error('No se pudieron cargar los clientes.');
+        showErrorToast('No se pudieron cargar los clientes.');
       }
     };
 
@@ -156,13 +164,13 @@ export const MesasPageConFacturacion: React.FC = () => {
     if (mesa.estado === 'Ocupada' || mesa.estado === 'Libre' || mesa.estado === 'Reservada') {
       setMesaSeleccionada(mesa);
     } else {
-      toast.info(`La mesa está en estado de ${mesa.estado} y no puede ser gestionada.`);
+      showInfoToast(`La mesa está en estado de ${mesa.estado} y no puede ser gestionada.`);
     }
   };
 
   const handleReservarMesa = (mesa: Mesa) => {
     if (mesa.estado !== 'Libre') {
-      toast.warning('Solo se pueden reservar mesas libres');
+      showWarningToast('Solo se pueden reservar mesas libres');
       return;
     }
     setMesaParaReservar(mesa);
@@ -171,7 +179,12 @@ export const MesasPageConFacturacion: React.FC = () => {
 
   const handleReservacionCreada = () => {
     refrescar();
-    toast.success('Reservación creada exitosamente');
+    showSuccessToast('Reservación creada exitosamente');
+  };
+
+  const handleDebugMesa = (mesa: Mesa) => {
+    setMesaParaDebug(mesa);
+    setIsDebugModalOpen(true);
   };
 
   // ============================================================================
@@ -180,7 +193,7 @@ export const MesasPageConFacturacion: React.FC = () => {
 
   const handleVerFacturas = async (mesa: Mesa) => {
     if (!mesa.ordenActual) {
-      toast.warning('Esta mesa no tiene una orden activa');
+      showWarningToast('Esta mesa no tiene una orden activa');
       return;
     }
 
@@ -188,7 +201,7 @@ export const MesasPageConFacturacion: React.FC = () => {
       const facturas = await obtenerFacturasPorOrden(mesa.ordenActual.ordenID);
 
       if (facturas.length === 0) {
-        toast.info('No hay facturas para esta mesa');
+        showInfoToast('No hay facturas para esta mesa');
         return;
       }
 
@@ -197,7 +210,7 @@ export const MesasPageConFacturacion: React.FC = () => {
       setIsVerFacturasModalOpen(true);
     } catch (error) {
       console.error('Error obteniendo facturas:', error);
-      toast.error('Error al obtener las facturas de la mesa');
+      showErrorToast('Error al obtener las facturas de la mesa');
     }
   };
 
@@ -211,6 +224,8 @@ export const MesasPageConFacturacion: React.FC = () => {
     setIsCrearFacturaModalOpen(false);
     setIsCrearReservacionModalOpen(false);
     setMesaParaReservar(null);
+    setIsDebugModalOpen(false);
+    setMesaParaDebug(null);
   };
 
   const renderFacturacionModals = () => {
@@ -385,6 +400,7 @@ export const MesasPageConFacturacion: React.FC = () => {
                     handleCambiarEstado(mesaId, nuevoEstado, motivo)
                   }
                   onMantenimiento={(mesaId, motivo) => handleMantenimiento(mesaId, motivo)}
+                  onDebug={() => handleDebugMesa(mesa)}
                 />
               ))}
             </div>

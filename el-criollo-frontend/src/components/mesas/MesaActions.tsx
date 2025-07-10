@@ -12,6 +12,7 @@ import {
   MapPin,
   Star,
   Zap,
+  Bug,
 } from 'lucide-react';
 import type { Mesa } from '@/types/mesa';
 import { Button, Modal, Card } from '@/components';
@@ -25,6 +26,7 @@ interface MesaActionsProps {
   onCambiarEstado: (mesaId: number, nuevoEstado: string, motivo?: string) => Promise<boolean>;
   onMarcarMantenimiento: (mesaId: number, motivo: string) => Promise<boolean>;
   onReservar?: (mesa: Mesa) => void;
+  onDebug?: (mesaId: number) => Promise<any>;
 }
 
 export const MesaActions: React.FC<MesaActionsProps> = ({
@@ -36,6 +38,7 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
   onCambiarEstado,
   onMarcarMantenimiento,
   onReservar,
+  onDebug,
 }) => {
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
   const [motivoMantenimiento, setMotivoMantenimiento] = useState('');
@@ -335,6 +338,18 @@ export const MesaActions: React.FC<MesaActionsProps> = ({
               <Clock className="w-4 h-4 mr-2" />
               Actualizar
             </Button>
+            {onDebug && (
+              <Button
+                onClick={() => onDebug(mesa.mesaID)}
+                variant="ghost"
+                disabled={loading}
+                className="text-purple-500 hover:text-purple-700"
+                title="Debug mesa"
+              >
+                <Bug className="w-4 h-4 mr-2" />
+                Debug
+              </Button>
+            )}
           </div>
         </div>
       </div>
